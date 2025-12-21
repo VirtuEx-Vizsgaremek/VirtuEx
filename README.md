@@ -17,7 +17,7 @@ Regarding the professional quality of the project, we will be able to present do
 ### System Architecture and Components
 The system is built on three layers: front-end (web React), backend (Node.js REST API), and the database (PostgreSQL). The administration interface connects to the same REST API as a separate WPF desktop application. External APIs: CoinMarketCap for market data; Stripe test API for financial simulations; optionally OAuth providers (Google, GitHub) for authentication.
 
-### Web Application
+### Web Application Features
 
 | Features                                                | Free      | Standard | Pro  |
 | :------------------------------------------------------ | :-------: | :------: | :--: |
@@ -39,7 +39,7 @@ The system is built on three layers: front-end (web React), backend (Node.js RES
 | TradingView chart                                       |    ❌     |    ❌    |  ✅  |
 | Subscription fee                                        |   FREE    |    $35   |  $49 |
 
-### Desktop Application
+### Desktop Application Features
 
 | Features                                               | Admin  |
 | :----------------------------------------------------- | :----: |
@@ -122,136 +122,81 @@ The user interface in both the web and desktop applications shows a clean appear
 #### Web Interface
 
 <p>
-	<p align="left">
-		The website opens with the chart view. Here we have the option to choose between using real or simulated data. in Chart view, there is an option to switch between AI (credit-based advice) and real-time (CoinMarketCap) data. The free package has limited chart view (candle and line, maximum monthly view), while the pro subscription provides full functionality.
-	</p>
-	<img align="right" width="804" height="520" alt="Chart View" src="https://github.com/user-attachments/assets/96e9a429-6db2-44d8-9c14-8d4e6c262a3e" />
+    <img align="right" width="45%" alt="Chart View" src="https://github.com/user-attachments/assets/96e9a429-6db2-44d8-9c14-8d4e6c262a3e" />
+    <strong>Chart View & Analysis</strong><br><br>
+    The website opens with the chart view. Here we have the option to choose between using real or simulated data. In Chart view, there is an option to switch between AI (credit-based advice) and real-time (CoinMarketCap) data. The free package has limited chart view (candle and line, maximum monthly view), while the pro subscription provides full functionality.
 </p>
-<br />
-<br />
-<br />
-<br />
-<br />
-<br />
-<br />
+<br clear="right"/><br>
+
 <p>
-<p align="right">
-	In the left menu bar, we can select the "Profile" option, where we can view and edit our own profile. We also have the opportunity to utilize functions beyond the basic package.
+    <img align="left" width="45%" alt="Profile" src="https://github.com/user-attachments/assets/ec08986d-6ea4-4c8c-8abf-bc07a1f7ab89" />
+    <strong>User Profile</strong><br><br>
+    In the left menu bar, we can select the "Profile" option, where we can view and edit our own profile. We also have the opportunity to utilize functions beyond the basic package, managing personal details and settings.
 </p>
-<img align="left" width="45%" alt="Profile" src="https://github.com/user-attachments/assets/ec08986d-6ea4-4c8c-8abf-bc07a1f7ab89" />
-</p>
-<br />
-<br />
-<br />
-<br />
-<br />
-<br />
-<br />
+<br clear="left"/><br>
+
 <p>
-<p align="left">
-	The "Wallet" is also under the profile, which shows our current assets. Under our assets, we can view our transaction history.
+    <img align="right" width="45%" alt="Wallet_view" src="https://github.com/user-attachments/assets/5fc47ff9-f1e0-4918-adfd-80b061dfba5c" />
+    <strong>Wallet & Assets</strong><br><br>
+    The "Wallet" is also under the profile section, which shows our current assets. Under our assets, we can view our full transaction history, estimated total value, and individual coin balances.
 </p>
-<img align="right" width="764" height="492" alt="Wallet_view" src="https://github.com/user-attachments/assets/5fc47ff9-f1e0-4918-adfd-80b061dfba5c" />
-</p>
-<br />
-<br />
-<br />
-<br />
-<br />
-<br />
-<br />
+<br clear="right"/><br>
+
 <p>
-<p align="right">
-	On the trading interface, we can select the trading mode and other settings indispensable for trading, such as currency and amount.
+    <img align="left" width="45%" alt="Coins" src="https://github.com/user-attachments/assets/dadeffdd-4d9d-48f6-acbb-d25434d4cdd2" />
+    <strong>Trading Interface</strong><br><br>
+    On the trading interface, we can select the trading mode and other settings indispensable for trading, such as currency and amount. This allows for quick execution of market, limit, or margin orders.
 </p>
-<img align="left" width="45%" alt="Coins" src="https://github.com/user-attachments/assets/dadeffdd-4d9d-48f6-acbb-d25434d4cdd2" />
-</p>
-<br />
-<br />
-<br />
-<br />
-<br />
-<br />
-<br />
+<br clear="left"/><br>
+
 <p>
-<p align="left">
-	Similar to the trading interface, we can swap our currencies for another one.
+    <img align="right" width="45%" alt="Swap_view" src="https://github.com/user-attachments/assets/85042822-5b93-488c-a925-57fbb55f9520" />
+    <strong>Quick Swap</strong><br><br>
+    Similar to the trading interface, we can swap our currencies for another one instantly. This feature simplifies portfolio rebalancing without needing complex order books.
 </p>
-<img align="right" width="717" height="511" alt="Swap_view" src="https://github.com/user-attachments/assets/85042822-5b93-488c-a925-57fbb55f9520" />
-</p>
-<br />
-<br />
-<br />
-<br />
-<br />
-<br />
-<br />
+<br clear="right"/><br>
 
 #### Desktop Application
 
 <p>
-	<p align="right">
-		After opening the desktop application, we find ourselves in the profiles view. We can also select this option from the left menu bar.
-	</p>
-	<img align="left" width="753" height="536" alt="Admin_user_list" src="https://github.com/user-attachments/assets/c22fcbe0-8ed3-4853-8b4f-47a0df54da2a" />
+    <img align="left" width="45%" alt="Admin_user_list" src="https://github.com/user-attachments/assets/c22fcbe0-8ed3-4853-8b4f-47a0df54da2a" />
+    <strong>User Management</strong><br><br>
+    After opening the desktop application, we find ourselves in the profiles view. We can also select this option from the left menu bar. This provides an overview of all registered users in the system.
 </p>
-<br />
-<br />
-<br />
-<br />
-<br />
-<br />
-<br />
+<br clear="left"/><br>
+
 <p>
-	<p align="left">
-		By clicking the "Edit" button on the profile label, we can edit individual profiles.
-	</p>
-	<img align="right" width="726" height="517" alt="Admin_profile_edit" src="https://github.com/user-attachments/assets/cbd411ff-4616-4825-8ca7-e906ecbf8701" />
+    <img align="right" width="45%" alt="Admin_profile_edit" src="https://github.com/user-attachments/assets/cbd411ff-4616-4825-8ca7-e906ecbf8701" />
+    <strong>Profile Editing</strong><br><br>
+    By clicking the "Edit" button on the profile label, admins can edit individual user profiles, including sensitive data recovery or modification requests that require higher privileges.
 </p>
-<br />
-<br />
-<br />
-<br />
-<br />
-<br />
-<br />
+<br clear="right"/><br>
+
 <p>
-	<p align="right">
-		Under "Details", we can see the profile specifics. Individual transactions, balance, and history.
-	</p>
-	<img align="left" width="664" height="473" alt="Admin_profile_details" src="https://github.com/user-attachments/assets/ace43a52-9666-4f27-9e7b-316ef1ed3844" />
+    <img align="left" width="45%" alt="Admin_profile_details" src="https://github.com/user-attachments/assets/ace43a52-9666-4f27-9e7b-316ef1ed3844" />
+    <strong>Detailed User View</strong><br><br>
+    Under "Details", we can see the profile specifics. This includes individual transactions, current balance, and history, allowing for deep-dive investigations into user activity.
 </p>
-<br />
-<br />
-<br />
-<br />
-<br />
-<br />
-<br />
+<br clear="left"/><br>
+
 <p>
-	<p align="left">
-		The "Punishment" button serves to impose individual sanctions. During trading, there are some illegal methods used to influence market operations, thereby gaining greater profit for certain users. If we notice these patterns, we can impose a penalty. Here, besides the justification, we must select why we are imposing the punishment.
-	</p>
-	<img align="right" width="656" height="466" alt="Admin_punishment" src="https://github.com/user-attachments/assets/d2562cf0-c5ab-466b-bbe6-28b4d880818e" />
+    <img align="right" width="45%" alt="Admin_punishment" src="https://github.com/user-attachments/assets/d2562cf0-c5ab-466b-bbe6-28b4d880818e" />
+    <strong>Sanctions & Punishments</strong><br><br>
+    The "Punishment" button serves to impose individual sanctions. During trading, there are some illegal methods used to influence market operations (e.g., Wash Trading). If we notice these patterns, we can impose a penalty, selecting the specific reason and type of punishment.
 </p>
-<br />
-<br />
-<br />
-<br />
-<br />
-<br />
-<br />
+<br clear="right"/><br>
+
 <p>
-	<p align="right">
-		In the menu bar, the "Transactions" menu point can be found, where we can monitor all money movements as shown in the figure.
-	</p>
-	<img align="left" width="747" height="483" alt="Admin_transactions" src="https://github.com/user-attachments/assets/92b522dc-66a7-4434-b54f-e7c180a944e4" />
+    <img align="left" width="45%" alt="Admin_transactions" src="https://github.com/user-attachments/assets/92b522dc-66a7-4434-b54f-e7c180a944e4" />
+    <strong>Transaction Monitoring</strong><br><br>
+    In the menu bar, the "Transactions" menu point can be found, where we can monitor all money movements in the system. This global view helps in auditing the platform's financial health.
 </p>
+<br clear="left"/><br>
 
 ## Data Management
 
 ### Database
-The database is structured according to the diagram below. Here is the ER diagram.
+The database is structured according to the diagram below.
 ![ER Diagram](image.png)
 
 ### API Endpoints
