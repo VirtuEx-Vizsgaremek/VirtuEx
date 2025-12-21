@@ -197,7 +197,7 @@ The user interface in both the web and desktop applications shows a clean appear
 
 ### Database
 The database is structured according to the diagram below.
-<img width="60%" alt="ER_diagram" src="https://github.com/user-attachments/assets/85c1c3c4-f116-4515-860d-27894c3e09bf" />
+<img width="100%" alt="ER_diagram" src="https://github.com/user-attachments/assets/85c1c3c4-f116-4515-860d-27894c3e09bf" />
 
 ### API Endpoints
 
