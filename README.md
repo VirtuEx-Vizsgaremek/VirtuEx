@@ -1,5 +1,3 @@
----
-
 ## 1. Bevezetés
 
 ### Feladat leírása
