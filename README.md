@@ -126,12 +126,72 @@ The user interface in both the web and desktop applications shows a clean appear
     <strong>Chart View & Analysis</strong><br><br>
     The website opens with the chart view. Here we have the option to choose between using real or simulated data. In Chart view, there is an option to switch between AI (credit-based advice) and real-time (CoinMarketCap) data. The free package has limited chart view (candle and line, maximum monthly view), while the pro subscription provides full functionality.
 </p>
+<p>
+    The website opens with the chart view.
+
+**Options available:**
+- Use real or simulated data
+- Switch between AI (credit-based advice) and real-time (CoinMarketCap) data
+
+**Package limitations:**
+- Free plan: limited chart view (candlestick and line, maximum monthly view)  
+- Pro subscription: full functionality
+
+**Database connection:** Market and User databases  
+
+**Tables:**
+- `price_history` (or external API)
+- `users`
+- `subscriptions`
+
+**Fields:**
+
+| Table           | Fields                                                |
+|-----------------|------------------------------------------------------|
+| price_history   | symbol, open, high, low, close, volume, timestamp   |
+| users           | id, ai_credits, subscription_level                  |
+| subscriptions   | -                                                    |
+
+**Operations:**
+- `SELECT`: Fetch chart data (filtered by date and resolution based on subscription_level)  
+- `SELECT`: Check user AI credits and subscription  
+- `UPDATE`: Reduce ai_credits when AI is used  
+
+---
+</p>
 <br clear="right"/><br>
 
 <p>
     <img align="left" width="45%" alt="Profile" src="https://github.com/user-attachments/assets/ec08986d-6ea4-4c8c-8abf-bc07a1f7ab89" />
     <strong>User Profile</strong><br><br>
     In the left menu bar, we can select the "Profile" option, where we can view and edit our own profile. We also have the opportunity to utilize functions beyond the basic package, managing personal details and settings.
+</p>
+<p>
+    In the **left menu**, the "Profile" option allows viewing and editing your profile.  
+It also provides access to features beyond the basic plan.
+
+<br>
+<br>
+
+**Database connection:** User database  
+
+**Tables:**
+- `users`
+- `subscriptions`
+
+**Fields:**
+
+| Table          | Fields                                               |
+|----------------|-----------------------------------------------------|
+| users          | id, username, email, password_hash, profile_image, created_at |
+| subscriptions  | user_id, plan_type, expiry_date, credits           |
+
+**Operations:**
+- `SELECT`: Load profile data and subscription status  
+- `UPDATE`: Modify profile data (e.g., password, image)  
+- `UPDATE`: Upgrade subscription (modify plan_type)  
+
+---
 </p>
 <br clear="left"/><br>
 
@@ -140,12 +200,69 @@ The user interface in both the web and desktop applications shows a clean appear
     <strong>Wallet & Assets</strong><br><br>
     The "Wallet" is also under the profile section, which shows our current assets. Under our assets, we can view our full transaction history, estimated total value, and individual coin balances.
 </p>
+<p>
+    The **wallet**, under the profile, shows our assets and transaction history.
+
+<br>
+
+**Database connection:** Transaction database  
+
+**Tables:**
+- `wallets`
+- `assets`
+- `transactions`
+- `currencies`
+
+**Fields:**
+
+| Table         | Fields                                                   |
+|---------------|---------------------------------------------------------|
+| assets        | wallet_id, currency_id, amount                           |
+| transactions  | id, sender_wallet_id, receiver_wallet_id, amount, currency, timestamp, status |
+| wallets       | user_id, total_estimated_value                            |
+
+**Operations:**
+- `SELECT`: Get current balance (assets) by user_id  
+- `SELECT`: Retrieve transaction list related to the user  
+
+---
+</p>
 <br clear="right"/><br>
 
 <p>
     <img align="left" width="45%" alt="Coins" src="https://github.com/user-attachments/assets/dadeffdd-4d9d-48f6-acbb-d25434d4cdd2" />
     <strong>Trading Interface</strong><br><br>
     On the trading interface, we can select the trading mode and other settings indispensable for trading, such as currency and amount. This allows for quick execution of market, limit, or margin orders.
+</p>
+<p>
+    On the trading interface, users can select the trading mode and other essential settings such as currency and amount.
+
+<br>
+<br>
+<br>
+
+**Database connection:** Trading Engine  
+
+**Tables:**
+- `orders`
+- `assets`
+- `market_prices`
+
+**Fields:**
+
+| Table       | Fields                                              |
+|------------|----------------------------------------------------|
+| orders     | id, user_id, pair (e.g., BTC/USD), type (limit/market), amount, price, status |
+| assets     | amount (for collateral check)                      |
+
+**Operations:**
+- `SELECT`: Check available balance  
+- `INSERT`: Create a new order  
+- `UPDATE`: Lock/reduce user's free balance  
+
+ 
+
+---
 </p>
 <br clear="left"/><br>
 
@@ -154,15 +271,45 @@ The user interface in both the web and desktop applications shows a clean appear
     <strong>Quick Swap</strong><br><br>
     Similar to the trading interface, we can swap our currencies for another one instantly. This feature simplifies portfolio rebalancing without needing complex order books.
 </p>
+<p>
+
+**Database connection:** Transaction database  
+
+**Tables:**
+- `assets`
+- `exchange_rates`
+- `transactions`
+
+**Fields:**
+
+| Table          | Fields                     |
+|----------------|---------------------------|
+| assets         | currency_id, amount        |
+| exchange_rates | pair, rate                 |
+
+**Operations:**
+- `SELECT`: Get exchange rate  
+- `UPDATE`: Decrease source currency balance  
+- `UPDATE`: Increase target currency balance  
+- `INSERT`: Log swap transaction 
+</p>
 <br clear="right"/><br>
 
 #### Desktop Application
-
+Upon opening, the application defaults to the **profiles view**.
 <p>
     <img align="left" width="45%" alt="Admin_user_list" src="https://github.com/user-attachments/assets/c22fcbe0-8ed3-4853-8b4f-47a0df54da2a" />
     <strong>User Management</strong><br><br>
     After opening the desktop application, we find ourselves in the profiles view. We can also select this option from the left menu bar. This provides an overview of all registered users in the system.
 </p>
+<br><br><br><br><br><br>
+
+**Database connection:** Admin database  
+**Tables:** `users`  
+**Fields:** `id, username, full_name, status (active/banned)`  
+
+**Operations:**
+- `SELECT`: List all registered users 
 <br clear="left"/><br>
 
 <p>
@@ -170,6 +317,10 @@ The user interface in both the web and desktop applications shows a clean appear
     <strong>Profile Editing</strong><br><br>
     By clicking the "Edit" button on the profile label, admins can edit individual user profiles, including sensitive data recovery or modification requests that require higher privileges.
 </p>
+
+**Database connection:** Admin database  
+**Tables:** `users`  
+**Fields:** `id, email, password, card_info`
 <br clear="right"/><br>
 
 <p>
@@ -177,6 +328,21 @@ The user interface in both the web and desktop applications shows a clean appear
     <strong>Detailed User View</strong><br><br>
     Under "Details", we can see the profile specifics. This includes individual transactions, current balance, and history, allowing for deep-dive investigations into user activity.
 </p>
+<br><br>
+<br><br>
+<br><br>
+
+**Database connection:** Transaction database  
+**Tables:** `users, assets, transactions`  
+**Fields:**
+- `users`: username  
+- `assets`: currency, amount  
+- `transactions`: timestamp, type, amount, status  
+
+**Operations:**
+- `SELECT`: Fetch specific user's balance and transaction history in admin view  
+
+---
 <br clear="left"/><br>
 
 <p>
@@ -184,6 +350,26 @@ The user interface in both the web and desktop applications shows a clean appear
     <strong>Sanctions & Punishments</strong><br><br>
     The "Punishment" button serves to impose individual sanctions. During trading, there are some illegal methods used to influence market operations (e.g., Wash Trading). If we notice these patterns, we can impose a penalty, selecting the specific reason and type of punishment.
 </p>
+
+<br>
+
+The "Punishment" button is used to sanction illegal trading behavior.
+
+**Database connection:** Admin database  
+**Tables:** `punishments, users`  
+
+**Fields:**
+
+| Table        | Fields                                                |
+|-------------|-----------------------------------------------------|
+| punishments | id, user_id, reason, punishment_type, created_at, admin_id |
+| users       | status                                              |
+
+**Operations:**
+- `INSERT`: Add a new punishment  
+- `UPDATE`: Change user status (e.g., suspended, banned)  
+
+---
 <br clear="right"/><br>
 
 <p>
@@ -191,6 +377,25 @@ The user interface in both the web and desktop applications shows a clean appear
     <strong>Transaction Monitoring</strong><br><br>
     In the menu bar, the "Transactions" menu point can be found, where we can monitor all money movements in the system. This global view helps in auditing the platform's financial health.
 </p>
+<br>
+<br>
+<br>
+<br>
+
+In the menu, the "Transactions" section allows monitoring all money movements.
+
+**Database connection:** Transaction database (Audit log)  
+**Tables:** `transactions, users`  
+
+**Fields:**
+
+| Table         | Fields                                         |
+|---------------|-----------------------------------------------|
+| transactions  | id, sender_id, receiver_id, amount, currency, timestamp |
+| users         | username (to resolve sender and receiver IDs) |
+
+**Operations:**
+- `SELECT`: Retrieve system-wide transaction list in chronological order
 <br clear="left"/><br>
 
 ## Data Management
