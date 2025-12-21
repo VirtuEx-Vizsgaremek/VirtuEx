@@ -125,7 +125,7 @@ The user interface in both the web and desktop applications shows a clean appear
 	<p align="left">
 		The website opens with the chart view. Here we have the option to choose between using real or simulated data. in Chart view, there is an option to switch between AI (credit-based advice) and real-time (CoinMarketCap) data. The free package has limited chart view (candle and line, maximum monthly view), while the pro subscription provides full functionality.
 	</p>
-	<img align="right" width="45%" alt="Chart View" src="image_b3f139.png" />
+	<img align="right" width="804" height="520" alt="Chart View" src="https://github.com/user-attachments/assets/96e9a429-6db2-44d8-9c14-8d4e6c262a3e" />
 </p>
 <br />
 <br />
@@ -151,7 +151,7 @@ The user interface in both the web and desktop applications shows a clean appear
 <p align="left">
 	The "Wallet" is also under the profile, which shows our current assets. Under our assets, we can view our transaction history.
 </p>
-<img align="right" width="45%" alt="Wallet" src="image_b3f13f.png" />
+<img align="right" width="764" height="492" alt="Wallet_view" src="https://github.com/user-attachments/assets/5fc47ff9-f1e0-4918-adfd-80b061dfba5c" />
 </p>
 <br />
 <br />
@@ -177,7 +177,7 @@ The user interface in both the web and desktop applications shows a clean appear
 <p align="left">
 	Similar to the trading interface, we can swap our currencies for another one.
 </p>
-<img align="right" width="45%" alt="Swap" src="image_b3f15a.png" />
+<img align="right" width="717" height="511" alt="Swap_view" src="https://github.com/user-attachments/assets/85042822-5b93-488c-a925-57fbb55f9520" />
 </p>
 <br />
 <br />
@@ -193,7 +193,7 @@ The user interface in both the web and desktop applications shows a clean appear
 	<p align="right">
 		After opening the desktop application, we find ourselves in the profiles view. We can also select this option from the left menu bar.
 	</p>
-	<img align="left" width="45%" alt="Admin User List" src="image_b3f15d.png" />
+	<img align="left" width="753" height="536" alt="Admin_user_list" src="https://github.com/user-attachments/assets/c22fcbe0-8ed3-4853-8b4f-47a0df54da2a" />
 </p>
 <br />
 <br />
@@ -206,7 +206,7 @@ The user interface in both the web and desktop applications shows a clean appear
 	<p align="left">
 		By clicking the "Edit" button on the profile label, we can edit individual profiles.
 	</p>
-	<img align="right" width="45%" alt="Admin Profile Edit" src="image_b3f15f.png" />
+	<img align="right" width="726" height="517" alt="Admin_profile_edit" src="https://github.com/user-attachments/assets/cbd411ff-4616-4825-8ca7-e906ecbf8701" />
 </p>
 <br />
 <br />
@@ -219,7 +219,7 @@ The user interface in both the web and desktop applications shows a clean appear
 	<p align="right">
 		Under "Details", we can see the profile specifics. Individual transactions, balance, and history.
 	</p>
-	<img align="left" width="45%" alt="Admin Profile Details" src="image_b3f13c.png" />
+	<img align="left" width="664" height="473" alt="Admin_profile_details" src="https://github.com/user-attachments/assets/ace43a52-9666-4f27-9e7b-316ef1ed3844" />
 </p>
 <br />
 <br />
@@ -232,7 +232,7 @@ The user interface in both the web and desktop applications shows a clean appear
 	<p align="left">
 		The "Punishment" button serves to impose individual sanctions. During trading, there are some illegal methods used to influence market operations, thereby gaining greater profit for certain users. If we notice these patterns, we can impose a penalty. Here, besides the justification, we must select why we are imposing the punishment.
 	</p>
-	<img align="right" width="45%" alt="Admin Punishment" src="image_b3f421.png" />
+	<img align="right" width="656" height="466" alt="Admin_punishment" src="https://github.com/user-attachments/assets/d2562cf0-c5ab-466b-bbe6-28b4d880818e" />
 </p>
 <br />
 <br />
@@ -245,7 +245,7 @@ The user interface in both the web and desktop applications shows a clean appear
 	<p align="right">
 		In the menu bar, the "Transactions" menu point can be found, where we can monitor all money movements as shown in the figure.
 	</p>
-	<img align="left" width="45%" alt="Admin Transactions" src="image_b3f423.png" />
+	<img align="left" width="747" height="483" alt="Admin_transactions" src="https://github.com/user-attachments/assets/92b522dc-66a7-4434-b54f-e7c180a944e4" />
 </p>
 
 ## Data Management
