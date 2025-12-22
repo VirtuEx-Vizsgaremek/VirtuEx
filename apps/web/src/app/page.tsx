@@ -11,35 +11,40 @@ import {
   NavigationMenuViewport
 } from '@/components/ui/navigation-menu';
 import Link from 'next/link';
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle
+} from '@/components/ui/card';
 
 export default function Home() {
   return (
     <div>
-      <div className="flex justify-end gap-4 p-2 border-b-[1px] border-gray-600/30">
-        <NavigationMenu>
-          <NavigationMenuList>
-            <NavigationMenuItem>
-              <NavigationMenuLink>
-                <Link href="">Premium</Link>
-              </NavigationMenuLink>
-            </NavigationMenuItem>
-            <NavigationMenuItem>
-              <NavigationMenuLink>
-                <Link href="">About Us</Link>
-              </NavigationMenuLink>
-            </NavigationMenuItem>
-            <NavigationMenuItem>
-              <NavigationMenuLink>
-                <Link href="">Sign Up</Link>
-              </NavigationMenuLink>
-            </NavigationMenuItem>
-            <NavigationMenuItem>
-              <NavigationMenuLink>
-                <Link href="">Log In</Link>
-              </NavigationMenuLink>
-            </NavigationMenuItem>
+      <div className="flex justify-between gap-4 m-auto mt-4 p-2">
+        <NavigationMenu className="w-full">
+          <NavigationMenuList className="w-full">
+            <div className="flex justify-self-start gap-4">
+              <NavigationMenuItem>
+                <NavigationMenuLink>
+                  <Link href="">Premium</Link>
+                </NavigationMenuLink>
+              </NavigationMenuItem>
+              <NavigationMenuItem>
+                <NavigationMenuLink>
+                  <Link href="">About Us</Link>
+                </NavigationMenuLink>
+              </NavigationMenuItem>
+            </div>
           </NavigationMenuList>
         </NavigationMenu>
+        <div className="flex justify-self-end gap-4">
+          <Button>Sign Up</Button>
+          <Button>Log In</Button>
+        </div>
       </div>
     </div>
   );
