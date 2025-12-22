@@ -3,3 +3,8 @@ export enum TransactionStatus {
   Completed = 'completed',
   Failed = 'failed'
 }
+
+export enum TransactionDirection {
+  Outgoing = 'out',
+  Incoming = 'in'
+}
