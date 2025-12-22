@@ -37,7 +37,7 @@ const config: Options = {
   port: parseInt(process.env.DB_PORT || '5432'),
   entities: ['build/**/*.entity.js'],
   entitiesTs: ['src/**/*.entity.ts'],
-  debug: true,
+  debug: process.env.NODE_ENV !== 'production',
   loggerFactory: (options) => new CustomLogger(options),
   highlighter: new SqlHighlighter()
 };
