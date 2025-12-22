@@ -11,7 +11,7 @@ import Logger from '@/util/logger';
 
 class CustomLogger extends DefaultLogger {
   log(namespace: LoggerNamespace, message: string, context?: LogContext) {
-    const logger = new Logger(`canteen::api::orm::${namespace}`);
+    const logger = new Logger(`virtuex::api::orm::${namespace}`);
     // Create your own implementation for output:
 
     switch ((context || { level: 'info' }).level) {
@@ -30,9 +30,9 @@ class CustomLogger extends DefaultLogger {
 
 const config: Options = {
   driver: PostgreSqlDriver,
-  dbName: process.env.DB_NAME!,
-  user: process.env.DB_USER!,
-  password: process.env.DB_PASS!,
+  dbName: process.env.DB_NAME || 'postgres',
+  user: process.env.DB_USER || 'postgres',
+  password: process.env.DB_PASS || 'postgres',
   host: process.env.DB_HOST || 'localhost',
   port: parseInt(process.env.DB_PORT || '5432'),
   entities: ['build/**/*.entity.js'],
