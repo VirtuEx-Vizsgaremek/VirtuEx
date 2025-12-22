@@ -1,14 +1,8 @@
-import snowflake from '@/util/snowflake';
-import {
-  BigIntType,
-  Entity,
-  Enum,
-  PrimaryKey,
-  Property,
-  Unique
-} from '@mikro-orm/core';
+import { Entity, Enum, OneToOne, Property, Unique } from '@mikro-orm/core';
 
 import { BaseEntity } from '@/entities/base.entity';
+import { Wallet } from '@/entities/wallet.entity';
+
 import { Subscription } from '@/enum/subscription';
 
 @Entity()
@@ -26,8 +20,11 @@ export class User extends BaseEntity {
   @Property({ length: 72 })
   password!: string;
 
-  @Property()
-  bio: string | undefined;
+  @Property({ length: 256, nullable: true })
+  bio: string | undefined | null;
+
+  @OneToOne({ orphanRemoval: true })
+  wallet!: Wallet;
 
   @Property()
   permissions: bigint = BigInt(0) as bigint;
