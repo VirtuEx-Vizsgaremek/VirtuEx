@@ -23,15 +23,19 @@ import {
 import { Button } from "@/components/ui/button"
 
 import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form"
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+  FieldLegend,
+  FieldSeparator,
+  FieldSet,
+  FieldTitle,
+} from "@/components/ui/field"
 
+import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 
 //Example profile data!
@@ -54,7 +58,7 @@ export default function ProfilePage() {
         <div className="max-w-[80vw] mx-auto my-10 px-4">
             <div className="grid grid-cols-[250px_1fr] gap-6">
                 
-                    <SideNav />
+                <SideNav />
                 
                 <main className="grid grid-cols-2 grid-rows-[auto_1fr] gap-10 text-lg">
 
@@ -98,46 +102,51 @@ export default function ProfilePage() {
                             
                             <CardContent className="min-h-[400px] flex flex-col pt-6">
                                 <form action="" className="flex flex-col flex-grow">
-                                <div className="space-y-6 flex-grow">
-                                    <div className="space-y-2">
-                                    <label className="text-sm font-semibold text-gray-600 uppercase tracking-wider">
+                                <div className="space-y-8 flex-grow">
+                                    
+                                    <Field className="space-y-2">
+                                    <Label className="text-sm font-semibold text-gray-600 uppercase tracking-wider">
                                         Name
-                                    </label>
-                                    <input
+                                    </Label>
+                                    <Input
                                         type="text"
                                         name="name"
                                         defaultValue="John Doe"
-                                        className="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm 
-                                                focus:ring-2 focus:ring-blue-500 focus:border-blue-500 
-                                                outline-none transition-all duration-200"
+                                        placeholder="Teljes név"
+                                        className="w-full px-4 py-2"
                                         required
                                     />
-                                    </div>
-                                    <div className="space-y-2">
-                                    <label className="text-sm font-semibold text-gray-600 uppercase tracking-wider">
+                                    </Field>
+                                    
+                                    <Field className="space-y-2">
+                                    <Label className="text-sm font-semibold text-gray-600 uppercase tracking-wider">
                                         Email Address
-                                    </label>
-                                    <input
+                                    </Label>
+                                    <Input
                                         type="email"
                                         name="email"
                                         defaultValue="john.doe@example.com"
-                                        className="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm 
-                                                focus:ring-2 focus:ring-blue-500 focus:border-blue-500 
-                                                outline-none transition-all duration-200"
+                                        placeholder="email@example.com"
+                                        className="w-full px-4 py-2"
                                         required
                                     />
-                                    </div>
-                                    <div className="pt-2 border-t border-gray-100">
-                                    <p className="text-sm text-gray-500">
-                                        <span className="font-medium text-gray-700">Registration Date:</span>{' '}
-                                        <span className="font-mono text-gray-600">{new Date().toLocaleDateString('hu-HU')}</span>
-                                    </p>
-                                    </div>
+                                    <FieldDescription className="text-xs text-gray-400">
+                                        Ezt az e-mail címet használjuk a bejelentkezéshez.
+                                    </FieldDescription>
+                                    </Field>
+                                    
+                                    <Field className="pt-2 border-t border-gray-100 flex items-center justify-between">
+                                    <Label className="text-sm font-medium text-gray-700">Registration Date</Label>
+                                    <span className="font-mono text-sm text-gray-600">
+                                        {new Date().toLocaleDateString('hu-HU')}
+                                    </span>
+                                    </Field>
+
                                 </div>
 
                                 <CardFooter className="flex flex-row justify-center gap-4 mt-auto pt-8 px-0">
                                     <Button 
-                                    variant="default" 
+                                    type="submit"
                                     className="bg-blue-600 hover:bg-blue-700 text-white px-8 transition-colors"
                                     >
                                     Save Changes
@@ -151,7 +160,7 @@ export default function ProfilePage() {
                                 </CardFooter>
                                 </form>
                             </CardContent>
-                        </Card>
+                            </Card>
 
                         <Card className="flex flex-col shadow-lg border-gray-200">
                             <CardHeader className="text-center pb-2">
@@ -159,15 +168,12 @@ export default function ProfilePage() {
                             </CardHeader>
 
                             <CardContent className="min-h-[400px] flex flex-col pt-6">
-                                {/* Belső wrapper, ami kitölti a teret */}
                                 <div className="flex flex-col flex-grow">
                                 
-                                {/* Adatok megjelenítése lista helyett tiszta blokkokban */}
                                 <div className="space-y-6 flex-grow">
                                     {user.map((u) => (
                                     <div key={u.id} className="space-y-6">
                                         
-                                        {/* Status */}
                                         <div className="space-y-1">
                                         <p className="text-sm font-semibold text-gray-600 uppercase tracking-wider">Premium Status</p>
                                         <div className={`text-lg font-medium ${u.premium ? "text-green-600" : "text-gray-500"}`}>
@@ -175,19 +181,16 @@ export default function ProfilePage() {
                                         </div>
                                         </div>
 
-                                        {/* Expiry Date */}
                                         <div className="space-y-1">
                                         <p className="text-sm font-semibold text-gray-600 uppercase tracking-wider">Expiry Date</p>
                                         <p className="text-lg text-gray-800 font-mono">{u.expire}</p>
                                         </div>
 
-                                        {/* Plan Type */}
                                         <div className="space-y-1">
                                         <p className="text-sm font-semibold text-gray-600 uppercase tracking-wider">Plan Type</p>
                                         <p className="text-lg text-gray-800">{u.plan}</p>
                                         </div>
 
-                                        {/* Credits */}
                                         <div className="space-y-1">
                                         <p className="text-sm font-semibold text-gray-600 uppercase tracking-wider">Available Credits</p>
                                         <p className="text-3xl font-bold text-blue-600">{u.credits}</p>
@@ -197,14 +200,13 @@ export default function ProfilePage() {
                                     ))}
                                 </div>
 
-                                {/* Módosítás gomb a kártya legalján */}
                                 <CardFooter className="flex justify-center mt-auto pt-8 px-0">
                                     <Button 
                                     variant="default" 
                                     className="w-full sm:w-auto bg-gray-900 hover:bg-black text-white px-10 py-6 text-lg font-semibold transition-all shadow-md"
                                     
                                     >
-                                    Módosítás
+                                    Modify
                                     </Button>
                                 </CardFooter>
                                 
