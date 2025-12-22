@@ -1,5 +1,5 @@
-import Image from "next/image";
-import { Button } from "@/components/ui/button";
+import Image from 'next/image';
+import { Button } from '@/components/ui/button';
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -8,20 +8,39 @@ import {
   NavigationMenuLink,
   NavigationMenuList,
   NavigationMenuTrigger,
-  NavigationMenuViewport,
-} from "@/components/ui/navigation-menu"
+  NavigationMenuViewport
+} from '@/components/ui/navigation-menu';
+import Link from 'next/link';
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <NavigationMenu>
-        <NavigationMenuList>
-          <NavigationMenuItem>
-            
-          </NavigationMenuItem>
-        </NavigationMenuList>
-      </NavigationMenu>
-      <header><Button>Registration</Button> <Button>Login</Button></header>
+    <div>
+      <div className="flex justify-end gap-4 p-2 border-b-[1px] border-gray-600/30">
+        <NavigationMenu>
+          <NavigationMenuList>
+            <NavigationMenuItem>
+              <NavigationMenuLink>
+                <Link href="">Premium</Link>
+              </NavigationMenuLink>
+            </NavigationMenuItem>
+            <NavigationMenuItem>
+              <NavigationMenuLink>
+                <Link href="">About Us</Link>
+              </NavigationMenuLink>
+            </NavigationMenuItem>
+            <NavigationMenuItem>
+              <NavigationMenuLink>
+                <Link href="">Sign Up</Link>
+              </NavigationMenuLink>
+            </NavigationMenuItem>
+            <NavigationMenuItem>
+              <NavigationMenuLink>
+                <Link href="">Log In</Link>
+              </NavigationMenuLink>
+            </NavigationMenuItem>
+          </NavigationMenuList>
+        </NavigationMenu>
+      </div>
     </div>
   );
 }
