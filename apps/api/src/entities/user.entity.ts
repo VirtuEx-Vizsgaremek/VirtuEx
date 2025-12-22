@@ -23,7 +23,10 @@ export class User extends BaseEntity {
   @Property({ length: 256, nullable: true })
   bio: string | undefined | null;
 
-  @OneToOne({ orphanRemoval: true })
+  @OneToOne(() => Wallet, (wallet) => wallet.user, {
+    owner: true,
+    orphanRemoval: true
+  })
   wallet!: Wallet;
 
   @Property()
