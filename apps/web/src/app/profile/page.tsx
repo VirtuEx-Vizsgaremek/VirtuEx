@@ -1,5 +1,6 @@
 import Image from "next/image"
 import SideNav from "@/components/ui/sidenav";
+import { ModifyPlanModal } from "@/components/ui/planmod";
 
 import {
   Item,
@@ -200,14 +201,9 @@ export default function ProfilePage() {
                                     ))}
                                 </div>
 
+
                                 <CardFooter className="flex justify-center mt-auto pt-8 px-0">
-                                    <Button 
-                                    variant="default" 
-                                    className="w-full sm:w-auto bg-gray-900 hover:bg-black text-white px-10 py-6 text-lg font-semibold transition-all shadow-md"
-                                    
-                                    >
-                                    Modify
-                                    </Button>
+                                    <ModifyPlanModal currentCredits={user[0].credits} currentPlan={user[0].plan} />
                                 </CardFooter>
                                 
                                 </div>
