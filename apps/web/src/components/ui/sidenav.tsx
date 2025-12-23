@@ -3,10 +3,11 @@
 import { Card } from "./card";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { User, CreditCard, Settings, ShieldCheck } from "lucide-react";
+import { User, CreditCard, Settings, ShieldCheck, DollarSign } from "lucide-react";
 
 const menuItems = [
   { name: "My Profile", href: "/profile", icon: User },
+  { name: "Wallet", href: "/wallet", icon: DollarSign },
   { name: "Subscription", href: "/plan", icon: CreditCard },
   { name: "Security", href: "/security", icon: ShieldCheck },
   { name: "Settings", href: "/settings", icon: Settings },
