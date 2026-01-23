@@ -45,13 +45,11 @@ app.use(multer().any());
 (async () => {
   const startTimestamp = Date.now();
 
-  // TODO: Check if db is alive otherwise throw an error.
-  /*
+  // Check if db is alive otherwise throw an error.
   const db = await orm;
   const { ok } = await db.checkConnection();
   if (!ok) throw new Error();
   await db.schema.updateSchema();
-  */
 
   const routes: string[] = await getRoutes(path.join(__dirname, 'routes'));
 
