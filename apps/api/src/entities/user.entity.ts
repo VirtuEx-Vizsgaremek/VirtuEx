@@ -1,7 +1,16 @@
-import { Entity, Enum, OneToOne, Property, Unique } from '@mikro-orm/core';
+import {
+  Entity,
+  Enum,
+  OneToOne,
+  Property,
+  Unique,
+  Collection,
+  OneToMany
+} from '@mikro-orm/core';
 
 import { BaseEntity } from '@/entities/base.entity';
 import { Wallet } from '@/entities/wallet.entity';
+import { Code } from '@/entities/code.entity';
 
 import { Subscription } from '@/enum/subscription';
 
@@ -28,6 +37,9 @@ export class User extends BaseEntity {
     orphanRemoval: true
   })
   wallet!: Wallet;
+
+  @OneToMany(() => Code, (code) => code.user)
+  codes = new Collection<Code>(this);
 
   @Property()
   permissions: bigint = BigInt(0) as bigint;
