@@ -7,6 +7,7 @@ import expressWs from 'express-ws';
 import path from 'node:path';
 
 import { Request, Response } from '@/util/handler';
+import { ValidationError } from '@/util/errors';
 import Logger from '@/util/logger';
 import getRoutes from '@/util/get_routes';
 import pathParser from '@/util/path_parser';
@@ -115,6 +116,17 @@ app.use(multer().any());
           }
         } catch (err: any) {
           webLogger.error(err.message);
+
+          if (err.name === 'ValidationError') {
+            const e = err as ValidationError;
+            const i = e.issues.flatMap((i) => i.path);
+
+            return res.status(400).json({
+              error: 400,
+              message: 'The request body was malformed.',
+              fields: i
+            });
+          }
 
           res.status(500).json({
             error: 500,
