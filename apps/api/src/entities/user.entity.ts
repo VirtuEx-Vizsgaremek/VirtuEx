@@ -32,6 +32,9 @@ export class User extends BaseEntity {
   @Property()
   permissions: bigint = BigInt(0) as bigint;
 
+  @Property()
+  activated: boolean = false;
+
   @Enum({ items: () => Subscription, nativeEnumName: 'subscription' })
   subscription: Subscription = Subscription.Free;
 }

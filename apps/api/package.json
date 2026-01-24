@@ -19,6 +19,8 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/multer": "^2.0.0",
     "@types/node": "^22.15.3",
+    "@types/nodemailer": "^7.0.5",
+    "@types/showdown": "^2.0.6",
     "@virtuex/eslint-config": "workspace:*",
     "nodemon": "^3.1.11",
     "resolve-tspaths": "^0.8.23",
@@ -39,7 +41,9 @@
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.0.2",
     "nodejs-snowflake": "^2.0.1",
+    "nodemailer": "^7.0.12",
     "sharp": "^0.34.5",
+    "showdown": "^2.1.0",
     "stripe": "^20.1.0",
     "zod": "^4.2.1"
   }
