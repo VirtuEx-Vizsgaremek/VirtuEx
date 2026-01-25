@@ -10,6 +10,8 @@ import { sign } from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import { Wallet } from '@/entities/wallet.entity';
 import EMail from '@/util/email';
+import CodeUtil from '@/util/code';
+import { CodeType } from '@/enum/code_type';
 
 export const schemas = {
   post: {
@@ -41,7 +43,6 @@ export const post = async (
 
   try {
     const saltedPassword = await bcrypt.hash(password, 10);
-    const code = (Math.random() + 1).toString(36).substring(2);
 
     const userObject = new User();
     const walletObject = new Wallet();
@@ -52,13 +53,14 @@ export const post = async (
     userObject.password = saltedPassword;
     userObject.wallet = walletObject;
 
+    await db.persist(userObject).flush();
+
+    const code = await CodeUtil.genCode(CodeType.AccountActivation, userObject);
     await EMail.sendTemplate(`"${fullName}" <${email}>`, 'verify', {
       fullName,
       link: `http://localhost:3000/auth/verify?code=${code}`,
       year: new Date().getFullYear()
     });
-
-    await db.persist(userObject).flush();
 
     const token = sign(
       {
