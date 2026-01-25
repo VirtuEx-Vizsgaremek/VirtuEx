@@ -1,7 +1,7 @@
 // UI Components and Icons
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { TrendingUp, Bot, Wallet, Check, X } from 'lucide-react';
+import { Bot, Check, TrendingUp, Wallet, X } from 'lucide-react';
 
 //TODO Connect the links to their respective pages
 
