@@ -14,21 +14,15 @@ import {
   NavigationMenuTrigger,
   NavigationMenuViewport
 } from '@/components/ui/navigation-menu';
+import { useTheme } from '@/contexts/ThemeContext';
 
 export default function Navbar() {
-  // State for dark mode toggle
-  const [isDark, setIsDark] = useState(false);
+  // Use theme context instead of local state
+  const { theme, toggleTheme } = useTheme();
+  const isDark = theme === 'dark';
+
   // State for floating navbar visibility on scroll
   const [showFloatingNav, setShowFloatingNav] = useState(false);
-
-  // Apply dark mode class to document root
-  useEffect(() => {
-    if (isDark) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [isDark]);
 
   // Show floating navbar after scrolling 100px down
   useEffect(() => {
@@ -83,7 +77,7 @@ export default function Navbar() {
               size="icon"
               variant="ghost"
               className="rounded-full"
-              onClick={() => setIsDark(!isDark)}
+              onClick={toggleTheme}
             >
               {isDark ? (
                 <Sun className="w-4 h-4" />
@@ -130,11 +124,7 @@ export default function Navbar() {
               Sign Up
             </Button>
             <Button className="text-md">Log In</Button>
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={() => setIsDark(!isDark)}
-            >
+            <Button size="icon" variant="ghost" onClick={toggleTheme}>
               {isDark ? <Sun /> : <Moon />}
             </Button>
           </div>

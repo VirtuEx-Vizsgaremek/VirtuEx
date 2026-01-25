@@ -1,6 +1,6 @@
+import Chart from '@/components/ShadCnChart';
 import SideNav from '@/components/Sidenav';
 import TradingView from '@/components/TradingView';
-import Chart from '@/components/ShadCnChart';
 
 export default function Market() {
   return (
