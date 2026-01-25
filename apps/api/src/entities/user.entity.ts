@@ -20,6 +20,7 @@ export class User extends BaseEntity {
   fullName!: string;
 
   @Property({ length: 32 })
+  @Unique()
   username!: string;
 
   @Property({ length: 320 })

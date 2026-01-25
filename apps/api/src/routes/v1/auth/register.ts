@@ -79,7 +79,7 @@ export const post = async (
     if (e.name === 'UniqueConstraintViolationException')
       return res.error(
         Status.Conflict,
-        'A user with this email already exists.'
+        'A user with this email or username already exists.'
       );
 
     throw e;
