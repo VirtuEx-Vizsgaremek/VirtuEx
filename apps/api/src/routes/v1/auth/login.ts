@@ -5,9 +5,9 @@ import { orm } from '@/util/orm';
 
 import { User } from '@/entities/user.entity';
 
-import { z } from 'zod';
-import { sign } from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
+import { sign } from 'jsonwebtoken';
+import { z } from 'zod';
 
 export const schemas = {
   post: {

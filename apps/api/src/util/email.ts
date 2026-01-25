@@ -35,6 +35,7 @@ class EMail {
     const converter = new Showdown.Converter({ metadata: true });
 
     converter.setFlavor('github');
+    converter.setOption('simplifiedAutoLink', true);
 
     const html = converter.makeHtml(tmplData);
     const meta = converter.getMetadata() as Record<string, string>;

@@ -50,7 +50,7 @@ app.use(multer().any());
   const db = await orm;
   const { ok } = await db.checkConnection();
   if (!ok) throw new Error();
-  await db.schema.updateSchema();
+  await db.schema.refreshDatabase();
 
   const routes: string[] = await getRoutes(path.join(__dirname, 'routes'));
 
