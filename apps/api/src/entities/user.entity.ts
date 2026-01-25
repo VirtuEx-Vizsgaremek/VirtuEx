@@ -1,7 +1,16 @@
-import { Entity, Enum, OneToOne, Property, Unique } from '@mikro-orm/core';
+import {
+  Entity,
+  Enum,
+  OneToOne,
+  Property,
+  Unique,
+  Collection,
+  OneToMany
+} from '@mikro-orm/core';
 
 import { BaseEntity } from '@/entities/base.entity';
 import { Wallet } from '@/entities/wallet.entity';
+import { Code } from '@/entities/code.entity';
 
 import { Subscription } from '@/enum/subscription';
 
@@ -11,6 +20,7 @@ export class User extends BaseEntity {
   fullName!: string;
 
   @Property({ length: 32 })
+  @Unique()
   username!: string;
 
   @Property({ length: 320 })
@@ -29,8 +39,14 @@ export class User extends BaseEntity {
   })
   wallet!: Wallet;
 
+  @OneToMany(() => Code, (code) => code.user)
+  codes = new Collection<Code>(this);
+
   @Property()
   permissions: bigint = BigInt(0) as bigint;
+
+  @Property()
+  activated: boolean = false;
 
   @Enum({ items: () => Subscription, nativeEnumName: 'subscription' })
   subscription: Subscription = Subscription.Free;

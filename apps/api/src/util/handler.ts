@@ -159,25 +159,6 @@ export class Request {
           });
       });
 
-      if (missingFields.length > 0) {
-        if (missingFields.length === 1) {
-          this.res!.error(
-            Status.BadRequest,
-            `error.generic.fieldMissing;("${missingFields[0]}")`
-          );
-        } else {
-          this.res!.error(
-            Status.BadRequest,
-            `error.generic.fieldsMissing;("${missingFields.join('","')}")`
-          );
-        }
-      } else if (malformedFields.length > 0) {
-        this.res!.error(
-          Status.BadRequest,
-          `error.generic.fieldMalformed;("${malformedFields[0].name}","${malformedFields[0].type}")`
-        );
-      }
-
       throw new ValidationError(issues);
     }
 
