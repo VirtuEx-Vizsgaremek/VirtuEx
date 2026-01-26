@@ -93,6 +93,15 @@ const dashboardAssets = [
     rawBalance: 12500,      
     currentPrice: 360,      
     change24h: -0.5,        
+  },
+  {
+    id: "87",
+    symbol: "CHF",
+    name: "Swiss Franc",
+    precision: 2,
+    rawBalance: 45555,      
+    currentPrice: 410,      
+    change24h: -0.5,    
   }
 ];
 
@@ -153,7 +162,7 @@ export default function WalletPage() {
                                   <div className="text-right">Value (HUF)</div>
                               </div>
 
-                              <div className="divide-y divide-gray-100">
+                              <div className="divide-y divide-gray-100 max-h-[350px] overflow-y-auto">
                                 {dashboardAssets.map((asset) => {
 
                                   const realBalance = asset.rawBalance / Math.pow(10, asset.precision);
@@ -161,7 +170,7 @@ export default function WalletPage() {
                                   const totalValue = realBalance * asset.currentPrice;
 
                                   return (
-                                    <div key={asset.id} className="grid grid-cols-4 items-center px-6 py-4 hover:bg-gray-50 transition-colors">
+                                    <div key={asset.id} className="grid grid-cols-4 items-center px-6 py-4 hover:bg-gray-50 transition-colors ">
 
                                       <div className="col-span-1 flex items-center gap-3">
                                         <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs">
@@ -198,7 +207,7 @@ export default function WalletPage() {
                             </CardContent>
                         </Card>
 
-                        <Card className="w-full shadow-lg border-gray-200 overflow-hidden ">
+                        <Card className="w-full shadow-lg border-gray-200 overflow-hidden">
                             <CardHeader className="text-left pb-2">
                                     <CardTitle className="w-full text-2xl font-bold text-gray-800">Transaction History</CardTitle>
                             </CardHeader>
@@ -213,11 +222,11 @@ export default function WalletPage() {
                                   <div className="text-right">Amount (USD)</div>
                               </div>
 
-                              <div className="divide-y divide-gray-100">
+                              <div className="divide-y divide-gray-100 max-h-[350px] overflow-y-auto">
                                 {dashboardAssets.map((asset) => {
 
                                   return (
-                                    <div key={asset.id} className="grid grid-cols-4 items-center px-6 py-4 hover:bg-gray-50 transition-colors">
+                                    <div key={asset.id} className="grid grid-cols-4 items-center px-6 py-4 hover:bg-gray-50 transition-colors ">
 
                                       <div className="col-span-1 flex items-center gap-3">
                                         <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs">
