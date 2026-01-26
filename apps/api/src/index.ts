@@ -50,7 +50,7 @@ app.use(multer().any());
   const db = await orm;
   const { ok } = await db.checkConnection();
   if (!ok) throw new Error();
-  await db.schema.refreshDatabase();
+  await db.schema.updateSchema();
 
   const routes: string[] = await getRoutes(path.join(__dirname, 'routes'));
 
@@ -127,6 +127,12 @@ app.use(multer().any());
               fields: i
             });
           }
+
+          if (err.message === 'Unauthorized')
+            return res.status(401).json({
+              error: 401,
+              message: "You're not authorized to view this resource."
+            });
 
           res.status(500).json({
             error: 500,
