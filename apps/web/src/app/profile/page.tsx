@@ -1,5 +1,5 @@
 import Image from "next/image"
-import SideNav from "@/components/ui/sidenav";
+import SideNav from "@/components/sidenav";
 
 import {
   Item,
@@ -37,7 +37,7 @@ import {
 
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
-import { ModifyPlanModal } from "@/components/ui/planmod";
+import { ModifyPlanModal } from "@/components/planmod";
 
 //Example profile data!
 const user = [

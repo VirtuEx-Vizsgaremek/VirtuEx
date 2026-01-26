@@ -15,7 +15,7 @@ import {
   ItemMedia,
   ItemTitle,
 } from "@/components/ui/item"
-import SideNav from "@/components/ui/sidenav"
+import SideNav from "@/components/sidenav"
 
 
 //Example wallet data!
