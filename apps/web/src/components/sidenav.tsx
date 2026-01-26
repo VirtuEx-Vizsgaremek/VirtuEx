@@ -1,6 +1,6 @@
 "use client"; 
 
-import { Card } from "./card";
+import { Card } from "./ui/card";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { User, CreditCard, Settings, ShieldCheck, DollarSign, LogOut } from "lucide-react";

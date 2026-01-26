@@ -1,5 +1,5 @@
 import Image from "next/image"
-import SideNav from "@/components/ui/sidenav";
+import SideNav from "@/components/sidenav";
 
 import {
   Item,
