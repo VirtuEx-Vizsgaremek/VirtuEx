@@ -144,13 +144,13 @@ export default function WalletPage() {
                             </CardHeader>
                             <CardContent>
                                 
-                                <div className="flex flex-col">
+                            <div className="flex flex-col">
 
-                              <div className="grid grid-cols-4 px-6 py-3 bg-gray-50 border-b border-gray-100 text-xs font-semibold text-gray-500    uppercase tracking-wider">
-                                <div className="col-span-1">Asset</div>
-                                <div className="text-right">Price</div>
-                                <div className="text-right">Balance</div>
-                                <div className="text-right">Value (HUF)</div>
+                              <div className="grid grid-cols-4 px-6 py-3 bg-gray-50 border-b border-gray-100 text-xs font-semibold text-gray-500      uppercase tracking-wider">
+                                  <div className="col-span-1">Asset</div>
+                                  <div className="text-right">Price</div>
+                                  <div className="text-right">Balance</div>
+                                  <div className="text-right">Value (HUF)</div>
                               </div>
 
                               <div className="divide-y divide-gray-100">
@@ -202,6 +202,61 @@ export default function WalletPage() {
                             <CardHeader className="text-left pb-2">
                                     <CardTitle className="w-full text-2xl font-bold text-gray-800">Transaction History</CardTitle>
                             </CardHeader>
+                            <CardContent>
+                                
+                            <div className="flex flex-col">
+
+                              <div className="grid grid-cols-4 px-6 py-3 bg-gray-50 border-b border-gray-100 text-xs font-semibold text-gray-500      uppercase tracking-wider">
+                                  <div className="col-span-1">Asset</div>
+                                  <div className="text-right">ID</div>
+                                  <div className="text-right">Target</div>
+                                  <div className="text-right">Amount (USD)</div>
+                              </div>
+
+                              <div className="divide-y divide-gray-100">
+                                {dashboardAssets.map((asset) => {
+
+                                  return (
+                                    <div key={asset.id} className="grid grid-cols-4 items-center px-6 py-4 hover:bg-gray-50 transition-colors">
+
+                                      <div className="col-span-1 flex items-center gap-3">
+                                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs">
+                                          {asset.symbol[0]}
+                                        </div>
+                                        <div>
+                                          <div className="font-bold text-gray-900">{asset.symbol}</div>
+                                          <div className="text-xs text-gray-500 hidden sm:block">{asset.name}</div>
+                                        </div>
+                                      </div>
+
+                                      <div className="text-right">
+                                        <div className="font-medium text-gray-900">
+                                          ID
+                                        </div>
+                                        <div className={`text-xs font-medium`}>
+                                          Date
+                                        </div>
+                                      </div>
+
+                                      <div className="text-right">
+                                        <div className="font-medium text-gray-900">
+                                          Target ID
+                                        </div>
+                                        <div className={`text-xs font-medium`}>
+                                          Name
+                                        </div>
+                                      </div>
+
+                                      <div className="text-right font-bold text-gray-900">
+                                        15200.00 USD
+                                      </div>
+                                      
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                            </CardContent>
                         </Card>
                 </main>
 
