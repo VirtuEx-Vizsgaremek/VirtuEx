@@ -1,6 +1,17 @@
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { ModifyPlanModal } from "../components/planmod";
 
-
+const user = [
+  {
+    name: "John Doe",
+    id: 12,
+    email: "ex@exa.com",
+    password: "3:45",
+    premium: true,
+    expire: "2024-12-31",
+    plan: "Pro",
+    credits: 1500
+  }];
 
 export default function PlanDetails({ userData }: { userData?: any[] }) {
     return (
@@ -13,7 +24,7 @@ export default function PlanDetails({ userData }: { userData?: any[] }) {
                 <div className="flex flex-col flex-grow">
                 
                 <div className="space-y-6 flex-grow">
-                    {userData?.map((u: any) => (
+                    {user.map((u) => (
                     <div key={u.id} className="space-y-6">
                         
                         <div className="space-y-1">
@@ -42,8 +53,9 @@ export default function PlanDetails({ userData }: { userData?: any[] }) {
                     ))}
                 </div>
 
+
                 <CardFooter className="flex justify-center mt-auto pt-8 px-0">
-                    
+                    <ModifyPlanModal currentCredits={user[0].credits} currentPlan={user[0].plan} />
                 </CardFooter>
                 
                 </div>
