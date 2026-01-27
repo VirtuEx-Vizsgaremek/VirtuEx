@@ -1,8 +1,29 @@
 'use client';
-import { generateTradingViewChartData } from '@/lib/dataGenerator';
-import { AreaSeries, ColorType, createChart } from 'lightweight-charts';
-import { useEffect, useRef, useState } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
+import {
+  generateCandlestickData,
+  generateTradingViewChartData
+} from '@/lib/dataGenerator';
+import {
+  AreaSeries,
+  CandlestickSeries,
+  ColorType,
+  createChart
+} from 'lightweight-charts';
+import { useEffect, useRef, useState } from 'react';
+
+type chartType = 'area' | 'candle';
+type OHLCData = {
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  time: string;
+} | null;
+type AreaData = {
+  value: number;
+  time: string;
+} | null;
 
 export default function TradingView() {
   const { theme } = useTheme();
@@ -10,9 +31,15 @@ export default function TradingView() {
   const chartRef = useRef<any>(null);
   const seriesRef = useRef<any>(null);
   const [isClient, setIsClient] = useState(false);
-  const [data, setData] = useState(() =>
+  const [areaData, setAreaData] = useState(() =>
     generateTradingViewChartData(365, new Date('2024-01-01'), 100)
   );
+  const [candleData, setCandleData] = useState(() =>
+    generateCandlestickData(365, new Date('2024-01-01'), 100)
+  );
+  const [chartType, setChartType] = useState<chartType>('area');
+  const [ohlcData, setOhlcData] = useState<OHLCData>(null);
+  const [areaDisplayData, setAreaDisplayData] = useState<AreaData>(null);
 
   useEffect(() => {
     setIsClient(true);
@@ -20,7 +47,14 @@ export default function TradingView() {
 
   // Regenerate data
   const handleRegenerateData = () => {
-    setData(generateTradingViewChartData(365, new Date('2024-01-01'), 100));
+    setAreaData(
+      generateTradingViewChartData(365, new Date('2024-01-01'), 10000)
+    );
+    setCandleData(generateCandlestickData(365, new Date('2024-01-01'), 10000));
+  };
+
+  const handleToggleChartType = () => {
+    setChartType((prev) => (prev === 'area' ? 'candle' : 'area'));
   };
 
   useEffect(() => {
@@ -51,15 +85,33 @@ export default function TradingView() {
 
     chartRef.current = chart;
 
-    const areaSeries = chart.addSeries(AreaSeries, {
-      lineColor: '#2962FF',
-      topColor: '#2962FF',
-      bottomColor: 'rgba(41, 98, 255, 0.28)'
-    });
+    chart.subscribeCrosshairMove((param: any) => {
+      if (!param.time || !param.seriesData || !seriesRef.current) {
+        return;
+      }
 
-    seriesRef.current = areaSeries;
-    areaSeries.setData(data);
-    chart.timeScale().fitContent();
+      const data = param.seriesData.get(seriesRef.current);
+      if (!data) {
+        return;
+      }
+
+      // Always update, let the JSX decide whether to show it
+      if (data.open !== undefined) {
+        // Candlestick data
+        setOhlcData({
+          open: data.open,
+          high: data.high,
+          low: data.low,
+          close: data.close,
+          time: param.time
+        });
+      } else if (data.value !== undefined) {
+        setAreaDisplayData({
+          value: data.value,
+          time: param.time
+        });
+      }
+    });
 
     const handleResize = () => {
       if (chartContainerRef.current && chartRef.current) {
@@ -79,17 +131,60 @@ export default function TradingView() {
         seriesRef.current = null;
       }
     };
-  }, [isClient]);
+  }, [isClient, theme]);
 
-  // Update data when it changes
   useEffect(() => {
-    if (seriesRef.current && data.length > 0) {
-      seriesRef.current.setData(data);
-      if (chartRef.current) {
-        chartRef.current.timeScale().fitContent();
+    if (!chartRef.current || !isClient) return;
+
+    if (seriesRef.current) {
+      chartRef.current.removeSeries(seriesRef.current);
+      seriesRef.current = null;
+    }
+
+    if (chartType === 'area') {
+      setOhlcData(null);
+
+      const areaSeries = chartRef.current.addSeries(AreaSeries, {
+        lineColor: '#2962FF',
+        topColor: '#2962FF',
+        bottomColor: 'rgba(41, 98, 255, 0.28)'
+      });
+      seriesRef.current = areaSeries;
+      areaSeries.setData(areaData);
+      if (areaData.length > 0) {
+        const lastData = areaData[areaData.length - 1];
+        setAreaDisplayData({
+          value: lastData.value,
+          time: lastData.time
+        });
+      }
+    } else {
+      setAreaDisplayData(null);
+
+      const candleSeries = chartRef.current.addSeries(CandlestickSeries, {
+        upColor: '#26a69a',
+        downColor: '#ef5350',
+        borderVisible: false,
+        wickUpColor: '#26a69a',
+        wickDownColor: '#ef5350'
+      });
+      seriesRef.current = candleSeries;
+      candleSeries.setData(candleData);
+
+      if (candleData.length > 0) {
+        const lastCandle = candleData[candleData.length - 1];
+        setOhlcData({
+          open: lastCandle.open,
+          high: lastCandle.high,
+          low: lastCandle.low,
+          close: lastCandle.close,
+          time: lastCandle.time
+        });
       }
     }
-  }, [data]);
+
+    chartRef.current.timeScale().fitContent();
+  }, [chartType, isClient, areaData, candleData, theme]);
 
   // Update chart theme when theme changes (WITHOUT recreating chart)
   useEffect(() => {
@@ -122,13 +217,108 @@ export default function TradingView() {
 
   return (
     <div className="m-5">
-      <button
-        onClick={handleRegenerateData}
-        className="mb-4 px-4 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-      >
-        Regenerate Chart Data
-      </button>
-      <div ref={chartContainerRef} style={{ width: '100%', height: '400px' }} />
+      <div className="flex gap-2 mb-4">
+        <button
+          onClick={handleRegenerateData}
+          className=" px-4 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+        >
+          Regenerate Chart Data
+        </button>
+        <button
+          onClick={handleToggleChartType}
+          className="px-4 py-2 text-sm bg-green-500 text-white rounded-lg hover:bg-green-600"
+        >
+          Switch to {chartType === 'area' ? 'Candlestick' : 'Area'} Chart
+        </button>
+      </div>
+
+      <div className="relative w-full h-[400px]">
+        {/* The chart - always rendered */}
+        <div ref={chartContainerRef} className="w-full h-[400px]" />
+
+        {/* OHLC overlay - only when data exists and on candle chart */}
+        {ohlcData &&
+          chartType === 'candle' &&
+          (() => {
+            const currentIndex = candleData.findIndex(
+              (d) => d.time === ohlcData.time
+            );
+            const previousClose =
+              currentIndex > 0
+                ? candleData[currentIndex - 1].close
+                : ohlcData.open;
+
+            const changeAmount = ohlcData.close - previousClose;
+            const changePercent = (changeAmount / previousClose) * 100;
+            const isPositive = changeAmount >= 0;
+
+            return (
+              <div className="absolute top-2 left-2 flex gap-4 text-sm font-mono bg-white dark:bg-gray-800 p-2 rounded shadow-sm pointer-events-none z-10">
+                <span className="text-gray-600 dark:text-gray-400">
+                  O{' '}
+                  <span className="text-gray-900 dark:text-gray-100">
+                    {ohlcData.open.toFixed(2)}
+                  </span>
+                </span>
+                <span className="text-gray-600 dark:text-gray-400">
+                  H{' '}
+                  <span className="text-gray-900 dark:text-gray-100">
+                    {ohlcData.high.toFixed(2)}
+                  </span>
+                </span>
+                <span className="text-gray-600 dark:text-gray-400">
+                  L{' '}
+                  <span className="text-gray-900 dark:text-gray-100">
+                    {ohlcData.low.toFixed(2)}
+                  </span>
+                </span>
+                <span className="text-gray-600 dark:text-gray-400">
+                  C{' '}
+                  <span className="text-gray-900 dark:text-gray-100">
+                    {ohlcData.close.toFixed(2)}
+                  </span>
+                </span>
+                <span
+                  className={isPositive ? 'text-green-500' : 'text-red-500'}
+                >
+                  {isPositive ? '▲' : '▼'} {Math.abs(changeAmount).toFixed(2)} (
+                  {isPositive ? '+' : ''}
+                  {changePercent.toFixed(2)}%)
+                </span>
+              </div>
+            );
+          })()}
+
+        {areaDisplayData &&
+          chartType === 'area' &&
+          (() => {
+            const currentIndex = areaData.findIndex(
+              (d) => d.time === areaDisplayData.time
+            );
+            const previousValue =
+              currentIndex > 0
+                ? areaData[currentIndex - 1].value
+                : areaDisplayData.value;
+            const changeAmount = areaDisplayData.value - previousValue;
+            const changePercent = (changeAmount / previousValue) * 100;
+            const isPositive = changeAmount >= 0;
+
+            return (
+              <div className="absolute top-2 left-2 flex gap-4 text-sm font-mono bg-white dark:bg-gray-800 p-2 shadow-sm pointer-events-none z-10">
+                <span className="text-gray-900 dark:text-gray-100 font-bold">
+                  {areaDisplayData.value.toFixed(2)}
+                </span>
+                <span
+                  className={isPositive ? 'text-green-500' : 'text-red-500'}
+                >
+                  {isPositive ? '▲' : '▼'} {Math.abs(changeAmount).toFixed(2)} (
+                  {isPositive ? '+' : ''}
+                  {changePercent.toFixed(2)}%)
+                </span>
+              </div>
+            );
+          })()}
+      </div>
     </div>
   );
 }
