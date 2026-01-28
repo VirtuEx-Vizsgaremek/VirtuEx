@@ -143,6 +143,33 @@ app.use(multer().any());
     } else logger.info(chalk.red('⦿'), `\`${routePath}\``);
   }
 
+  app.use((err: any, req: any, res: any, next: any) => {
+    webLogger.error(err);
+    if (res.headersSent) return next(err);
+
+    if (err.name === 'ValidationError') {
+      const e = err as ValidationError;
+      const i = e.issues.flatMap((i) => i.path);
+
+      return res.status(400).json({
+        error: 400,
+        message: 'The request body was malformed.',
+        fields: i
+      });
+    }
+
+    if (err.message === 'Unauthorized')
+      return res.status(401).json({
+        error: 401,
+        message: "You're not authorized to view this resource."
+      });
+
+    res.status(500).json({
+      error: 500,
+      message: 'Internal Server Error'
+    });
+  });
+
   app.use((req, res) => {
     res.status(404).json({
       error: 404,
