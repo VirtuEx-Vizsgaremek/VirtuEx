@@ -21,7 +21,8 @@
     "react-dom": "19.2.3",
     "recharts": "2.15.4",
     "shadcn": "^3.6.2",
-    "tailwind-merge": "^3.4.0"
+    "tailwind-merge": "^3.4.0",
+    "technicalindicators": "^3.1.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

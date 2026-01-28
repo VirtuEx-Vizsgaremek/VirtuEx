@@ -11,6 +11,11 @@ import {
   createChart
 } from 'lightweight-charts';
 import { useEffect, useRef, useState } from 'react';
+import ChartOverlay from './ChartOverlay';
+import {
+  calculateOHLCChange,
+  calculateAreaChange
+} from '@/lib/chartCalculations';
 
 type chartType = 'area' | 'candle';
 type OHLCData = {
@@ -240,82 +245,39 @@ export default function TradingView() {
         {ohlcData &&
           chartType === 'candle' &&
           (() => {
-            const currentIndex = candleData.findIndex(
-              (d) => d.time === ohlcData.time
-            );
-            const previousClose =
-              currentIndex > 0
-                ? candleData[currentIndex - 1].close
-                : ohlcData.open;
-
-            const changeAmount = ohlcData.close - previousClose;
-            const changePercent = (changeAmount / previousClose) * 100;
-            const isPositive = changeAmount >= 0;
+            const { changeAmount, changePercent, isPositive } =
+              calculateOHLCChange(ohlcData, candleData);
 
             return (
-              <div className="absolute top-2 left-2 flex gap-4 text-sm font-mono bg-white dark:bg-gray-800 p-2 rounded shadow-sm pointer-events-none z-10">
-                <span className="text-gray-600 dark:text-gray-400">
-                  O{' '}
-                  <span className="text-gray-900 dark:text-gray-100">
-                    {ohlcData.open.toFixed(2)}
-                  </span>
-                </span>
-                <span className="text-gray-600 dark:text-gray-400">
-                  H{' '}
-                  <span className="text-gray-900 dark:text-gray-100">
-                    {ohlcData.high.toFixed(2)}
-                  </span>
-                </span>
-                <span className="text-gray-600 dark:text-gray-400">
-                  L{' '}
-                  <span className="text-gray-900 dark:text-gray-100">
-                    {ohlcData.low.toFixed(2)}
-                  </span>
-                </span>
-                <span className="text-gray-600 dark:text-gray-400">
-                  C{' '}
-                  <span className="text-gray-900 dark:text-gray-100">
-                    {ohlcData.close.toFixed(2)}
-                  </span>
-                </span>
-                <span
-                  className={isPositive ? 'text-green-500' : 'text-red-500'}
-                >
-                  {isPositive ? '▲' : '▼'} {Math.abs(changeAmount).toFixed(2)} (
-                  {isPositive ? '+' : ''}
-                  {changePercent.toFixed(2)}%)
-                </span>
-              </div>
+              <ChartOverlay
+                type="ohlc"
+                data={{
+                  open: ohlcData.open,
+                  high: ohlcData.high,
+                  low: ohlcData.low,
+                  close: ohlcData.close
+                }}
+                changeAmount={changeAmount}
+                changePercent={changePercent}
+                isPositive={isPositive}
+              />
             );
           })()}
 
         {areaDisplayData &&
           chartType === 'area' &&
           (() => {
-            const currentIndex = areaData.findIndex(
-              (d) => d.time === areaDisplayData.time
-            );
-            const previousValue =
-              currentIndex > 0
-                ? areaData[currentIndex - 1].value
-                : areaDisplayData.value;
-            const changeAmount = areaDisplayData.value - previousValue;
-            const changePercent = (changeAmount / previousValue) * 100;
-            const isPositive = changeAmount >= 0;
+            const { changeAmount, changePercent, isPositive } =
+              calculateAreaChange(areaDisplayData, areaData);
 
             return (
-              <div className="absolute top-2 left-2 flex gap-4 text-sm font-mono bg-white dark:bg-gray-800 p-2 shadow-sm pointer-events-none z-10">
-                <span className="text-gray-900 dark:text-gray-100 font-bold">
-                  {areaDisplayData.value.toFixed(2)}
-                </span>
-                <span
-                  className={isPositive ? 'text-green-500' : 'text-red-500'}
-                >
-                  {isPositive ? '▲' : '▼'} {Math.abs(changeAmount).toFixed(2)} (
-                  {isPositive ? '+' : ''}
-                  {changePercent.toFixed(2)}%)
-                </span>
-              </div>
+              <ChartOverlay
+                type="simple"
+                data={{ value: areaDisplayData.value }}
+                changeAmount={changeAmount}
+                changePercent={changePercent}
+                isPositive={isPositive}
+              />
             );
           })()}
       </div>
