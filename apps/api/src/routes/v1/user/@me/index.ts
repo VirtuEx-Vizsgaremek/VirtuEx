@@ -27,7 +27,6 @@ export const get = async (
 ) => {
   const user = await req.getUser();
 
-  // TODO: omit password
   res.status(Status.Ok).json({
     id: user.id,
     username: user.username,
