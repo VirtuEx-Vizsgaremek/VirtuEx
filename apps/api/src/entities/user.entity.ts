@@ -42,7 +42,9 @@ export class User extends BaseEntity {
   })
   wallet!: Wallet;
 
-  @OneToMany(() => Code, (code) => code.user)
+  @OneToMany(() => Code, (code) => code.user, {
+    orphanRemoval: true
+  })
   codes = new Collection<Code>(this);
 
   @Property()

@@ -1,4 +1,6 @@
+import { Code } from '@/entities/code.entity';
 import { User } from '@/entities/user.entity';
+import { Wallet } from '@/entities/wallet.entity';
 import Status from '@/enum/status';
 
 import { Request, Response } from '@/util/handler';
@@ -50,7 +52,7 @@ export const get = async (
   });
 };
 
-export const patch = async (req: Request, res: Response<string>) => {
+export const patch = async (req: Request, res: Response<void>) => {
   const user = await req.getUser();
   const db = (await orm).em.fork();
 
@@ -81,6 +83,10 @@ export const patch = async (req: Request, res: Response<string>) => {
   }
 };
 
-export const del = (req: Request, res: Response<string>) => {
-  res.status(Status.Ok).send('Hello, World!');
+export const del = async (req: Request, res: Response<void>) => {
+  const user = await req.getUser();
+  const db = (await orm).em.fork();
+
+  await db.remove(user).flush();
+  res.status(Status.NoContent).end();
 };
