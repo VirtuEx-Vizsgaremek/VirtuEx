@@ -1,4 +1,8 @@
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import {
+  S3Client,
+  PutObjectCommand,
+  DeleteObjectCommand
+} from '@aws-sdk/client-s3';
 
 class S3 {
   private static s3 = new S3Client({
@@ -16,6 +20,15 @@ class S3 {
         Bucket: 'virtuex',
         Key: key,
         Body: buffer
+      })
+    );
+  }
+
+  public static async rmFile(key: string) {
+    await this.s3.send(
+      new DeleteObjectCommand({
+        Bucket: 'virtuex',
+        Key: key
       })
     );
   }

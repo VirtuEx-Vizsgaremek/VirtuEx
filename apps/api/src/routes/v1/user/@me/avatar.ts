@@ -43,6 +43,16 @@ export const patch = async (req: Request, res: Response<string>) => {
   res.status(Status.NoContent).end();
 };
 
-export const del = (req: Request, res: Response<string>) => {
-  res.status(Status.Ok).send('Hello, World!');
+export const del = async (req: Request, res: Response<string>) => {
+  const user = await req.getUser();
+  const db = (await orm).em.fork();
+
+  if (!(user.avatar && user.avatar != null))
+    return res.error(Status.NotFound, 'The user does not have an avatar.');
+
+  await S3.rmFile(`avatars/${user.id}/${user.avatar}.webp`);
+  user.avatar = null;
+  await db.persist(user).flush();
+
+  res.status(Status.NoContent).end();
 };
