@@ -1,4 +1,4 @@
-import { Entity, Enum, Property, Unique } from '@mikro-orm/core';
+import { Entity, Enum, Property } from '@mikro-orm/core';
 
 import { BaseEntity } from '@/entities/base.entity';
 import { CurrencyType } from '@/enum/currency_type';

@@ -1,6 +1,3 @@
-import { Code } from '@/entities/code.entity';
-import { User } from '@/entities/user.entity';
-import { Wallet } from '@/entities/wallet.entity';
 import Status from '@/enum/status';
 
 import { Request, Response } from '@/util/handler';
