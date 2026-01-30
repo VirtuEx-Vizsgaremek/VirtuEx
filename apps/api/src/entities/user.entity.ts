@@ -48,7 +48,7 @@ export class User extends BaseEntity {
   codes = new Collection<Code>(this);
 
   @Property()
-  permissions: bigint = BigInt(0) as bigint;
+  permissions: number = 0;
 
   @Property()
   activated: boolean = false;

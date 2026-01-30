@@ -17,7 +17,7 @@ export const schemas = {
       bio: z.string().nullable().optional(),
       avatar: z.string().nullable().optional(),
       wallet: z.bigint(),
-      permissions: z.bigint(),
+      permissions: z.number(),
       subscription: z.string(),
       activated: z.boolean()
     })
