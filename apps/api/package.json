@@ -2,7 +2,7 @@
   "name": "@virutex/api",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "build/index.js",
   "scripts": {
     "start": "node .",
     "build": "tsc && resolve-tspaths",
@@ -12,12 +12,15 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.3",
+    "@types/bcrypt": "^6.0.0",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/express-ws": "^3.0.6",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/multer": "^2.0.0",
     "@types/node": "^22.15.3",
+    "@types/nodemailer": "^7.0.5",
+    "@types/showdown": "^2.0.6",
     "@virtuex/eslint-config": "workspace:*",
     "nodemon": "^3.1.11",
     "resolve-tspaths": "^0.8.23",
@@ -25,6 +28,7 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.975.0",
     "@mikro-orm/core": "^6.6.2",
     "@mikro-orm/postgresql": "^6.6.2",
     "@mikro-orm/reflection": "^6.6.2",
@@ -36,9 +40,12 @@
     "express": "^5.2.1",
     "express-ws": "^5.0.2",
     "jsonwebtoken": "^9.0.3",
+    "moment": "^2.30.1",
     "multer": "^2.0.2",
     "nodejs-snowflake": "^2.0.1",
+    "nodemailer": "^7.0.12",
     "sharp": "^0.34.5",
+    "showdown": "^2.1.0",
     "stripe": "^20.1.0",
     "zod": "^4.2.1"
   }

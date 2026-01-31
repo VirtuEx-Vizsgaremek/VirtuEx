@@ -1,8 +1,7 @@
-import { Entity, Enum, ManyToOne, Property, Unique } from '@mikro-orm/core';
+import { Entity, Enum, ManyToOne, Property } from '@mikro-orm/core';
 
 import { BaseEntity } from '@/entities/base.entity';
 import { Asset } from '@/entities/asset.entity';
-import { TransactionDirection, TransactionStatus } from '@/enum/transaction';
 import { User } from '@/entities/user.entity';
 import { OrderStatus, OrderType } from '@/enum/order';
 
