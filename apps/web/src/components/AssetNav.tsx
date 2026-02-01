@@ -80,7 +80,31 @@ export default function SideNav({
         - p-2: Small padding (8px) around the list
         - Combined with parent's flex-col, this creates scrollable area
       */}
-      <div className="flex-1 overflow-y-auto p-2">
+      <div
+        className="flex-1 overflow-y-auto p-2"
+        style={{
+          scrollbarWidth: 'thin',
+          scrollbarColor: 'var(--primary) var(--muted)'
+        }}
+      >
+        <style jsx>{`
+          div::-webkit-scrollbar {
+            width: 8px;
+          }
+          div::-webkit-scrollbar-track {
+            background: var(--muted);
+            border-radius: 10px;
+          }
+          div::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 10px;
+            transition: background 0.2s;
+          }
+          div::-webkit-scrollbar-thumb:hover {
+            background: var(--primary);
+            opacity: 0.8;
+          }
+        `}</style>
         <ul className="space-y-1">
           {/* Map over stocks array to render each stock as a button */}
           {stocks.map((stock) => {

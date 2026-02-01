@@ -522,7 +522,10 @@ export default function TradingView({
       {/* ========== Chart Container with Overlays ========== */}
       <div className="relative w-full h-[400px]">
         {/* Main chart canvas - always rendered */}
-        <div ref={chartContainerRef} className="w-full h-[400px]" />
+        <div
+          ref={chartContainerRef}
+          className="w-full h-[400px] rounded-2xl overflow-hidden"
+        />
 
         {/* OHLC Data Overlay - shown when hovering candlestick chart */}
         {ohlcData &&
