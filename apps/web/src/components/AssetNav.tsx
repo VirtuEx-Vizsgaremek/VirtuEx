@@ -17,9 +17,9 @@
 
 'use client';
 
+import tickerToDomain, { tickerToName } from '@/lib/stocks';
+import StockLogo from './StockLogo';
 import { Card } from './ui/card';
-import tickerToDomain from '@/lib/stocks';
-import { TrendingUp } from 'lucide-react';
 
 /**
  * Props interface for the Sidenav component
@@ -46,14 +46,14 @@ export default function SideNav({
    *
    * Process:
    * 1. Object.keys() extracts all stock symbols ['AAPL', 'TSLA', ...]
-   * 2. .map() transforms each symbol into an object with symbol and name
-   * 3. Creates array: [{ symbol: 'AAPL', name: 'apple.com' }, ...]
+   * 2. .map() transforms each symbol into an object with symbol and full name
+   * 3. Creates array: [{ symbol: 'AAPL', name: 'Apple Inc.' }, ...]
    *
    * Why? Arrays are easier to iterate over in JSX than objects
    */
   const stocks = Object.keys(tickerToDomain).map((symbol) => ({
     symbol, // Stock ticker symbol (e.g., "AAPL")
-    name: tickerToDomain[symbol] // Company domain/name (e.g., "apple.com")
+    name: tickerToName[symbol] || symbol // Full company name (e.g., "Apple Inc."), fallback to symbol
   }));
 
   return (
@@ -111,10 +111,7 @@ export default function SideNav({
                   className={`w-full text-left px-3 py-2 rounded-lg transition-all flex items-center gap-3 ${isSelected ? 'bg-blue-50 text-blue-600 font-semibold' : 'hover:bg-gray-50 text-gray-700'}`}
                 >
                   {/* Trending Up Icon - Changes color based on selection state */}
-                  <TrendingUp
-                    size={16}
-                    className={isSelected ? 'text-blue-500' : 'text-gray-400'}
-                  />
+                  <StockLogo ticker={stock.symbol} />
 
                   {/* Stock Information Container */}
                   {/*
@@ -125,7 +122,7 @@ export default function SideNav({
                     {/* Stock Symbol (e.g., "AAPL") */}
                     <div className="font-medium">{stock.symbol}</div>
 
-                    {/* Company Name/Domain */}
+                    {/* Full Company/Asset Name */}
                     {/*
                       - text-xs: Extra small text (12px)
                       - text-gray-500: Medium gray color

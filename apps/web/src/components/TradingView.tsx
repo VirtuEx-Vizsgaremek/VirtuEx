@@ -73,9 +73,13 @@ type AreaData = {
  */
 interface TradingViewProps {
   symbol: string; // Stock symbol passed from parent (e.g., "AAPL")
+  onClearSelection?: () => void; // Optional callback to clear selection when switching to generated data
 }
 
-export default function TradingView({ symbol }: TradingViewProps) {
+export default function TradingView({
+  symbol,
+  onClearSelection
+}: TradingViewProps) {
   // ========== Context & Theme ==========
   const { theme } = useTheme(); // Get current theme (dark/light) from context
 
@@ -153,6 +157,11 @@ export default function TradingView({ symbol }: TradingViewProps) {
     setCandleData(generateCandlestickData(365, new Date('2024-01-01'), 10000));
     setDataSource('generated'); // Update source indicator
     setError(null); // Clear any errors
+
+    // Clear selection in AssetNav (unselect all stocks)
+    if (onClearSelection) {
+      onClearSelection();
+    }
   };
 
   /**
@@ -357,19 +366,20 @@ export default function TradingView({ symbol }: TradingViewProps) {
   /**
    * Automatically fetches new data when symbol changes
    *
-   * When user selects a different stock in Sidenav:
+   * When user selects a different stock in AssetNav:
    * 1. Parent updates selectedSymbol state
    * 2. This component re-renders with new symbol prop
    * 3. useEffect detects symbol changed
-   * 4. Automatically calls handleFetchRealData()
-   * 5. Chart updates with new stock data
-   *
-   * Only runs if dataSource is 'realtime' to avoid fetching in generated mode
+   * 4. Automatically sets dataSource to 'realtime'
+   * 5. Calls handleFetchRealData() to load stock data
+   * 6. Chart updates with new stock data
    *
    * Dependency: [symbol] - runs whenever symbol prop changes
    */
   useEffect(() => {
-    if (symbol && dataSource === 'realtime') {
+    if (symbol) {
+      // Automatically switch to realtime mode when symbol changes
+      setDataSource('realtime');
       handleFetchRealData();
     }
   }, [symbol]);
@@ -380,17 +390,6 @@ export default function TradingView({ symbol }: TradingViewProps) {
     <div className="m-5">
       {/* ========== Control Panel ========== */}
       <div className="flex flex-wrap gap-2 mb-4">
-        {/* Real-Time Data Controls: Symbol Input + Fetch Button */}
-        <div className="flex gap-2 items-center">
-          <button
-            onClick={handleFetchRealData}
-            disabled={isLoading}
-            className="px-4 py-2 text-sm bg-purple-500 text-white rounded-lg hover:bg-purple-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
-          >
-            {isLoading ? 'Loading...' : 'Fetch Real Data'}
-          </button>
-        </div>
-
         {/* Mock Data Generation Button */}
         <button
           onClick={handleRegenerateData}

@@ -15,7 +15,10 @@ export default function Market() {
       />
       <div className="flex-1 min-h-[70vh] flex flex-col bg-muted/30 m-8 rounded-xl shadow-lg border border-gray h-min p-8">
         <h1 className="text-2xl font-bold mb-6">Market Page</h1>
-        <TradingView symbol={selectedSymbol} />
+        <TradingView
+          symbol={selectedSymbol}
+          onClearSelection={() => setSelectedSymbol('')}
+        />
         <Chart />
       </div>
     </div>
