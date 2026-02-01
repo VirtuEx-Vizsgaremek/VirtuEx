@@ -36,10 +36,12 @@ const StockLogo = ({ ticker }: StockLogoProps) => {
       )}
 
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
+      <Image
         src={logoUrl}
         alt={`${ticker} logo`}
-        className="object-cover w-full h-full relative z-10"
+        width={32}
+        height={32}
+        className="object-cover rounded-full"
         onLoad={() => setImageLoaded(true)}
         onError={() => {
           setImageError(true);
