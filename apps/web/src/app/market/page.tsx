@@ -1,6 +1,6 @@
 'use client';
 import Chart from '@/components/ShadCnChart';
-import SideNav from '@/components/Sidenav';
+import AssetNav from '@/components/AssetNav';
 import TradingView from '@/components/TradingView';
 import { useState } from 'react';
 
@@ -9,7 +9,7 @@ export default function Market() {
 
   return (
     <div className="flex h-min">
-      <SideNav
+      <AssetNav
         selectedSymbol={selectedSymbol}
         onSelectSymbol={setSelectedSymbol}
       />
