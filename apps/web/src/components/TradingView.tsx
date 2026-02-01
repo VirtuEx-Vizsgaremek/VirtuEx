@@ -67,7 +67,15 @@ type AreaData = {
   time: string; // Date string
 } | null;
 
-export default function TradingView() {
+/**
+ * Props interface for TradingView component
+ * Symbol is now controlled by parent (MarketPage) instead of internal state
+ */
+interface TradingViewProps {
+  symbol: string; // Stock symbol passed from parent (e.g., "AAPL")
+}
+
+export default function TradingView({ symbol }: TradingViewProps) {
   // ========== Context & Theme ==========
   const { theme } = useTheme(); // Get current theme (dark/light) from context
 
@@ -94,7 +102,6 @@ export default function TradingView() {
   const [dataSource, setDataSource] = useState<dataSource>('generated'); // Data source indicator
 
   // Real-time data controls
-  const [symbol, setSymbol] = useState('AAPL'); // Stock symbol to fetch
   const [isLoading, setIsLoading] = useState(false); // Loading state during API call
   const [error, setError] = useState<string | null>(null); // Error message display
 
@@ -346,6 +353,27 @@ export default function TradingView() {
     }
   }, [theme, isClient]);
 
+  // ========== Auto-Fetch Effect ==========
+  /**
+   * Automatically fetches new data when symbol changes
+   *
+   * When user selects a different stock in Sidenav:
+   * 1. Parent updates selectedSymbol state
+   * 2. This component re-renders with new symbol prop
+   * 3. useEffect detects symbol changed
+   * 4. Automatically calls handleFetchRealData()
+   * 5. Chart updates with new stock data
+   *
+   * Only runs if dataSource is 'realtime' to avoid fetching in generated mode
+   *
+   * Dependency: [symbol] - runs whenever symbol prop changes
+   */
+  useEffect(() => {
+    if (symbol && dataSource === 'realtime') {
+      handleFetchRealData();
+    }
+  }, [symbol]);
+
   // ========== SSR Prevention ==========
   // ========== Component Render ==========
   return (
@@ -354,14 +382,6 @@ export default function TradingView() {
       <div className="flex flex-wrap gap-2 mb-4">
         {/* Real-Time Data Controls: Symbol Input + Fetch Button */}
         <div className="flex gap-2 items-center">
-          <input
-            type="text"
-            value={symbol}
-            onChange={(e) => setSymbol(e.target.value.toUpperCase())} // Auto-uppercase input
-            placeholder="Symbol (e.g., AAPL)"
-            className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-            disabled={isLoading} // Disable during API call
-          />
           <button
             onClick={handleFetchRealData}
             disabled={isLoading}
