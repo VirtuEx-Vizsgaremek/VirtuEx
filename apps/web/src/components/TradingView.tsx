@@ -120,11 +120,43 @@ export default function TradingView({
   const [ohlcData, setOhlcData] = useState<OHLCData>(null); // OHLC data when hovering candlestick
   const [areaDisplayData, setAreaDisplayData] = useState<AreaData>(null); // Price data when hovering area
 
+  // Candlestick color scheme preference (theme colors vs standard red/green)
+  const [useThemeColors, setUseThemeColors] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('useThemeColors');
+      return saved !== null ? saved === 'true' : true;
+    }
+    return true;
+  });
+
+  // Get candlestick colors based on user preference
+  const candleColors = useThemeColors
+    ? { up: colors.candleUp, down: colors.candleDown }
+    : { up: '#22c55e', down: '#ef4444' };
+
   // ========== Initialization Effect ==========
   // Runs once on component mount to enable client-side rendering
   useEffect(() => {
     setIsClient(true); // Signal that we're now on the client (not SSR)
   }, []);
+
+  // ========== Color Preference Effects ==========
+  // Persist color preference to localStorage
+  useEffect(() => {
+    localStorage.setItem('useThemeColors', String(useThemeColors));
+  }, [useThemeColors]);
+
+  // Update candlestick colors when preference or colors change
+  useEffect(() => {
+    if (seriesRef.current && chartType === 'candle') {
+      seriesRef.current.applyOptions({
+        upColor: candleColors.up,
+        downColor: candleColors.down,
+        wickUpColor: candleColors.up,
+        wickDownColor: candleColors.down
+      });
+    }
+  }, [candleColors.up, candleColors.down, chartType]);
 
   // ========== Event Handlers ==========
 
@@ -319,11 +351,11 @@ export default function TradingView({
 
       // Create candlestick series with themed colors
       const candleSeries = chartRef.current.addSeries(CandlestickSeries, {
-        upColor: colors.candleUp,
-        downColor: colors.candleDown,
+        upColor: candleColors.up,
+        downColor: candleColors.down,
         borderVisible: false, // No borders around candles
-        wickUpColor: colors.candleUp,
-        wickDownColor: colors.candleDown
+        wickUpColor: candleColors.up,
+        wickDownColor: candleColors.down
       });
       seriesRef.current = candleSeries;
       candleSeries.setData(candleData); // Load candlestick data points
@@ -435,20 +467,46 @@ export default function TradingView({
 
         {/* Candlestick Color Legend - Only show for candlestick chart */}
         {chartType === 'candle' && (
-          <div className="flex items-center gap-4 px-3 py-2 text-sm bg-card border border-border rounded-lg">
-            <div className="flex items-center gap-1.5">
-              <div
-                className="w-3 h-3 rounded-sm"
-                style={{ backgroundColor: colors.candleUp }}
-              ></div>
-              <span className="text-muted-foreground">Bullish</span>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-4 px-3 py-2 text-sm bg-card border border-border rounded-lg">
+              <div className="flex items-center gap-1.5">
+                <div
+                  className="w-3 h-3 rounded-sm"
+                  style={{ backgroundColor: candleColors.up }}
+                ></div>
+                <span className="text-muted-foreground">Bullish</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div
+                  className="w-3 h-3 rounded-sm"
+                  style={{ backgroundColor: candleColors.down }}
+                ></div>
+                <span className="text-muted-foreground">Bearish</span>
+              </div>
             </div>
-            <div className="flex items-center gap-1.5">
-              <div
-                className="w-3 h-3 rounded-sm"
-                style={{ backgroundColor: colors.candleDown }}
-              ></div>
-              <span className="text-muted-foreground">Bearish</span>
+
+            {/* Toggle switch between theme colors and standard red/green */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Standard</span>
+              <button
+                onClick={() => setUseThemeColors(!useThemeColors)}
+                className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50"
+                style={{
+                  backgroundColor: useThemeColors ? candleColors.up : '#94a3b8'
+                }}
+                title={
+                  useThemeColors
+                    ? 'Using theme colors - Click for standard'
+                    : 'Using standard colors - Click for theme'
+                }
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    useThemeColors ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+              <span className="text-xs text-muted-foreground">Theme</span>
             </div>
           </div>
         )}

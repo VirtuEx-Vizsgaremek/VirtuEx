@@ -5,7 +5,7 @@ import TradingView from '@/components/TradingView';
 import { useState } from 'react';
 
 export default function Market() {
-  const [selectedSymbol, setSelectedSymbol] = useState('AAPL');
+  const [selectedSymbol, setSelectedSymbol] = useState('');
 
   return (
     <div className="flex h-min">

@@ -64,8 +64,8 @@ export const CHART_THEMES: Record<ChartColorTheme, ChartTheme> = {
       areaLine: '#3b82f6', // Pure blue-500
       areaTop: 'rgba(59, 130, 246, 0.3)',
       areaBottom: 'rgba(59, 130, 246, 0.0)',
-      candleUp: '#10b981', // Green-500
-      candleDown: '#ef4444' // Red-500
+      candleUp: '#3b82f6', // Blue-500 (vibrant blue for up)
+      candleDown: '#1e3a8a' // Blue-900 (much darker vibrant blue for down)
     },
     light: {
       background: '#ffffff',
@@ -89,8 +89,8 @@ export const CHART_THEMES: Record<ChartColorTheme, ChartTheme> = {
       areaLine: '#3b82f6', // Blue-500
       areaTop: 'rgba(59, 130, 246, 0.4)',
       areaBottom: 'rgba(59, 130, 246, 0.05)',
-      candleUp: '#22c55e', // Green-500
-      candleDown: '#ef4444' // Red-500
+      candleUp: '#60a5fa', // Blue-400 (lighter blue for up)
+      candleDown: '#1d4ed8' // Blue-700 (darker blue for down)
     },
     light: {
       background: '#ffffff',
@@ -114,8 +114,8 @@ export const CHART_THEMES: Record<ChartColorTheme, ChartTheme> = {
       areaLine: '#0255fd', // blue-ribbon
       areaTop: 'rgba(2, 85, 253, 0.4)',
       areaBottom: 'rgba(2, 85, 253, 0.05)',
-      candleUp: '#22c55e', // Green-500
-      candleDown: '#ef4444' // Red-500
+      candleUp: '#79a9fb', // malibu (light blue for up)
+      candleDown: '#0237ad' // international-klein-blue (deep blue for down)
     },
     light: {
       background: '#ffffff',
@@ -139,8 +139,8 @@ export const CHART_THEMES: Record<ChartColorTheme, ChartTheme> = {
       areaLine: '#14b8a6', // Teal-500
       areaTop: 'rgba(20, 184, 166, 0.4)',
       areaBottom: 'rgba(20, 184, 166, 0.05)',
-      candleUp: '#10b981', // Green-500
-      candleDown: '#ef4444' // Red-500
+      candleUp: '#2dd4bf', // Teal-400 (bright teal for up)
+      candleDown: '#0f766e' // Teal-700 (much darker teal for down)
     },
     light: {
       background: '#ffffff',

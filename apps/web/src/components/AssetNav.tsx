@@ -20,6 +20,7 @@
 import tickerToDomain, { tickerToName } from '@/lib/stocks';
 import StockLogo from './StockLogo';
 import { Card } from './ui/card';
+import { useTheme } from '@/contexts/ThemeContext';
 
 /**
  * Props interface for the Sidenav component
@@ -41,6 +42,8 @@ export default function SideNav({
   selectedSymbol,
   onSelectSymbol
 }: SidenavProps) {
+  const { theme } = useTheme();
+
   /**
    * Convert stock ticker object to array format for easier rendering
    *
@@ -108,7 +111,11 @@ export default function SideNav({
                 */}
                 <button
                   onClick={() => onSelectSymbol(stock.symbol)}
-                  className={`w-full text-left px-3 py-2 rounded-lg transition-all flex items-center gap-3 ${isSelected ? 'bg-blue-50 text-blue-600 font-semibold' : 'hover:bg-gray-50 text-gray-700'}`}
+                  className={`w-full text-left px-3 py-2 rounded-lg transition-all flex items-center gap-3 ${
+                    isSelected
+                      ? 'bg-primary/10 text-primary font-semibold'
+                      : 'hover:bg-muted text-foreground'
+                  }`}
                 >
                   {/* Trending Up Icon - Changes color based on selection state */}
                   <StockLogo ticker={stock.symbol} />
@@ -137,10 +144,10 @@ export default function SideNav({
                   {/*
                     Conditional rendering: {condition && <element>}
                     - Only renders if isSelected is true
-                    - Creates blue circular dot as visual indicator
+                    - Creates primary-colored circular dot as visual indicator
                   */}
                   {isSelected && (
-                    <div className="w-2 h-2 bg-blue-600 rounded-full" />
+                    <div className="w-2 h-2 bg-primary rounded-full" />
                   )}
                 </button>
               </li>
