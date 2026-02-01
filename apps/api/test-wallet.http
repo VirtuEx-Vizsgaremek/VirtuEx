@@ -1,0 +1,14 @@
+@baseUrl = http://localhost:3001
+
+POST {{baseUrl}}/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "test@virtuex.com",
+  "password": "password123"
+}
+
+GET {{baseUrl}}/v1/wallet/balance
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+
+GET {{baseUrl}}/v1/wallet/balance
