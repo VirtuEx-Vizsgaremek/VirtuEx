@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Moon, Sun } from 'lucide-react';
+import { Moon, Sun, Palette } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   NavigationMenu,
@@ -15,11 +15,13 @@ import {
   NavigationMenuViewport
 } from '@/components/ui/navigation-menu';
 import { useTheme } from '@/contexts/ThemeContext';
+import { ChartColorTheme, THEME_NAMES } from '@/lib/chartThemes';
 
 export default function Navbar() {
   // Use theme context instead of local state
-  const { theme, toggleTheme } = useTheme();
+  const { theme, toggleTheme, colorTheme, setColorTheme } = useTheme();
   const isDark = theme === 'dark';
+  const [showThemeMenu, setShowThemeMenu] = useState(false);
 
   // State for floating navbar visibility on scroll
   const [showFloatingNav, setShowFloatingNav] = useState(false);
@@ -124,6 +126,44 @@ export default function Navbar() {
               Sign Up
             </Button>
             <Button className="text-md">Log In</Button>
+
+            {/* Color Theme Selector */}
+            <div className="relative">
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => setShowThemeMenu(!showThemeMenu)}
+                title="Change color theme"
+              >
+                <Palette />
+              </Button>
+              {showThemeMenu && (
+                <div className="absolute right-0 mt-2 w-48 bg-card border border-border rounded-lg shadow-lg z-50">
+                  <div className="py-2">
+                    {(Object.keys(THEME_NAMES) as ChartColorTheme[]).map(
+                      (themeKey) => (
+                        <button
+                          key={themeKey}
+                          onClick={() => {
+                            setColorTheme(themeKey);
+                            setShowThemeMenu(false);
+                          }}
+                          className={`w-full px-4 py-2 text-left text-sm hover:bg-muted transition-colors ${
+                            colorTheme === themeKey
+                              ? 'bg-primary/10 text-primary font-semibold'
+                              : 'text-foreground'
+                          }`}
+                        >
+                          {THEME_NAMES[themeKey]}
+                        </button>
+                      )
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Light/Dark Mode Toggle */}
             <Button size="icon" variant="ghost" onClick={toggleTheme}>
               {isDark ? <Sun /> : <Moon />}
             </Button>

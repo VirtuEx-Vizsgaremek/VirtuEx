@@ -22,6 +22,7 @@
 
 'use client';
 import { useTheme } from '@/contexts/ThemeContext';
+import { CHART_THEMES } from '@/lib/chartThemes';
 import {
   generateCandlestickData,
   generateTradingViewChartData
@@ -81,7 +82,13 @@ export default function TradingView({
   onClearSelection
 }: TradingViewProps) {
   // ========== Context & Theme ==========
-  const { theme } = useTheme(); // Get current theme (dark/light) from context
+  const { theme, colorTheme } = useTheme(); // Get current theme (dark/light) and color theme from context
+
+  // Get active color scheme based on theme and selected color theme
+  const colors =
+    theme === 'dark'
+      ? CHART_THEMES[colorTheme].dark
+      : CHART_THEMES[colorTheme].light;
 
   // ========== Refs for Chart Management ==========
   const chartContainerRef = useRef<HTMLDivElement>(null); // Container DOM element
@@ -159,9 +166,7 @@ export default function TradingView({
     setError(null); // Clear any errors
 
     // Clear selection in AssetNav (unselect all stocks)
-    if (onClearSelection) {
-      onClearSelection();
-    }
+    onClearSelection?.();
   };
 
   /**
@@ -189,19 +194,25 @@ export default function TradingView({
       width: chartContainerRef.current.clientWidth,
       height: 400,
       layout: {
-        textColor: theme === 'dark' ? '#D1D5DB' : '#1F2937', // Text color based on theme
+        textColor: colors.textColor,
         background: {
           type: ColorType.Solid,
-          color: theme === 'dark' ? '#1F2937' : '#FFFFFF' // Background color
+          color: colors.background
         }
       },
       grid: {
         vertLines: {
-          color: theme === 'dark' ? '#374151' : '#E5E7EB' // Vertical grid lines
+          color: colors.gridColor
         },
         horzLines: {
-          color: theme === 'dark' ? '#374151' : '#E5E7EB' // Horizontal grid lines
+          color: colors.gridColor
         }
+      },
+      timeScale: {
+        borderColor: colors.borderColor
+      },
+      rightPriceScale: {
+        borderColor: colors.borderColor
       }
     });
 
@@ -285,11 +296,11 @@ export default function TradingView({
       // ===== Area Chart Mode =====
       setOhlcData(null); // Clear candlestick overlay data
 
-      // Create area series with blue gradient
+      // Create area series with gradient
       const areaSeries = chartRef.current.addSeries(AreaSeries, {
-        lineColor: '#2962FF', // Solid blue line
-        topColor: '#2962FF', // Top of gradient (solid blue)
-        bottomColor: 'rgba(41, 98, 255, 0.28)' // Bottom of gradient (transparent blue)
+        lineColor: colors.areaLine,
+        topColor: colors.areaTop,
+        bottomColor: colors.areaBottom
       });
       seriesRef.current = areaSeries;
       areaSeries.setData(areaData); // Load area data points
@@ -306,13 +317,13 @@ export default function TradingView({
       // ===== Candlestick Chart Mode =====
       setAreaDisplayData(null); // Clear area overlay data
 
-      // Create candlestick series with green/red colors
+      // Create candlestick series with themed colors
       const candleSeries = chartRef.current.addSeries(CandlestickSeries, {
-        upColor: '#26a69a', // Green for bullish (close > open)
-        downColor: '#ef5350', // Red for bearish (close < open)
+        upColor: colors.candleUp,
+        downColor: colors.candleDown,
         borderVisible: false, // No borders around candles
-        wickUpColor: '#26a69a', // Green wicks for bullish candles
-        wickDownColor: '#ef5350' // Red wicks for bearish candles
+        wickUpColor: colors.candleUp,
+        wickDownColor: colors.candleDown
       });
       seriesRef.current = candleSeries;
       candleSeries.setData(candleData); // Load candlestick data points
@@ -332,7 +343,7 @@ export default function TradingView({
 
     // Fit all data points on screen (auto-scale time axis)
     chartRef.current.timeScale().fitContent();
-  }, [chartType, isClient, areaData, candleData, theme]);
+  }, [chartType, isClient, areaData, candleData, theme, colors]);
 
   // ========== Theme Update Effect ==========
   /**
@@ -344,23 +355,29 @@ export default function TradingView({
     if (chartRef.current && isClient) {
       chartRef.current.applyOptions({
         layout: {
-          textColor: theme === 'dark' ? '#D1D5DB' : '#1F2937', // Axis labels color
+          textColor: colors.textColor,
           background: {
             type: ColorType.Solid,
-            color: theme === 'dark' ? '#1F2937' : '#FFFFFF' // Chart background
+            color: colors.background
           }
         },
         grid: {
           vertLines: {
-            color: theme === 'dark' ? '#374151' : '#E5E7EB' // Vertical grid lines
+            color: colors.gridColor
           },
           horzLines: {
-            color: theme === 'dark' ? '#374151' : '#E5E7EB' // Horizontal grid lines
+            color: colors.gridColor
           }
+        },
+        timeScale: {
+          borderColor: colors.borderColor
+        },
+        rightPriceScale: {
+          borderColor: colors.borderColor
         }
       });
     }
-  }, [theme, isClient]);
+  }, [theme, isClient, colors]);
 
   // ========== Auto-Fetch Effect ==========
   /**
@@ -394,7 +411,7 @@ export default function TradingView({
         <button
           onClick={handleRegenerateData}
           disabled={isLoading}
-          className="px-4 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-400"
+          className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-lg hover:bg-primary/80 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
         >
           Generate Mock Data
         </button>
@@ -403,18 +420,38 @@ export default function TradingView({
         <button
           onClick={handleToggleChartType}
           disabled={isLoading}
-          className="px-4 py-2 text-sm bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:bg-gray-400"
+          className="px-4 py-2 text-sm border border-primary/30 bg-primary/10 text-primary rounded-lg hover:bg-primary/20 hover:border-primary/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
         >
           Switch to {chartType === 'area' ? 'Candlestick' : 'Area'} Chart
         </button>
 
         {/* Data Source Indicator Badge */}
-        <div className="flex items-center px-3 py-2 text-sm bg-gray-100 dark:bg-gray-700 rounded-lg">
-          <span className="text-gray-600 dark:text-gray-400">Source:</span>
-          <span className="ml-2 font-semibold text-gray-900 dark:text-gray-100">
+        <div className="flex items-center px-3 py-2 text-sm bg-card border border-border rounded-lg">
+          <span className="text-muted-foreground">Source:</span>
+          <span className="ml-2 font-semibold text-foreground">
             {dataSource === 'realtime' ? `Real (${symbol})` : 'Generated'}
           </span>
         </div>
+
+        {/* Candlestick Color Legend - Only show for candlestick chart */}
+        {chartType === 'candle' && (
+          <div className="flex items-center gap-4 px-3 py-2 text-sm bg-card border border-border rounded-lg">
+            <div className="flex items-center gap-1.5">
+              <div
+                className="w-3 h-3 rounded-sm"
+                style={{ backgroundColor: colors.candleUp }}
+              ></div>
+              <span className="text-muted-foreground">Bullish</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div
+                className="w-3 h-3 rounded-sm"
+                style={{ backgroundColor: colors.candleDown }}
+              ></div>
+              <span className="text-muted-foreground">Bearish</span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ========== Error Message Display ========== */}
