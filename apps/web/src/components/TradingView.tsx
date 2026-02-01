@@ -100,6 +100,9 @@ export default function TradingView({
   // Client-side rendering flag (prevents hydration errors in Next.js)
   const [isClient, setIsClient] = useState(false);
 
+  // Animation state for progressive rendering
+  const [isAnimating, setIsAnimating] = useState(false);
+
   // Chart data arrays
   const [areaData, setAreaData] = useState(
     () => generateTradingViewChartData(365, new Date('2024-01-01'), 100) // Initial mock area data
@@ -324,6 +327,37 @@ export default function TradingView({
       seriesRef.current = null;
     }
 
+    const animateChartData = (data: any[], series: any) => {
+      setIsAnimating(true);
+      const duration = 1500; // Animation duration in ms
+      const startTime = Date.now();
+      const totalPoints = data.length;
+
+      const animate = () => {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+
+        // Easing function for smooth animation
+        const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
+        const easedProgress = easeOutCubic(progress);
+
+        const pointsToShow = Math.floor(easedProgress * totalPoints);
+        const visibleData = data.slice(0, Math.max(1, pointsToShow));
+
+        series.setData(visibleData);
+
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        } else {
+          setIsAnimating(false);
+          // Fit all data points on screen after animation completes
+          chartRef.current?.timeScale().fitContent();
+        }
+      };
+
+      requestAnimationFrame(animate);
+    };
+
     if (chartType === 'area') {
       // ===== Area Chart Mode =====
       setOhlcData(null); // Clear candlestick overlay data
@@ -335,7 +369,9 @@ export default function TradingView({
         bottomColor: colors.areaBottom
       });
       seriesRef.current = areaSeries;
-      areaSeries.setData(areaData); // Load area data points
+
+      // Animate data loading
+      animateChartData(areaData, areaSeries);
 
       // Set initial overlay data to most recent data point
       if (areaData.length > 0) {
@@ -358,7 +394,9 @@ export default function TradingView({
         wickDownColor: candleColors.down
       });
       seriesRef.current = candleSeries;
-      candleSeries.setData(candleData); // Load candlestick data points
+
+      // Animate data loading
+      animateChartData(candleData, candleSeries);
 
       // Set initial overlay data to most recent candlestick
       if (candleData.length > 0) {
@@ -372,9 +410,6 @@ export default function TradingView({
         });
       }
     }
-
-    // Fit all data points on screen (auto-scale time axis)
-    chartRef.current.timeScale().fitContent();
   }, [chartType, isClient, areaData, candleData, theme, colors]);
 
   // ========== Theme Update Effect ==========
@@ -467,49 +502,47 @@ export default function TradingView({
 
         {/* Candlestick Color Legend - Only show for candlestick chart */}
         {chartType === 'candle' && (
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-4 px-3 py-2 text-sm bg-card border border-border rounded-lg">
-              <div className="flex items-center gap-1.5">
-                <div
-                  className="w-3 h-3 rounded-sm"
-                  style={{ backgroundColor: candleColors.up }}
-                ></div>
-                <span className="text-muted-foreground">Bullish</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div
-                  className="w-3 h-3 rounded-sm"
-                  style={{ backgroundColor: candleColors.down }}
-                ></div>
-                <span className="text-muted-foreground">Bearish</span>
-              </div>
+          <div className="flex items-center gap-4 px-3 py-2 text-sm bg-card border border-border rounded-lg">
+            <div className="flex items-center gap-1.5">
+              <div
+                className="w-3 h-3 rounded-sm"
+                style={{ backgroundColor: candleColors.up }}
+              ></div>
+              <span className="text-muted-foreground">Bullish</span>
             </div>
-
-            {/* Toggle switch between theme colors and standard red/green */}
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">Standard</span>
-              <button
-                onClick={() => setUseThemeColors(!useThemeColors)}
-                className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50"
-                style={{
-                  backgroundColor: useThemeColors ? candleColors.up : '#94a3b8'
-                }}
-                title={
-                  useThemeColors
-                    ? 'Using theme colors - Click for standard'
-                    : 'Using standard colors - Click for theme'
-                }
-              >
-                <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    useThemeColors ? 'translate-x-6' : 'translate-x-1'
-                  }`}
-                />
-              </button>
-              <span className="text-xs text-muted-foreground">Theme</span>
+            <div className="flex items-center gap-1.5">
+              <div
+                className="w-3 h-3 rounded-sm"
+                style={{ backgroundColor: candleColors.down }}
+              ></div>
+              <span className="text-muted-foreground">Bearish</span>
             </div>
           </div>
         )}
+
+        {/* Toggle switch between theme colors and standard red/green */}
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">Standard</span>
+          <button
+            onClick={() => setUseThemeColors(!useThemeColors)}
+            className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50"
+            style={{
+              backgroundColor: useThemeColors ? candleColors.up : '#94a3b8'
+            }}
+            title={
+              useThemeColors
+                ? 'Using theme colors - Click for standard'
+                : 'Using standard colors - Click for theme'
+            }
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                useThemeColors ? 'translate-x-6' : 'translate-x-1'
+              }`}
+            />
+          </button>
+          <span className="text-xs text-muted-foreground">Theme</span>
+        </div>
       </div>
 
       {/* ========== Error Message Display ========== */}
@@ -547,6 +580,8 @@ export default function TradingView({
                 changeAmount={changeAmount}
                 changePercent={changePercent}
                 isPositive={isPositive}
+                upColor={candleColors.up}
+                downColor={candleColors.down}
               />
             );
           })()}
@@ -566,6 +601,8 @@ export default function TradingView({
                 changeAmount={changeAmount}
                 changePercent={changePercent}
                 isPositive={isPositive}
+                upColor={candleColors.up}
+                downColor={candleColors.down}
               />
             );
           })()}

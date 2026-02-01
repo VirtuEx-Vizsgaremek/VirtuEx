@@ -60,7 +60,7 @@ export default function SideNav({
   }));
 
   return (
-    <Card className="w-64 m-7 h-[calc(100vh-7rem)] flex flex-col">
+    <Card className="w-full h-full flex flex-col">
       {/* Fixed Header Section */}
       {/*
         - p-4: Padding 16px all around
@@ -68,7 +68,7 @@ export default function SideNav({
         - This section stays at top while list below scrolls
       */}
       <div className="p-4 border-b">
-        <h2 className="text-xs font-bold text-gray-400 uppercase">
+        <h2 className="text-xs font-bold text-muted-foreground uppercase">
           Select Asset
         </h2>
       </div>
@@ -156,10 +156,10 @@ export default function SideNav({
                     {/* Full Company/Asset Name */}
                     {/*
                       - text-xs: Extra small text (12px)
-                      - text-gray-500: Medium gray color
+                      - text-muted-foreground: Theme-aware muted text color
                       - truncate: Cuts off long text with ellipsis (...)
                     */}
-                    <div className="text-xs text-gray-500 truncate">
+                    <div className="text-xs text-muted-foreground truncate">
                       {stock.name}
                     </div>
                   </div>

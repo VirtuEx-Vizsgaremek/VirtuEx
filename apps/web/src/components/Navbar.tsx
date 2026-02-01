@@ -75,6 +75,44 @@ export default function Navbar() {
             <Button size="sm" className="rounded-full">
               Log In
             </Button>
+
+            {/* Color Theme Selector */}
+            <div className="relative">
+              <Button
+                size="icon"
+                variant="ghost"
+                className="rounded-full"
+                onClick={() => setShowThemeMenu(!showThemeMenu)}
+                title="Change color theme"
+              >
+                <Palette className="w-4 h-4" />
+              </Button>
+              {showThemeMenu && (
+                <div className="absolute right-0 mt-2 w-48 bg-card border border-border rounded-lg shadow-lg z-50">
+                  <div className="py-2">
+                    {(Object.keys(THEME_NAMES) as ChartColorTheme[]).map(
+                      (themeKey) => (
+                        <button
+                          key={themeKey}
+                          onClick={() => {
+                            setColorTheme(themeKey);
+                            setShowThemeMenu(false);
+                          }}
+                          className={`w-full px-4 py-2 text-left text-sm hover:bg-muted transition-colors ${
+                            colorTheme === themeKey
+                              ? 'bg-primary/10 text-primary font-semibold'
+                              : 'text-foreground'
+                          }`}
+                        >
+                          {THEME_NAMES[themeKey]}
+                        </button>
+                      )
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <Button
               size="icon"
               variant="ghost"

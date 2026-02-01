@@ -1,12 +1,12 @@
 'use client';
-import Chart from '@/components/ShadCnChart';
 import AssetNav from '@/components/AssetNav';
+import Chart from '@/components/ShadCnChart';
 import TradingView from '@/components/TradingView';
-import { useState } from 'react';
-import { Menu, X, Moon, Sun, Palette } from 'lucide-react';
-import Link from 'next/link';
 import { useTheme } from '@/contexts/ThemeContext';
-import { THEME_NAMES, ChartColorTheme } from '@/lib/chartThemes';
+import { ChartColorTheme, THEME_NAMES } from '@/lib/chartThemes';
+import { Moon, Palette, Pin, Sun, X } from 'lucide-react';
+import Link from 'next/link';
+import { useState } from 'react';
 
 export default function Market() {
   const [selectedSymbol, setSelectedSymbol] = useState('');
@@ -14,28 +14,51 @@ export default function Market() {
   const [showAssetNav, setShowAssetNav] = useState(false);
   const [showNavbar, setShowNavbar] = useState(false);
   const [isAssetNavPinned, setIsAssetNavPinned] = useState(false);
+  const [navbarHideTimeout, setNavbarHideTimeout] =
+    useState<NodeJS.Timeout | null>(null);
 
   const { theme, toggleTheme, colorTheme, setColorTheme } = useTheme();
   const isDark = theme === 'dark';
+
+  const handleNavbarMouseEnter = () => {
+    if (navbarHideTimeout) {
+      clearTimeout(navbarHideTimeout);
+      setNavbarHideTimeout(null);
+    }
+    setShowNavbar(true);
+  };
+
+  const handleNavbarMouseLeave = () => {
+    const timeout = setTimeout(() => {
+      setShowNavbar(false);
+    }, 300); // 300ms delay before hiding
+    setNavbarHideTimeout(timeout);
+  };
 
   return (
     <div className="relative h-screen overflow-hidden bg-background">
       {/* Top hover zone for navbar */}
       <div
-        className="fixed top-0 left-0 right-0 h-16 z-40"
+        className="fixed top-0 left-0 right-0 h-6 z-40 pointer-events-none"
         onMouseEnter={() => setShowNavbar(true)}
-        onMouseLeave={() => setShowNavbar(false)}
       >
         {/* Subtle indicator bar */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-1 bg-primary/30 rounded-b-full transition-all duration-300 hover:h-2 hover:w-48 hover:bg-primary/50" />
+        <div
+          className={`absolute top-0 left-1/2 -translate-x-1/2 bg-primary/30 rounded-b-full transition-all duration-300 pointer-events-auto ${
+            showNavbar ? 'w-64 h-2.5 bg-primary/50' : 'w-48 h-2'
+          }`}
+          onMouseEnter={() => setShowNavbar(true)}
+        />
 
         {/* Floating Navbar */}
         <nav
-          className={`absolute top-4 left-1/2 -translate-x-1/2 w-[90%] max-w-6xl transition-all duration-300 ${
+          className={`absolute top-4 left-1/2 -translate-x-1/2 w-[90%] max-w-6xl transition-all duration-300 pointer-events-auto ${
             showNavbar
               ? 'opacity-100 translate-y-0'
               : 'opacity-0 -translate-y-8 pointer-events-none'
           }`}
+          onMouseEnter={handleNavbarMouseEnter}
+          onMouseLeave={handleNavbarMouseLeave}
         >
           <div className="bg-card/95 backdrop-blur-md border border-border shadow-2xl rounded-full px-6 py-3 flex justify-between items-center">
             <div className="flex items-center gap-6">
@@ -109,7 +132,7 @@ export default function Market() {
 
       {/* Left hover zone for AssetNav */}
       <div
-        className="fixed left-0 top-0 bottom-0 w-16 z-40"
+        className="fixed left-0 top-0 bottom-0 w-6 z-40"
         onMouseEnter={() => setShowAssetNav(true)}
         onMouseLeave={() => !isAssetNavPinned && setShowAssetNav(false)}
       >
@@ -118,22 +141,35 @@ export default function Market() {
 
         {/* Sliding AssetNav */}
         <div
-          className={`absolute left-0 top-0 bottom-0 w-80 bg-background transition-transform duration-300 ${
+          className={`absolute left-0 top-0 bottom-0 w-96 bg-background transition-transform duration-300 ${
             showAssetNav ? 'translate-x-0' : '-translate-x-full'
           }`}
         >
           <div className="relative h-full">
-            {/* Pin/Close button */}
-            <button
-              onClick={() => {
-                setIsAssetNavPinned(!isAssetNavPinned);
-                if (isAssetNavPinned) setShowAssetNav(false);
-              }}
-              className="absolute top-4 right-4 z-10 p-2 bg-card hover:bg-muted rounded-full border border-border transition-colors"
-              title={isAssetNavPinned ? 'Unpin' : 'Pin'}
-            >
-              {isAssetNavPinned ? <X size={16} /> : <Menu size={16} />}
-            </button>
+            {/* Close and Pin buttons */}
+            <div className="absolute top-4 right-4 z-10 flex gap-2">
+              <button
+                onClick={() => {
+                  setShowAssetNav(false);
+                  setIsAssetNavPinned(false);
+                }}
+                className="p-2 bg-card hover:bg-muted rounded-full border border-border transition-colors"
+                title="Close"
+              >
+                <X size={16} />
+              </button>
+              <button
+                onClick={() => setIsAssetNavPinned(!isAssetNavPinned)}
+                className={`p-2 rounded-full border border-border transition-colors ${
+                  isAssetNavPinned
+                    ? 'bg-primary text-primary-foreground hover:bg-primary/80'
+                    : 'bg-card hover:bg-muted'
+                }`}
+                title={isAssetNavPinned ? 'Unpin' : 'Pin'}
+              >
+                <Pin size={16} />
+              </button>
+            </div>
 
             <AssetNav
               selectedSymbol={selectedSymbol}
@@ -142,18 +178,6 @@ export default function Market() {
           </div>
         </div>
       </div>
-
-      {/* Menu button (always visible) */}
-      <button
-        onClick={() => {
-          setShowAssetNav(!showAssetNav);
-          setIsAssetNavPinned(!showAssetNav);
-        }}
-        className="fixed left-4 top-4 z-50 p-3 bg-card hover:bg-muted rounded-full border border-border shadow-lg transition-all hover:scale-110"
-        title="Toggle Asset List"
-      >
-        <Menu size={20} />
-      </button>
 
       {/* Main Chart Area */}
       <div className="w-full h-full p-8">

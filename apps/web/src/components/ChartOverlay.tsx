@@ -10,6 +10,8 @@ interface ChartOverlayProps {
   changeAmount: number;
   changePercent: number;
   isPositive: boolean;
+  upColor: string;
+  downColor: string;
 }
 
 const ChartOverlay = ({
@@ -17,33 +19,37 @@ const ChartOverlay = ({
   data,
   changeAmount,
   changePercent,
-  isPositive
+  isPositive,
+  upColor,
+  downColor
 }: ChartOverlayProps) => {
+  const indicatorColor = isPositive ? upColor : downColor;
+
   return (
-    <div className="absolute top-2 left-2 flex gap-4 text-sm font-mono bg-white dark:bg-gray-800 p-2 rounded shadow-sm pointer-events-none z-10">
+    <div className="absolute top-2 left-2 flex gap-4 text-sm font-mono bg-card/95 backdrop-blur-sm border border-border p-3 rounded-lg shadow-lg pointer-events-none z-10">
       {type === 'ohlc' && (
         <>
-          <span className="text-gray-600 dark:text-gray-400">
+          <span className="text-muted-foreground">
             O{' '}
-            <span className="text-gray-900 dark:text-gray-100">
+            <span className="text-foreground font-semibold">
               {data.open?.toFixed(2)}
             </span>
           </span>
-          <span className="text-gray-600 dark:text-gray-400">
+          <span className="text-muted-foreground">
             H{' '}
-            <span className="text-gray-900 dark:text-gray-100">
+            <span className="text-foreground font-semibold">
               {data.high?.toFixed(2)}
             </span>
           </span>
-          <span className="text-gray-600 dark:text-gray-400">
+          <span className="text-muted-foreground">
             L{' '}
-            <span className="text-gray-900 dark:text-gray-100">
+            <span className="text-foreground font-semibold">
               {data.low?.toFixed(2)}
             </span>
           </span>
-          <span className="text-gray-600 dark:text-gray-400">
+          <span className="text-muted-foreground">
             C{' '}
-            <span className="text-gray-900 dark:text-gray-100">
+            <span className="text-foreground font-semibold">
               {data.close?.toFixed(2)}
             </span>
           </span>
@@ -51,12 +57,12 @@ const ChartOverlay = ({
       )}
 
       {type === 'simple' && (
-        <span className="text-gray-900 dark:text-gray-100 font-bold">
+        <span className="text-foreground font-bold">
           {data.value?.toFixed(2)}
         </span>
       )}
 
-      <span className={isPositive ? 'text-green-500' : 'text-red-500'}>
+      <span style={{ color: indicatorColor }} className="font-semibold">
         {isPositive ? '▲' : '▼'} {Math.abs(changeAmount).toFixed(2)} (
         {isPositive ? '+' : ''}
         {changePercent.toFixed(2)}%)

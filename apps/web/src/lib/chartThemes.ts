@@ -9,7 +9,8 @@ export type ChartColorTheme =
   | 'BLUE'
   | 'DARK_BLUE'
   | 'OCEAN'
-  | 'TOKYO';
+  | 'TOKYO'
+  | 'MONOCHROME';
 
 export interface ChartColors {
   background: string;
@@ -178,6 +179,31 @@ export const CHART_THEMES: Record<ChartColorTheme, ChartTheme> = {
       candleUp: '#059669', // Green-600
       candleDown: '#dc2626' // Red-600
     }
+  },
+  MONOCHROME: {
+    // Pure black and white grayscale theme - no colors
+    dark: {
+      background: '#000000', // Pure black
+      textColor: '#ffffff', // Pure white
+      gridColor: 'rgba(255, 255, 255, 0.08)',
+      borderColor: 'rgba(255, 255, 255, 0.12)',
+      areaLine: '#d4d4d4', // Gray-300
+      areaTop: 'rgba(212, 212, 212, 0.3)',
+      areaBottom: 'rgba(212, 212, 212, 0.0)',
+      candleUp: '#e5e5e5', // Gray-200 (lighter for up)
+      candleDown: '#525252' // Gray-600 (darker for down)
+    },
+    light: {
+      background: '#ffffff', // Pure white
+      textColor: '#000000', // Pure black
+      gridColor: 'rgba(0, 0, 0, 0.08)',
+      borderColor: 'rgba(0, 0, 0, 0.12)',
+      areaLine: '#525252', // Gray-600
+      areaTop: 'rgba(82, 82, 82, 0.3)',
+      areaBottom: 'rgba(82, 82, 82, 0.0)',
+      candleUp: '#171717', // Gray-900 (darker for up)
+      candleDown: '#a3a3a3' // Gray-400 (brighter for down)
+    }
   }
 };
 
@@ -188,7 +214,8 @@ export const THEME_NAMES: Record<ChartColorTheme, string> = {
   BLUE: 'Blue',
   DARK_BLUE: 'Dark Blue',
   OCEAN: 'Teal Ocean',
-  TOKYO: 'Tokyo Night'
+  TOKYO: 'Tokyo Night',
+  MONOCHROME: 'Monochrome'
 };
 
 // CSS class mappings for website themes (matches global.css)
@@ -198,5 +225,6 @@ export const THEME_CSS_CLASSES: Record<ChartColorTheme, string> = {
   BLUE: 'blue dark',
   DARK_BLUE: 'dark-blue dark',
   OCEAN: 'ocean dark',
-  TOKYO: 'tokyo dark'
+  TOKYO: 'tokyo dark',
+  MONOCHROME: 'monochrome dark'
 };
