@@ -121,7 +121,7 @@ export default function AssetChart() {
   } satisfies ChartConfig;
 
   return (
-    <Card className="pt-0">
+    <Card className="pt-0 h-full flex flex-col">
       <CardHeader className="flex items-center gap-2 space-y-0 border-b py-5 sm:flex-col sm:items-start lg:flex-row lg:items-center">
         <div className="grid flex-1 gap-1">
           <CardTitle>Asset Price Chart - {currentAsset.name}</CardTitle>
@@ -201,10 +201,10 @@ export default function AssetChart() {
           </Select>
         </div>
       </CardHeader>
-      <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
+      <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6 flex-1 min-h-0">
         <ChartContainer
           config={chartConfig}
-          className="aspect-auto h-[400px] w-full"
+          className="aspect-auto h-full w-full"
         >
           <AreaChart
             data={visibleData}

@@ -224,7 +224,7 @@ export default function TradingView({
     // Create new chart instance with initial configuration
     const chart = createChart(chartContainerRef.current, {
       width: chartContainerRef.current.clientWidth,
-      height: 400,
+      height: chartContainerRef.current.clientHeight,
       layout: {
         textColor: colors.textColor,
         background: {
@@ -436,7 +436,7 @@ export default function TradingView({
   // ========== SSR Prevention ==========
   // ========== Component Render ==========
   return (
-    <div className="m-5">
+    <>
       {/* ========== Control Panel ========== */}
       <div className="flex flex-wrap gap-2 mb-4">
         {/* Mock Data Generation Button */}
@@ -520,11 +520,11 @@ export default function TradingView({
       )}
 
       {/* ========== Chart Container with Overlays ========== */}
-      <div className="relative w-full h-[400px]">
+      <div className="relative w-full h-full">
         {/* Main chart canvas - always rendered */}
         <div
           ref={chartContainerRef}
-          className="w-full h-[400px] rounded-2xl overflow-hidden"
+          className="w-full h-full rounded-2xl overflow-hidden"
         />
 
         {/* OHLC Data Overlay - shown when hovering candlestick chart */}
@@ -570,6 +570,6 @@ export default function TradingView({
             );
           })()}
       </div>
-    </div>
+    </>
   );
 }
