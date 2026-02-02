@@ -47,7 +47,7 @@ export const get = async (
     return res.error(Status.NotFound, 'User with this id is not found.');
 
   const showEmail =
-    (rUser.permissions & Permissions.Admin) !== Permissions.Admin ||
+    (rUser.permissions & Permissions.Admin) === Permissions.Admin ||
     rUser.id === user.id;
 
   res.status(Status.Ok).json({
