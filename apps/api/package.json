@@ -7,7 +7,7 @@
     "start": "node .",
     "build": "tsc && resolve-tspaths",
     "dev": "nodemon -r dotenv/config -r tsconfig-paths/register src/index.ts",
-    "seed": "nodemon -r dotenv/config -r tsconfig-paths/register src/seed.ts",
+    "seed": "ts-node -r dotenv/config -r tsconfig-paths/register src/seed.ts",
     "lint": "eslint",
     "lint:fix": "eslint --fix"
   },
