@@ -33,17 +33,22 @@ export class User extends BaseEntity {
   @Property({ length: 256, nullable: true })
   bio: string | undefined | null;
 
+  @Property({ length: 40, nullable: true })
+  avatar: string | undefined | null;
+
   @OneToOne(() => Wallet, (wallet) => wallet.user, {
     owner: true,
     orphanRemoval: true
   })
   wallet!: Wallet;
 
-  @OneToMany(() => Code, (code) => code.user)
+  @OneToMany(() => Code, (code) => code.user, {
+    orphanRemoval: true
+  })
   codes = new Collection<Code>(this);
 
   @Property()
-  permissions: bigint = BigInt(0) as bigint;
+  permissions: number = 0;
 
   @Property()
   activated: boolean = false;
