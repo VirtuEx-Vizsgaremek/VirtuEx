@@ -126,14 +126,14 @@ The user interface in both the web and desktop applications shows a clean appear
 <p>
     <img align="right" width="45%" alt="Chart View" src="https://github.com/user-attachments/assets/96e9a429-6db2-44d8-9c14-8d4e6c262a3e" />
     <strong>Chart View & Analysis</strong><br><br>
-    The website opens with the chart view. Here we have the option to choose between using real or simulated data. In Chart view, there is an option to switch between AI (credit-based advice) and real-time (CoinMarketCap) data. The free package has limited chart view (candle and line, maximum monthly view), while the pro subscription provides full functionality.
+    The website opens with the chart view. Here we have the option to choose between using real or simulated data. In Chart view, there is an option to switch between AI (credit-based advice) and real-time (Yahoo Finance) data. The free package has limited chart view (candle and line, maximum monthly view), while the pro subscription provides full functionality.
 </p>
 <p>
     The website opens with the chart view.
 
 **Options available:**
 - Use real or simulated data
-- Switch between AI (credit-based advice) and real-time (CoinMarketCap) data
+- Switch between AI (credit-based advice) and real-time (Yahoo Finance) data
 
 **Package limitations:**
 - Free plan: limited chart view (candlestick and line, maximum monthly view)  
