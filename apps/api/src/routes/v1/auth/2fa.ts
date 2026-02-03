@@ -2,7 +2,10 @@ import Status from '@/enum/status';
 
 import { Request, Response } from '@/util/handler';
 
+import { orm } from '@/util/orm';
+
 import { z } from 'zod';
+import { generateSecret, generate, verify } from 'otplib';
 
 export const schemas = {
   post: {
@@ -21,18 +24,29 @@ export const schemas = {
   }
 };
 
-export const post = async (req: Request, res: Response<void>) => {
+export const post = async (req: Request, res: Response<any>) => {
   const { action } = req.validateBody(schemas.post.req);
+
+  const user = await req.getUser();
+  const db = (await orm).em.fork();
 
   if (action === 'check') {
     const { code } = req.body;
 
-    console.log(code);
+    const result = await verify({ secret: user.mfaSecret, token: code });
 
-    return res.status(Status.NoContent).end();
+    if (result.valid) return res.status(Status.NoContent).end();
+    return res.error(Status.Unauthorized, 'Invalid token.');
   }
 
   if (action === 'new') {
-    return res.status(Status.NoContent).end();
+    const secret = generateSecret();
+
+    user.mfaSecret = secret;
+    await db.persist(user).flush();
+
+    return res.status(Status.Ok).json({
+      secret
+    });
   }
 };
