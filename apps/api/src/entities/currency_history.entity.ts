@@ -1,15 +1,11 @@
 import {
   Entity,
-  Enum,
-  Index,
   ManyToOne,
   PrimaryKey,
   PrimaryKeyProp,
-  Property,
-  Unique
+  Property
 } from '@mikro-orm/core';
 
-import { BaseEntity } from '@/entities/base.entity';
 import { Currency } from '@/entities/currency.entity';
 
 @Entity()
