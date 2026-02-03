@@ -12,78 +12,135 @@ async function seed() {
   const db = (await orm).em.fork();
 
   try {
-    const usd = new Currency();
-    usd.symbol = 'USD';
-    usd.name = 'US Dollar';
-    usd.precision = 2;
-    usd.type = CurrencyType.Fiat;
+    // Check and create currencies
+    let usd = await db.findOne(Currency, { symbol: 'USD' });
+    if (!usd) {
+      usd = new Currency();
+      usd.symbol = 'USD';
+      usd.name = 'US Dollar';
+      usd.precision = 2;
+      usd.type = CurrencyType.Fiat;
+      await db.persist(usd).flush();
+      console.log('✅ USD currency created');
+    } else {
+      console.log('ℹ️  USD currency already exists');
+    }
 
-    const btc = new Currency();
-    btc.symbol = 'BTC';
-    btc.name = 'Bitcoin';
-    btc.precision = 8;
-    btc.type = CurrencyType.Crypto;
+    let btc = await db.findOne(Currency, { symbol: 'BTC' });
+    if (!btc) {
+      btc = new Currency();
+      btc.symbol = 'BTC';
+      btc.name = 'Bitcoin';
+      btc.precision = 8;
+      btc.type = CurrencyType.Crypto;
+      await db.persist(btc).flush();
+      console.log('✅ BTC currency created');
+    } else {
+      console.log('ℹ️  BTC currency already exists');
+    }
 
-    const eth = new Currency();
-    eth.symbol = 'ETH';
-    eth.name = 'Ethereum';
-    eth.precision = 8;
-    eth.type = CurrencyType.Crypto;
+    let eth = await db.findOne(Currency, { symbol: 'ETH' });
+    if (!eth) {
+      eth = new Currency();
+      eth.symbol = 'ETH';
+      eth.name = 'Ethereum';
+      eth.precision = 8;
+      eth.type = CurrencyType.Crypto;
+      await db.persist(eth).flush();
+      console.log('✅ ETH currency created');
+    } else {
+      console.log('ℹ️  ETH currency already exists');
+    }
 
-    await db.persist([usd, btc, eth]).flush();
-    console.log('✅ Currencies created');
+    // Check and create test user
+    let user = await db.findOne(User, { username: 'testuser' });
+    let wallet: Wallet;
 
-    const user = new User();
-    user.fullName = 'Test User';
-    user.username = 'testuser';
-    user.email = 'test@virtuex.com';
-    user.password = await bcrypt.hash('password123', 10);
-    user.activated = true;
+    if (!user) {
+      user = new User();
+      user.fullName = 'Test User';
+      user.username = 'testuser';
+      user.email = 'test@virtuex.com';
+      user.password = await bcrypt.hash('password123', 10);
+      user.activated = true;
 
-    const wallet = new Wallet();
-    user.wallet = wallet;
+      wallet = new Wallet();
+      user.wallet = wallet;
 
-    await db.persist([wallet, user]).flush();
-    console.log('✅ User and Wallet created');
+      await db.persist([wallet, user]).flush();
+      console.log('✅ User and Wallet created');
+    } else {
+      console.log('ℹ️  Test user already exists');
+      wallet = user.wallet;
+      await db.populate(user, ['wallet']);
+    }
 
-    const assetUSD = new Asset();
-    assetUSD.wallet = wallet;
-    assetUSD.currency = usd;
-    assetUSD.amount = BigInt(100000);
+    // Check and create assets
+    let assetUSD = await db.findOne(Asset, { wallet, currency: usd });
+    if (!assetUSD) {
+      assetUSD = new Asset();
+      assetUSD.wallet = wallet;
+      assetUSD.currency = usd;
+      assetUSD.amount = BigInt(100000);
+      await db.persist(assetUSD).flush();
+      console.log('✅ USD asset created');
+    } else {
+      console.log('ℹ️  USD asset already exists');
+    }
 
-    const assetBTC = new Asset();
-    assetBTC.wallet = wallet;
-    assetBTC.currency = btc;
-    assetBTC.amount = BigInt(50000000);
+    let assetBTC = await db.findOne(Asset, { wallet, currency: btc });
+    if (!assetBTC) {
+      assetBTC = new Asset();
+      assetBTC.wallet = wallet;
+      assetBTC.currency = btc;
+      assetBTC.amount = BigInt(50000000);
+      await db.persist(assetBTC).flush();
+      console.log('✅ BTC asset created');
+    } else {
+      console.log('ℹ️  BTC asset already exists');
+    }
 
-    const assetETH = new Asset();
-    assetETH.wallet = wallet;
-    assetETH.currency = eth;
-    assetETH.amount = BigInt(200000000);
+    let assetETH = await db.findOne(Asset, { wallet, currency: eth });
+    if (!assetETH) {
+      assetETH = new Asset();
+      assetETH.wallet = wallet;
+      assetETH.currency = eth;
+      assetETH.amount = BigInt(200000000);
+      await db.persist(assetETH).flush();
+      console.log('✅ ETH asset created');
+    } else {
+      console.log('ℹ️  ETH asset already exists');
+    }
 
-    await db.persist([assetUSD, assetBTC, assetETH]).flush();
-    console.log('✅ Assets created');
+    // Check transaction count for this wallet
+    const existingTxCount = await db.count(Transaction, {
+      asset: { wallet }
+    });
 
-    const tx1 = new Transaction();
-    tx1.asset = assetBTC;
-    tx1.amount = BigInt(10000000);
-    tx1.direction = TransactionDirection.Incoming;
-    tx1.status = TransactionStatus.Completed;
+    if (existingTxCount === 0) {
+      const tx1 = new Transaction();
+      tx1.asset = assetBTC;
+      tx1.amount = BigInt(10000000);
+      tx1.direction = TransactionDirection.Incoming;
+      tx1.status = TransactionStatus.Completed;
 
-    const tx2 = new Transaction();
-    tx2.asset = assetUSD;
-    tx2.amount = BigInt(5000);
-    tx2.direction = TransactionDirection.Incoming;
-    tx2.status = TransactionStatus.Completed;
+      const tx2 = new Transaction();
+      tx2.asset = assetUSD;
+      tx2.amount = BigInt(5000);
+      tx2.direction = TransactionDirection.Incoming;
+      tx2.status = TransactionStatus.Completed;
 
-    const tx3 = new Transaction();
-    tx3.asset = assetETH;
-    tx3.amount = BigInt(50000000);
-    tx3.direction = TransactionDirection.Outgoing;
-    tx3.status = TransactionStatus.Completed;
+      const tx3 = new Transaction();
+      tx3.asset = assetETH;
+      tx3.amount = BigInt(50000000);
+      tx3.direction = TransactionDirection.Outgoing;
+      tx3.status = TransactionStatus.Completed;
 
-    await db.persist([tx1, tx2, tx3]).flush();
-    console.log('✅ Transactions created');
+      await db.persist([tx1, tx2, tx3]).flush();
+      console.log('✅ Transactions created');
+    } else {
+      console.log('ℹ️  Transactions already exist');
+    }
 
     console.log('\n🎉 Seed completed successfully!');
     console.log('\nTest user credentials:');
