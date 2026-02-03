@@ -5,7 +5,7 @@ import { ValidationError } from '@/util/errors';
 
 import { CookieOptions, RequestFile } from '@/interfaces';
 
-import { ZodObject } from 'zod';
+import { ZodObject, ZodUnion } from 'zod';
 import { User } from '@/entities/user.entity';
 import { orm } from '@/util/orm';
 import { JwtPayload, verify } from 'jsonwebtoken';
@@ -137,7 +137,7 @@ export class Request {
    * @returns {T['_output']} The input object.
    * @throws {ValidationError}
    */
-  public validate<T extends ZodObject<any>>(
+  public validate<T extends ZodObject<any> | ZodUnion<any>>(
     schema: T,
     data: any
   ): T['_output'] {
@@ -178,7 +178,9 @@ export class Request {
    * @returns {T['_output']} The request's body.
    * @throws {ValidationError}
    */
-  public validateBody<T extends ZodObject<any>>(schema: T): T['_output'] {
+  public validateBody<T extends ZodObject<any> | ZodUnion<any>>(
+    schema: T
+  ): T['_output'] {
     return this.validate(schema, this.req.body);
   }
 
