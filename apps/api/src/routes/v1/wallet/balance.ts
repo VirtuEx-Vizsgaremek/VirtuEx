@@ -31,24 +31,44 @@ export const get = async (
   res: Response<z.infer<typeof schemas.get.res>>
 ) => {
   try {
-    const user = await req.getUser();
-
-    if (!user) {
-      return res.error(Status.Unauthorized, 'User not authenticated');
-    }
-
     const db = (await orm).em.fork();
 
+    // const user = await req.getUser();
+
+    // if (!user) {
+    //   return res.error(Status.Unauthorized, 'User not authenticated');
+    // }
+
+    // const userWithWallet = await db.findOne(
+    //   User,
+    //   { id: user.id },
+    //   { populate: ['wallet'] }
+    // );
+
+    // ----------- Temp dev block -----------//
     const userWithWallet = await db.findOne(
       User,
-      { id: user.id },
+      { wallet: { $ne: null } },
       { populate: ['wallet'] }
     );
 
+    // if (!userWithWallet || !userWithWallet.wallet) {
+    //   return res.error(Status.NotFound, 'Wallet not found');
+    // }
     if (!userWithWallet || !userWithWallet.wallet) {
-      return res.error(Status.NotFound, 'Wallet not found');
+      // Ha ez a hiba jön, akkor az adatbázisodban egyetlen usernek sincs tárcája,
+      // vagy egyáltalán nincs user.
+      return res.error(
+        Status.NotFound,
+        '[DEV] User with wallet does not exist.'
+      );
     }
 
+    // const assets = await db.find(
+    //   Asset,
+    //   { wallet: userWithWallet.wallet },
+    //   { populate: ['currency'] }
+    // );
     const assets = await db.find(
       Asset,
       { wallet: userWithWallet.wallet },
