@@ -8,7 +8,6 @@ import {
   BigIntType
 } from '@mikro-orm/core';
 
-import { BaseEntity } from '@/entities/base.entity';
 import { User } from '@/entities/user.entity';
 
 import { CodeType } from '@/enum/code_type';
