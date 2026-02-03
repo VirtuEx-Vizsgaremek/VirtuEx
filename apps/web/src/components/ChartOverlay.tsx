@@ -1,17 +1,24 @@
+import tickerToDomain from '@/lib/stocks';
+import StockLogo from './StockLogo';
+
 interface ChartOverlayProps {
   type: 'ohlc' | 'simple';
   data: {
+    symbol: string;
+    assetName: string;
     open?: number;
     high?: number;
     low?: number;
     close?: number;
     value?: number;
   };
+  interval: number;
   changeAmount: number;
   changePercent: number;
   isPositive: boolean;
   upColor: string;
   downColor: string;
+  onIntervalClick: () => void;
 }
 
 const ChartOverlay = ({
@@ -21,12 +28,29 @@ const ChartOverlay = ({
   changePercent,
   isPositive,
   upColor,
-  downColor
+  downColor,
+  interval,
+  onIntervalClick
 }: ChartOverlayProps) => {
   const indicatorColor = isPositive ? upColor : downColor;
 
+  console.log(data.assetName);
   return (
-    <div className="absolute top-2 left-2 flex gap-4 text-sm font-mono bg-card/95 backdrop-blur-sm border border-border p-3 rounded-lg shadow-lg pointer-events-none z-10">
+    <div className="absolute top-2 left-2 flex gap-4 items-center text-sm font-mono bg-card/95 backdrop-blur-sm border border-border p-3 rounded-lg shadow-lg pointer-events-none z-10">
+      {data.assetName === 'generated' ? (
+        <span className="text-muted-foreground h-min">Generated</span>
+      ) : (
+        <>
+          <StockLogo ticker={data.symbol} />
+          <span className="text-muted-foreground">{data.assetName}</span>
+        </>
+      )}
+      <button
+        className="pointer-events-auto text-foreground hover:font-bold"
+        onClick={onIntervalClick}
+      >
+        {interval}D
+      </button>
       {type === 'ohlc' && (
         <>
           <span className="text-muted-foreground">

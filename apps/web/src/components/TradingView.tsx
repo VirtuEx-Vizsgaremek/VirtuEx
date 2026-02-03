@@ -40,6 +40,7 @@ import {
   calculateOHLCChange,
   calculateAreaChange
 } from '@/lib/chartCalculations';
+import { tickerToName } from '@/lib/stocks';
 
 // Chart type: area (line chart) or candlestick (OHLC bars)
 type chartType = 'area' | 'candle';
@@ -468,6 +469,8 @@ export default function TradingView({
     }
   }, [symbol]);
 
+  const onIntervalClick = () => {};
+
   // ========== SSR Prevention ==========
   // ========== Component Render ==========
   return (
@@ -572,6 +575,11 @@ export default function TradingView({
               <ChartOverlay
                 type="ohlc"
                 data={{
+                  symbol: symbol,
+                  assetName:
+                    dataSource === 'realtime'
+                      ? tickerToName[symbol]
+                      : 'generated',
                   open: ohlcData.open,
                   high: ohlcData.high,
                   low: ohlcData.low,
@@ -582,6 +590,8 @@ export default function TradingView({
                 isPositive={isPositive}
                 upColor={candleColors.up}
                 downColor={candleColors.down}
+                onIntervalClick={onIntervalClick}
+                interval={1}
               />
             );
           })()}
@@ -597,12 +607,21 @@ export default function TradingView({
             return (
               <ChartOverlay
                 type="simple"
-                data={{ value: areaDisplayData.value }}
+                data={{
+                  symbol: symbol,
+                  assetName:
+                    dataSource === 'realtime'
+                      ? tickerToName[symbol]
+                      : 'generated',
+                  value: areaDisplayData.value
+                }}
                 changeAmount={changeAmount}
                 changePercent={changePercent}
                 isPositive={isPositive}
                 upColor={candleColors.up}
                 downColor={candleColors.down}
+                onIntervalClick={onIntervalClick}
+                interval={1}
               />
             );
           })()}

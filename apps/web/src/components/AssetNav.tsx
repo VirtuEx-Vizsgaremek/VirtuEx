@@ -17,10 +17,10 @@
 
 'use client';
 
+import { useTheme } from '@/contexts/ThemeContext';
 import tickerToDomain, { tickerToName } from '@/lib/stocks';
 import StockLogo from './StockLogo';
 import { Card } from './ui/card';
-import { useTheme } from '@/contexts/ThemeContext';
 
 /**
  * Props interface for the Sidenav component
