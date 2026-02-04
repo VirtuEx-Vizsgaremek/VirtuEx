@@ -1,8 +1,32 @@
+/**
+ * Root Layout Component
+ *
+ * Main layout wrapper for entire application.
+ * Provides global setup including fonts, theme provider, and conditional navbar/footer.
+ *
+ * Features:
+ * - Geist font families (sans and mono) from Google Fonts
+ * - Theme persistence via localStorage (dark/light mode)
+ * - Blocking script to prevent theme flashing on page load
+ * - ThemeProvider context wrapper
+ * - ConditionalLayout for page-specific layout logic
+ *
+ * Key Implementation:
+ * - Blocking script (lines 31-44) runs before React hydration
+ *   * Reads localStorage theme preference
+ *   * Applies 'dark' class to html element if needed
+ *   * Prevents white flash on dark mode users
+ *
+ * suppressHydrationWarning on html element:
+ * - Allows theme class to be set by blocking script without hydration warnings
+ * - Theme is added dynamically before React hydration completes
+ */
+
+import ConditionalLayout from '@/components/ConditionalLayout';
+import { ThemeProvider } from '@/contexts/ThemeContext';
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -25,13 +49,31 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html className="dark" lang="en" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  var theme = localStorage.getItem('theme');
+                  if (theme === 'dark') {
+                    document.documentElement.classList.add('dark');
+                  } else {
+                    document.documentElement.classList.remove('dark');
+                  }
+                } catch (e) {}
+              })();
+            `
+          }}
+        />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased `}
       >
-        <Navbar />
-        {children}
-        <Footer />
+        <ThemeProvider>
+          <ConditionalLayout>{children}</ConditionalLayout>
+        </ThemeProvider>
       </body>
     </html>
   );
