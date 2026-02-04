@@ -34,10 +34,12 @@ export const get = async (
     const db = (await orm).em.fork();
 
     // const user = await req.getUser();
+    //From cookie
 
     // if (!user) {
     //   return res.error(Status.Unauthorized, 'User not authenticated');
     // }
+    // Error handler usage!
 
     // const userWithWallet = await db.findOne(
     //   User,
