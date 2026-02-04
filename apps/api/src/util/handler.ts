@@ -105,7 +105,7 @@ export class Request {
    *
    * @returns {Promise<User>} The current user.
    */
-  public async getUser(): Promise<User> {
+  public async getUser(mfa?: boolean | undefined): Promise<User> {
     const db = (await orm).em.fork();
 
     const token = this.getHeader('authorization')?.split(' ')[1];
@@ -115,6 +115,7 @@ export class Request {
       const td = verify(token, process.env.JWT_SECRET!) as TokenData;
 
       const user = await db.findOne(User, { id: td.id });
+      if (mfa && !td.mfa) throw new Error('Unauthorized');
       if (!user) throw new Error('Unauthorized');
 
       return user;
