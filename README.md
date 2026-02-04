@@ -101,13 +101,13 @@ The system is built on three layers: front-end (web React), backend (Node.js RES
 ## Non-functional Requirements
 
 ### Security
-Password encryption (bcrypt), token-based authentication (JWT), HTTPS for all communications, database encryption.
+Password hashing (bcrypt), token-based authentication (JWT), HTTPS for all communications, 2FA.
 
 ### Performance
 Chart updates and data calls should be within 1–3 seconds latency in real-time mode.
 
 ### Scalability
-The backend should be containerizable (Docker), horizontally scalable API layer.
+The backend should be containerizable (Docker), easy to scale.
 
 ### Reliability
 Consistent logging system, immediate database update upon modifications.
