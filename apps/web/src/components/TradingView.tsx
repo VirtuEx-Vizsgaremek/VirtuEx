@@ -57,7 +57,7 @@ type OHLCData = {
   high: number; // Highest price
   low: number; // Lowest price
   close: number; // Closing price
-  time: string; // Date string
+  time: string | number | { year: number; month: number; day: number }; // Date string
 } | null;
 
 /**
@@ -66,7 +66,7 @@ type OHLCData = {
  */
 type AreaData = {
   value: number; // Price value
-  time: string; // Date string
+  time: string | number | { year: number; month: number; day: number }; // Date string
 } | null;
 
 /**
@@ -77,6 +77,21 @@ interface TradingViewProps {
   symbol: string; // Stock symbol passed from parent (e.g., "AAPL")
   onClearSelection?: () => void; // Optional callback to clear selection when switching to generated data
 }
+
+const formatChartTime = (
+  time: string | number | { year: number; month: number; day: number } | null
+) => {
+  if (!time) return '';
+  if (typeof time === 'string') return time;
+  if (typeof time === 'number') {
+    return new Date(time * 1000).toLocaleDateString('en-GB', {
+      year: 'numeric',
+      month: 'short',
+      day: '2-digit'
+    });
+  }
+  return `${time.year}-${String(time.month).padStart(2, '0')}-${String(time.day).padStart(2, '0')}`;
+};
 
 export default function TradingView({
   symbol,
@@ -600,6 +615,7 @@ export default function TradingView({
                     dataSource === 'realtime'
                       ? tickerToName[symbol]
                       : 'generated',
+                  time: formatChartTime(ohlcData.time),
                   open: ohlcData.open,
                   high: ohlcData.high,
                   low: ohlcData.low,
@@ -633,6 +649,7 @@ export default function TradingView({
                     dataSource === 'realtime'
                       ? tickerToName[symbol]
                       : 'generated',
+                  time: formatChartTime(areaDisplayData.time),
                   value: areaDisplayData.value
                 }}
                 changeAmount={changeAmount}

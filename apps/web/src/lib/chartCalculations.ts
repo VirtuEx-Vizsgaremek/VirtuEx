@@ -11,6 +11,9 @@ interface ChangeResult {
   isPositive: boolean; // True if increased, false if decreased
 }
 
+// Time value can be string, unix timestamp, or date object
+type TimeValue = string | number | { year: number; month: number; day: number };
+
 /**
  * Calculate the change between two values
  * Returns absolute change, percentage change, and direction
@@ -35,10 +38,25 @@ export function calculateChange({
  * Generic function that works with both area and candlestick data
  * @returns The previous value, or null if there's no previous item
  */
+const normalizeTime = (time: TimeValue): string => {
+  if (typeof time === 'string') return time;
+  if (typeof time === 'number') return String(time);
+  return `${time.year}-${String(time.month).padStart(2, '0')}-${String(
+    time.day
+  ).padStart(2, '0')}`;
+};
+
 export function getPreviousValue<
-  T extends { time: string; value?: number; close?: number }
->(data: T[], currentTime: string, valueKey: 'value' | 'close'): number | null {
-  const currentIndex = data.findIndex((d) => d.time === currentTime);
+  T extends { time: TimeValue; value?: number; close?: number }
+>(
+  data: T[],
+  currentTime: TimeValue,
+  valueKey: 'value' | 'close'
+): number | null {
+  const normalizedCurrent = normalizeTime(currentTime);
+  const currentIndex = data.findIndex(
+    (d) => normalizeTime(d.time) === normalizedCurrent
+  );
   // No previous value if current is first item or not found
   if (currentIndex <= 0) {
     return null;
@@ -53,8 +71,8 @@ export function getPreviousValue<
  * Falls back to current open if no previous data exists
  */
 export function calculateOHLCChange(
-  currentCandle: { open: number; close: number; time: string },
-  candleData: Array<{ time: string; close: number }>
+  currentCandle: { open: number; close: number; time: TimeValue },
+  candleData: Array<{ time: TimeValue; close: number }>
 ): ChangeResult {
   const previousClose = getPreviousValue(
     candleData,
@@ -76,8 +94,8 @@ export function calculateOHLCChange(
  * Falls back to current value if no previous data exists
  */
 export function calculateAreaChange(
-  currentData: { value: number; time: string },
-  areaData: Array<{ time: string; value: number }>
+  currentData: { value: number; time: TimeValue },
+  areaData: Array<{ time: TimeValue; value: number }>
 ): ChangeResult {
   const previousValue = getPreviousValue(areaData, currentData.time, 'value');
   // Use previous value, or fall back to current value if it's the first data point

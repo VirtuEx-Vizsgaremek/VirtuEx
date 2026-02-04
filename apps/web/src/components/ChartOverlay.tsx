@@ -1,4 +1,3 @@
-import tickerToDomain from '@/lib/stocks';
 import StockLogo from './StockLogo';
 
 interface ChartOverlayProps {
@@ -6,6 +5,7 @@ interface ChartOverlayProps {
   data: {
     symbol: string;
     assetName: string;
+    time?: string;
     open?: number;
     high?: number;
     low?: number;
@@ -45,6 +45,7 @@ const ChartOverlay = ({
           <span className="text-muted-foreground">{data.assetName}</span>
         </>
       )}
+      {data.time && <span className="text-muted-foreground">{data.time}</span>}
       <button
         className="pointer-events-auto text-foreground hover:font-bold"
         onClick={onIntervalClick}
