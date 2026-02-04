@@ -52,6 +52,19 @@ async function seed() {
       console.log('ℹ️  ETH currency already exists');
     }
 
+    let xrp = await db.findOne(Currency, { symbol: 'XRP' });
+    if (!xrp) {
+      xrp = new Currency();
+      xrp.symbol = 'XRP';
+      xrp.name = 'Ripple';
+      xrp.precision = 6;
+      xrp.type = CurrencyType.Crypto;
+      await db.persist(xrp).flush();
+      console.log('✅ XRP currency created');
+    } else {
+      console.log('ℹ️  XRP currency already exists');
+    }
+
     // Check and create test user
     let user = await db.findOne(User, { username: 'testuser' });
     let wallet: Wallet;
@@ -112,6 +125,18 @@ async function seed() {
       console.log('ℹ️  ETH asset already exists');
     }
 
+    let assetXRP = await db.findOne(Asset, { wallet, currency: xrp });
+    if (!assetXRP) {
+      assetXRP = new Asset();
+      assetXRP.wallet = wallet;
+      assetXRP.currency = xrp;
+      assetXRP.amount = BigInt(200000000);
+      await db.persist(assetXRP).flush();
+      console.log('✅ XRP asset created');
+    } else {
+      console.log('ℹ️  XRP asset already exists');
+    }
+
     // Check transaction count for this wallet
     const existingTxCount = await db.count(Transaction, {
       asset: { wallet }
@@ -136,7 +161,12 @@ async function seed() {
       tx3.direction = TransactionDirection.Outgoing;
       tx3.status = TransactionStatus.Completed;
 
-      await db.persist([tx1, tx2, tx3]).flush();
+      const tx4 = new Transaction();
+      tx4.asset = assetXRP;
+      tx4.amount = BigInt(50000000);
+      tx4.direction = TransactionDirection.Outgoing;
+      tx4.status = TransactionStatus.Completed;
+      await db.persist([tx1, tx2, tx3, tx4]).flush();
       console.log('✅ Transactions created');
     } else {
       console.log('ℹ️  Transactions already exist');
