@@ -302,9 +302,27 @@ export default function TradingView({
 
     window.addEventListener('resize', handleResize);
 
+    /**
+     * Use ResizeObserver to detect container size changes
+     * This handles layout shifts (e.g., when AssetNav is pinned)
+     */
+    const resizeObserver = new ResizeObserver(() => {
+      if (chartContainerRef.current && chartRef.current) {
+        chartRef.current.applyOptions({
+          width: chartContainerRef.current.clientWidth,
+          height: chartContainerRef.current.clientHeight
+        });
+      }
+    });
+
+    if (chartContainerRef.current) {
+      resizeObserver.observe(chartContainerRef.current);
+    }
+
     // Cleanup function: remove event listener and destroy chart
     return () => {
       window.removeEventListener('resize', handleResize);
+      resizeObserver.disconnect();
       if (chartRef.current) {
         chartRef.current.remove(); // Destroy chart instance
         chartRef.current = null;
@@ -313,11 +331,14 @@ export default function TradingView({
     };
   }, [isClient, theme]);
 
+  // Active dataset for current chart type
+  const activeData = chartType === 'area' ? areaData : candleData;
+
   // ========== Chart Series Update Effect ==========
   /**
-   * Updates the chart series when chart type or data changes
+   * Updates the chart series when chart type or active data changes
    * Removes old series and creates new one based on current chart type
-   * Runs whenever: chartType, areaData, candleData, or theme changes
+   * Runs whenever: chartType, activeData, or theme changes
    */
   useEffect(() => {
     if (!chartRef.current || !isClient) return;
@@ -335,6 +356,7 @@ export default function TradingView({
       const totalPoints = data.length;
 
       const animate = () => {
+        chartRef.current?.timeScale().fitContent();
         const elapsed = Date.now() - startTime;
         const progress = Math.min(elapsed / duration, 1);
 
@@ -411,7 +433,7 @@ export default function TradingView({
         });
       }
     }
-  }, [chartType, isClient, areaData, candleData, theme, colors]);
+  }, [chartType, isClient, activeData, theme, colors]);
 
   // ========== Theme Update Effect ==========
   /**
@@ -503,25 +525,23 @@ export default function TradingView({
           </span>
         </div>
 
-        {/* Candlestick Color Legend - Only show for candlestick chart */}
-        {chartType === 'candle' && (
-          <div className="flex items-center gap-4 px-3 py-2 text-sm bg-card border border-border rounded-lg">
-            <div className="flex items-center gap-1.5">
-              <div
-                className="w-3 h-3 rounded-sm"
-                style={{ backgroundColor: candleColors.up }}
-              ></div>
-              <span className="text-muted-foreground">Bullish</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <div
-                className="w-3 h-3 rounded-sm"
-                style={{ backgroundColor: candleColors.down }}
-              ></div>
-              <span className="text-muted-foreground">Bearish</span>
-            </div>
+        {/* Candlestick Color Legend */}
+        <div className="flex items-center gap-4 px-3 py-2 text-sm bg-card border border-border rounded-lg">
+          <div className="flex items-center gap-1.5">
+            <div
+              className="w-3 h-3 rounded-sm"
+              style={{ backgroundColor: candleColors.up }}
+            ></div>
+            <span className="text-muted-foreground">Bullish</span>
           </div>
-        )}
+          <div className="flex items-center gap-1.5">
+            <div
+              className="w-3 h-3 rounded-sm"
+              style={{ backgroundColor: candleColors.down }}
+            ></div>
+            <span className="text-muted-foreground">Bearish</span>
+          </div>
+        </div>
 
         {/* Toggle switch between theme colors and standard red/green */}
         <div className="flex items-center gap-2">

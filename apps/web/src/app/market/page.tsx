@@ -16,7 +16,6 @@ export default function Market() {
   const [isAssetNavPinned, setIsAssetNavPinned] = useState(false);
   const [navbarHideTimeout, setNavbarHideTimeout] =
     useState<NodeJS.Timeout | null>(null);
-
   const { theme, toggleTheme, colorTheme, setColorTheme } = useTheme();
   const isDark = theme === 'dark';
 
@@ -35,8 +34,15 @@ export default function Market() {
     setNavbarHideTimeout(timeout);
   };
 
+  const closeNav = (selected: string) => {
+    setSelectedSymbol(selected);
+    if (!isAssetNavPinned) {
+      setShowAssetNav(false);
+    }
+  };
+
   return (
-    <div className="relative h-screen overflow-hidden bg-background">
+    <div className="flex h-screen overflow-hidden bg-background">
       {/* Top hover zone for navbar */}
       <div
         className="fixed top-0 left-0 right-0 h-6 z-40 pointer-events-none"
@@ -131,56 +137,62 @@ export default function Market() {
       </div>
 
       {/* Left hover zone for AssetNav */}
-      <div
-        className="fixed left-0 top-0 bottom-0 w-6 z-40"
+      {/* <div
+        className="fixed left-0 top-0 bottom-0 w-6 z-110"
         onMouseEnter={() => setShowAssetNav(true)}
         onMouseLeave={() => !isAssetNavPinned && setShowAssetNav(false)}
+      > */}
+      {/* Subtle indicator bar */}
+      <button
+        className="absolute left-0 top-1/2 -translate-y-1/2 w-2.5 h-32 bg-primary/30 rounded-r-full transition-all duration-300 hover:w-3 hover:h-48 hover:bg-primary/50 z-30"
+        onClick={(prev) => setShowAssetNav(showAssetNav ? false : true)}
+      />
+
+      {/* Sliding AssetNav */}
+      <div
+        className={`${isAssetNavPinned ? 'relative' : 'absolute'} left-0 top-0 bottom-0 w-96 bg-background transition-transform duration-300 z-100 ${
+          showAssetNav ? 'translate-x-0' : '-translate-x-full'
+        }`}
       >
-        {/* Subtle indicator bar */}
-        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-32 bg-primary/30 rounded-r-full transition-all duration-300 hover:w-2 hover:h-48 hover:bg-primary/50" />
-
-        {/* Sliding AssetNav */}
-        <div
-          className={`absolute left-0 top-0 bottom-0 w-96 bg-background transition-transform duration-300 ${
-            showAssetNav ? 'translate-x-0' : '-translate-x-full'
-          }`}
-        >
-          <div className="relative h-full">
-            {/* Close and Pin buttons */}
-            <div className="absolute top-4 right-4 z-10 flex gap-2">
-              <button
-                onClick={() => {
-                  setShowAssetNav(false);
-                  setIsAssetNavPinned(false);
-                }}
-                className="p-2 bg-card hover:bg-muted rounded-full border border-border transition-colors"
-                title="Close"
-              >
-                <X size={16} />
-              </button>
-              <button
-                onClick={() => setIsAssetNavPinned(!isAssetNavPinned)}
-                className={`p-2 rounded-full border border-border transition-colors ${
-                  isAssetNavPinned
-                    ? 'bg-primary text-primary-foreground hover:bg-primary/80'
-                    : 'bg-card hover:bg-muted'
-                }`}
-                title={isAssetNavPinned ? 'Unpin' : 'Pin'}
-              >
-                <Pin size={16} />
-              </button>
-            </div>
-
-            <AssetNav
-              selectedSymbol={selectedSymbol}
-              onSelectSymbol={setSelectedSymbol}
-            />
+        <div className="relative h-full">
+          {/* Close and Pin buttons */}
+          <div className="absolute top-4 right-4 z-100 flex gap-2">
+            <button
+              onClick={() => {
+                setShowAssetNav(false);
+                setIsAssetNavPinned(false);
+              }}
+              className="p-2 bg-card hover:bg-muted rounded-full border border-border transition-colors"
+              title="Close"
+            >
+              <X size={16} />
+            </button>
+            <button
+              onClick={() => setIsAssetNavPinned(!isAssetNavPinned)}
+              className={`p-2 rounded-full border border-border transition-colors ${
+                isAssetNavPinned
+                  ? 'bg-primary text-primary-foreground hover:bg-primary/80'
+                  : 'bg-card hover:bg-muted'
+              }`}
+              title={isAssetNavPinned ? 'Unpin' : 'Pin'}
+            >
+              <Pin size={16} />
+            </button>
           </div>
+
+          <AssetNav selectedSymbol={selectedSymbol} onSelectSymbol={closeNav} />
         </div>
       </div>
 
       {/* Main Chart Area */}
-      <div className="w-full h-full p-8">
+      <div
+        className={`flex-1 w-full h-full transition-all duration-300 ${isAssetNavPinned ? 'p-4' : 'p-8'} z-20`}
+        onClick={
+          showAssetNav && !isAssetNavPinned
+            ? () => setShowAssetNav(false)
+            : undefined
+        }
+      >
         {isPremium ? (
           <TradingView
             symbol={selectedSymbol}
