@@ -27,6 +27,9 @@ export default function WalletPage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
+  // TODO:
+  // Separate fetching logic into another file
+
   useEffect(() => {
     async function loadWallet() {
       try {
