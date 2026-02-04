@@ -1,21 +1,41 @@
+/**
+ * Navbar Component
+ *
+ * Main navigation bar displayed on all non-market pages (via ConditionalLayout).
+ * Provides theme toggling, color theme selection, and navigation links.
+ *
+ * Features:
+ * - Fixed navbar that appears on scroll (after 100px)
+ * - Floating pill-shaped design with backdrop blur
+ * - Dark/light mode toggle
+ * - Chart color theme selector (MIDNIGHT, OCEAN, TOKYO, etc.)
+ * - Product links and CTA buttons
+ * - Responsive design
+ *
+ * Layout:
+ * - Top section: Logo and navigation links
+ * - Right section: Theme toggle, color selector, and CTA button
+ *
+ * Data Flow:
+ * - Uses ThemeContext for theme state and setters
+ * - Theme choices persist to localStorage
+ * - Color theme changes apply to all chart components in real-time
+ */
+
 'use client';
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { Moon, Sun, Palette } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   NavigationMenu,
-  NavigationMenuContent,
-  NavigationMenuIndicator,
   NavigationMenuItem,
   NavigationMenuLink,
-  NavigationMenuList,
-  NavigationMenuTrigger,
-  NavigationMenuViewport
+  NavigationMenuList
 } from '@/components/ui/navigation-menu';
 import { useTheme } from '@/contexts/ThemeContext';
 import { ChartColorTheme, THEME_NAMES } from '@/lib/chartThemes';
+import { Moon, Palette, Sun } from 'lucide-react';
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
 
 export default function Navbar() {
   // Use theme context instead of local state

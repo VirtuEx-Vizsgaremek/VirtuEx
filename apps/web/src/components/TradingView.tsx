@@ -22,12 +22,17 @@
 
 'use client';
 import { useTheme } from '@/contexts/ThemeContext';
+import {
+  calculateAreaChange,
+  calculateOHLCChange
+} from '@/lib/chartCalculations';
 import { CHART_THEMES } from '@/lib/chartThemes';
 import {
   generateCandlestickData,
   generateTradingViewChartData
 } from '@/lib/dataGenerator';
 import { fetchMarketData } from '@/lib/marketApi';
+import { tickerToName } from '@/lib/stocks';
 import {
   AreaSeries,
   CandlestickSeries,
@@ -36,11 +41,6 @@ import {
 } from 'lightweight-charts';
 import { useEffect, useRef, useState } from 'react';
 import ChartOverlay from './ChartOverlay';
-import {
-  calculateOHLCChange,
-  calculateAreaChange
-} from '@/lib/chartCalculations';
-import { tickerToName } from '@/lib/stocks';
 
 // Chart type: area (line chart) or candlestick (OHLC bars)
 type chartType = 'area' | 'candle';
@@ -666,3 +666,52 @@ export default function TradingView({
     </>
   );
 }
+
+/**
+ * ========== KEY TECHNICAL DECISIONS & PATTERNS ==========
+ *
+ * 1. ResizeObserver Implementation (Lines 283-292)
+ *    Problem: Chart needs to resize when AssetNav pin state changes
+ *    Solution: ResizeObserver monitors container size changes without remounting
+ *    Benefits: No key prop switching, no chart flicker, smooth transitions
+ *    Alternative avoided: Using key prop would destroy and recreate chart instance
+ *
+ * 2. TimeValue Type Union (Lines 53-77)
+ *    Problem: Different data sources use different time formats
+ *      - API: ISO string "2024-01-01"
+ *      - Mock data: ISO string "2024-01-01"
+ *      - TradingView Lightweight Charts: Unix timestamp (number)
+ *      - Some legacy sources: {year, month, day} object
+ *    Solution: TimeValue = string | number | { year, month, day }
+ *    Benefit: Single type supports all sources without conversion overhead
+ *    Usage: formatChartTime() normalizes display, calculateChange() uses normalizeTime()
+ *
+ * 3. Active Data Filtering (Line 328)
+ *    Problem: Effect triggered on both areaData and candleData changes
+ *    Result: Animation played 3x (once for each state update)
+ *    Solution: Select only current chart's data into local variable
+ *    Code: const activeData = chartType === 'area' ? areaData : candleData
+ *    Effect: Depends only on activeData, not on unused data array
+ *    Result: Animation plays once per data load
+ *
+ * 4. Crosshair Overlay Data Flow (Lines 596-676)
+ *    Source: TradingView's subscribeCrosshairMove() event
+ *    Processing: Extract OHLC/area data + format time + calculate change
+ *    Display: ChartOverlay component shows formatted data with calculations
+ *    Components:
+ *      - formatChartTime(): Converts any time format to readable date
+ *      - calculateOHLCChange/calculateAreaChange(): Compute price movement
+ *      - ChartOverlay: Renders styled overlay with color coding
+ *
+ * 5. Theme Colors & Candlestick Styling (Lines 119-145)
+ *    Feature: useThemeColors toggle (localStorage persistence)
+ *    Options: Theme colors vs standard green/red
+ *    Logic: Dynamically update candlestick colors when preference changes
+ *    Usage: User-facing toggle in floating navbar control section
+ *
+ * 6. Client-Side Rendering Guard (Lines 175-178)
+ *    Problem: SSR would try to access DOM (chartContainerRef.current)
+ *    Solution: isClient state ensures rendering only on client
+ *    Pattern: Common Next.js pattern for client-only libraries
+ *    Impact: Prevents hydration mismatches with TradingView library
+ */

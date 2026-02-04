@@ -1,3 +1,28 @@
+/**
+ * Home Page / Landing Page
+ *
+ * Main landing page for VirtuEx application.
+ * Showcases platform features and guides users to key actions.
+ *
+ * Sections:
+ * 1. Hero - Eye-catching headline with value proposition
+ * 2. Features - Card-based feature highlights (Real-Time Data, AI Assistant, Smart Wallet)
+ * 3. Pricing - Pricing tiers and subscription options
+ * 4. FAQ - Frequently asked questions section
+ * 5. CTA - Call-to-action to get started on /market page
+ *
+ * Design:
+ * - Gradient text for emphasis (Tailwind bg-gradient-to-r)
+ * - Responsive grid layouts (mobile: 1 col, desktop: 3 cols)
+ * - Card components with hover effects
+ * - Icons from lucide-react library
+ *
+ * Navigation:
+ * - Links to /market for premium trading experience
+ * - Navbar and Footer from ConditionalLayout
+ * - Smooth scroll to sections via anchor links
+ */
+
 // UI Components and Icons
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';

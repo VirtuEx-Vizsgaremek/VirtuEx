@@ -1,5 +1,30 @@
+/**
+ * Theme Context Provider
+ *
+ * Manages application-wide theme state (dark/light mode) and chart color themes.
+ * Provides context hooks for consuming components to access and update theme settings.
+ *
+ * Features:
+ * - Dark/light mode toggle with persistent storage
+ * - Multiple chart color themes (MIDNIGHT, OCEAN, TOKYO, etc.)
+ * - Theme migration for renamed old themes (backward compatibility)
+ * - Automatic synchronization with document root classes for CSS-in-JS
+ * - Local storage persistence across page reloads
+ *
+ * Usage:
+ * const { theme, toggleTheme, colorTheme, setColorTheme } = useTheme();
+ *
+ * Data Flow:
+ * Theme settings -> localStorage + document.documentElement.classList -> CSS variables/colors
+ */
+
 'use client';
 
+import {
+  CHART_THEMES,
+  ChartColorTheme,
+  THEME_CSS_CLASSES
+} from '@/lib/chartThemes';
 import {
   createContext,
   ReactNode,
@@ -8,19 +33,26 @@ import {
   useEffect,
   useState
 } from 'react';
-import {
-  ChartColorTheme,
-  THEME_CSS_CLASSES,
-  CHART_THEMES
-} from '@/lib/chartThemes';
 
+/**
+ * Available theme modes
+ */
 type Theme = 'light' | 'dark';
 
+/**
+ * ThemeContext type definition
+ * Provides all theme-related state and setters
+ */
 interface ThemeContextType {
+  // Current theme mode (light or dark)
   theme: Theme;
+  // Set theme programmatically (called by toggleTheme)
   setTheme: (theme: Theme) => void;
+  // Toggle between light and dark mode
   toggleTheme: () => void;
+  // Current chart color theme (MIDNIGHT, OCEAN, TOKYO, etc.)
   colorTheme: ChartColorTheme;
+  // Set chart color theme (updates all chart components)
   setColorTheme: (colorTheme: ChartColorTheme) => void;
 }
 

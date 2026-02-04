@@ -1,3 +1,33 @@
+/**
+ * Simple Asset Chart Component (Free/Premium Fallback)
+ *
+ * Displays a simple multi-asset price chart using Recharts library.
+ * Used as fallback on /market page when premium mode is disabled.
+ *
+ * Features:
+ * - Area chart visualization for multiple crypto assets (BTC, ETH, ADA)
+ * - Time range selector (7d, 30d, 90d, 365d)
+ * - Regenerate mock data button
+ * - Asset selection dropdown
+ * - Zoom controls with pan functionality
+ * - Responsive design with legend
+ *
+ * Data:
+ * - Uses generateShadCnChartData() from dataGenerator.ts
+ * - Generates mock price history for 3 assets
+ * - Updates independently from TradingView component
+ *
+ * Limitations:
+ * - No real API data (always mock)
+ * - Simpler UI compared to TradingView
+ * - No crosshair hover overlays
+ * - No OHLC support (area chart only)
+ *
+ * Used by:
+ * - Market page when isPremium === false
+ * - Provides basic charting for free tier users
+ */
+
 'use client';
 
 import * as React from 'react';

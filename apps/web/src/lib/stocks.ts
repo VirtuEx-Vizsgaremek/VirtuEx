@@ -1,4 +1,31 @@
-// Map stock tickers to their corporate domains for the Logo API
+/**
+ * Stock Symbol and Company Information Mappings
+ *
+ * Central registry for all supported stock symbols and their associated data.
+ * Provides mappings from ticker symbols to company domains and full names.
+ *
+ * Used by:
+ * - AssetNav: Displays selectable stock list with company names
+ * - StockLogo: Fetches company logos via domain-based logo API
+ * - TradingView: Displays stock info in chart overlay
+ * - Market API: Validates supported symbols for data fetching
+ */
+
+/**
+ * Map stock tickers to their corporate domains for the Logo API
+ *
+ * Purpose:
+ * - Fetch company logo images from favicon services using domain
+ * - Provides human-readable company name from domain
+ *
+ * Structure:
+ * - Key: Stock ticker symbol (e.g., "AAPL")
+ * - Value: Primary corporate domain (e.g., "apple.com")
+ *
+ * Usage:
+ * const domain = tickerToDomain['AAPL']; // Returns 'apple.com'
+ * // Then fetch logo from: https://www.google.com/s2/favicons?domain=apple.com
+ */
 export const tickerToDomain: Record<string, string> = {
   // Big Tech
   AAPL: 'apple.com',
@@ -122,7 +149,27 @@ export const tickerToDomain: Record<string, string> = {
   'BINANCE:ETHUSDT': 'ethereum.org'
 };
 
-// Map stock tickers to their full company/asset names
+/**
+ * Map stock tickers to their full company/asset names
+ *
+ * Purpose:
+ * - Display human-readable company names in the UI (AssetNav, ChartOverlay)
+ * - Fallback when fetching company logos
+ * - Provides context to users beyond ticker symbols
+ *
+ * Structure:
+ * - Key: Stock ticker symbol (e.g., "AAPL")
+ * - Value: Official or common company name (e.g., "Apple Inc.")
+ *
+ * Usage:
+ * const name = tickerToName['AAPL']; // Returns 'Apple Inc.'
+ * // Display in AssetNav: Shows "AAPL - Apple Inc."
+ * // Display in ChartOverlay: Shows company logo + "Apple Inc."
+ *
+ * Note:
+ * - Created through manual mapping for accuracy
+ * - Easier and faster than fetching from API for every page load
+ */
 export const tickerToName: Record<string, string> = {
   // Big Tech
   AAPL: 'Apple Inc.',

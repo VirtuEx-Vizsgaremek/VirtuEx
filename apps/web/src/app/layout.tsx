@@ -1,3 +1,27 @@
+/**
+ * Root Layout Component
+ *
+ * Main layout wrapper for entire application.
+ * Provides global setup including fonts, theme provider, and conditional navbar/footer.
+ *
+ * Features:
+ * - Geist font families (sans and mono) from Google Fonts
+ * - Theme persistence via localStorage (dark/light mode)
+ * - Blocking script to prevent theme flashing on page load
+ * - ThemeProvider context wrapper
+ * - ConditionalLayout for page-specific layout logic
+ *
+ * Key Implementation:
+ * - Blocking script (lines 31-44) runs before React hydration
+ *   * Reads localStorage theme preference
+ *   * Applies 'dark' class to html element if needed
+ *   * Prevents white flash on dark mode users
+ *
+ * suppressHydrationWarning on html element:
+ * - Allows theme class to be set by blocking script without hydration warnings
+ * - Theme is added dynamically before React hydration completes
+ */
+
 import ConditionalLayout from '@/components/ConditionalLayout';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import type { Metadata } from 'next';

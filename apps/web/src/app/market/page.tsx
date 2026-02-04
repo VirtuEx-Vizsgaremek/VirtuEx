@@ -1,3 +1,30 @@
+/**
+ * Market Trading Page Component
+ *
+ * Main page for stock/crypto market data visualization and trading features.
+ * Provides layout management for collapsible asset navigation panel, premium chart,
+ * and floating control navbar.
+ *
+ * Features:
+ * - Floating navbar with theme toggle and premium/free mode switch
+ * - Collapsible AssetNav sidebar that can be pinned to lock position
+ * - TradingView chart with real-time data (premium mode)
+ * - Responsive design with dynamic layout adjustment when nav is pinned
+ * - Chart resizes automatically when layout changes (via ResizeObserver in TradingView)
+ *
+ * State Management:
+ * - selectedSymbol: Currently selected stock for TradingView chart
+ * - isAssetNavPinned: Whether sidebar is locked or overlays chart
+ * - showAssetNav: Whether sidebar is visible or hidden
+ * - showNavbar: Whether top navigation is visible
+ * - isPremium: Toggle between advanced TradingView chart and simple chart
+ *
+ * Layout Behavior:
+ * - When AssetNav is unpinned: sidebar overlays chart (absolute positioning)
+ * - When AssetNav is pinned: sidebar takes fixed space, chart shifts right (relative positioning)
+ * - ResizeObserver in TradingView detects container size changes and resizes chart
+ */
+
 'use client';
 import AssetNav from '@/components/AssetNav';
 import Chart from '@/components/ShadCnChart';
@@ -9,16 +36,43 @@ import Link from 'next/link';
 import { useState } from 'react';
 
 export default function Market() {
+  // ========== State Management ==========
+
+  // Selected stock symbol for TradingView chart
+  // Empty string means no stock selected (showing generated mock data)
   const [selectedSymbol, setSelectedSymbol] = useState('');
+
+  // Toggle between premium TradingView chart and free simple chart
   const [isPremium, setIsPremium] = useState(true);
+
+  // Visibility state for AssetNav sidebar
+  // false = hidden (off-screen), true = visible (overlaying or pinned)
   const [showAssetNav, setShowAssetNav] = useState(false);
+
+  // Visibility state for floating navbar at top
+  // Controlled by mouse enter/leave with 300ms delay to prevent flickering
   const [showNavbar, setShowNavbar] = useState(false);
+
+  // Pin state for AssetNav sidebar
+  // false = overlay mode (absolute positioning, goes off-screen when hidden)
+  // true = pinned mode (relative positioning, takes fixed space, chart shifts right)
+  // When pinned, chart container uses ResizeObserver to detect size change and resize
   const [isAssetNavPinned, setIsAssetNavPinned] = useState(false);
+
+  // Timeout ID for delayed navbar hiding (prevents flickering on mouse leave)
   const [navbarHideTimeout, setNavbarHideTimeout] =
     useState<NodeJS.Timeout | null>(null);
+
+  // Theme context: provides theme toggle and color theme selector
   const { theme, toggleTheme, colorTheme, setColorTheme } = useTheme();
   const isDark = theme === 'dark';
 
+  // ========== Event Handlers ==========
+
+  /**
+   * Handle navbar mouse enter - show navbar and clear hide timeout
+   * Prevents premature hiding when transitioning from navbar to indicator bar
+   */
   const handleNavbarMouseEnter = () => {
     if (navbarHideTimeout) {
       clearTimeout(navbarHideTimeout);
@@ -27,6 +81,10 @@ export default function Market() {
     setShowNavbar(true);
   };
 
+  /**
+   * Handle navbar mouse leave - hide navbar after 300ms delay
+   * Delay allows user to move between navbar and indicator bar without flickering
+   */
   const handleNavbarMouseLeave = () => {
     const timeout = setTimeout(() => {
       setShowNavbar(false);
@@ -34,14 +92,26 @@ export default function Market() {
     setNavbarHideTimeout(timeout);
   };
 
+  /**
+   * Close navigation sidebar after selecting a stock
+   * Updates selectedSymbol for TradingView component
+   * Only closes sidebar if it's not pinned (unpinned = overlay mode)
+   *
+   * @param selected - Stock symbol selected by user (e.g., "AAPL")
+   */
   const closeNav = (selected: string) => {
     setSelectedSymbol(selected);
+    // Only hide nav if unpinned (pinned nav stays visible)
     if (!isAssetNavPinned) {
       setShowAssetNav(false);
     }
   };
 
   return (
+    // Main layout container
+    // flex: Side-by-side layout for nav (if pinned) and chart
+    // h-screen: Full viewport height
+    // overflow-hidden: Prevents scrollbars, content managed by components
     <div className="flex h-screen overflow-hidden bg-background">
       {/* Top hover zone for navbar */}
       <div
@@ -148,15 +218,29 @@ export default function Market() {
         onClick={(prev) => setShowAssetNav(showAssetNav ? false : true)}
       />
 
-      {/* Sliding AssetNav */}
+      {/* AssetNav Sidebar */}
+      {/* 
+        Positioning Strategy:
+        - When unpinned (isAssetNavPinned=false): absolute positioning + translate-x transformation
+          * Slides in/out of screen on left edge
+          * Overlays chart content (z-100 on top)
+          * transform: translateX-full when hidden, 0 when shown
+        - When pinned (isAssetNavPinned=true): relative positioning
+          * Takes fixed w-96 space, pushes chart right via flex layout
+          * TradingView's ResizeObserver detects container size change and resizes chart
+          * Always visible (no translation)
+        - transition-transform: Smooth slide animation during visibility toggle
+      */}
       <div
         className={`${isAssetNavPinned ? 'relative' : 'absolute'} left-0 top-0 bottom-0 w-96 bg-background transition-transform duration-300 z-100 ${
           showAssetNav ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         <div className="relative h-full">
-          {/* Close and Pin buttons */}
+          {/* Control Buttons - Always visible in top-right corner */}
           <div className="absolute top-4 right-4 z-100 flex gap-2">
+            {/* Close Button */}
+            {/* Hides sidebar. If pinned, unpin first to exit pinned mode */}
             <button
               onClick={() => {
                 setShowAssetNav(false);
@@ -167,6 +251,9 @@ export default function Market() {
             >
               <X size={16} />
             </button>
+
+            {/* Pin/Unpin Button */}
+            {/* Toggle pinned state - affects layout positioning and chart resizing */}
             <button
               onClick={() => setIsAssetNavPinned(!isAssetNavPinned)}
               className={`p-2 rounded-full border border-border transition-colors ${
@@ -180,11 +267,22 @@ export default function Market() {
             </button>
           </div>
 
+          {/* Stock Selection List */}
+          {/* Selected symbol triggers TradingView to fetch real data */}
           <AssetNav selectedSymbol={selectedSymbol} onSelectSymbol={closeNav} />
         </div>
       </div>
 
-      {/* Main Chart Area */}
+      {/* Main Chart Container */}
+      {/* 
+        Layout Behavior:
+        - flex-1: Takes all remaining horizontal space (shrinks when nav pinned)
+        - w-full h-full: Fills container
+        - transition-all: Smooth padding change when nav pins/unpins
+        - onClick handler: Click outside sidebar (when overlaying) closes it
+        - TradingView component: Uses ResizeObserver to detect container size changes
+          and automatically resizes chart without remounting
+      */}
       <div
         className={`flex-1 w-full h-full transition-all duration-300 ${isAssetNavPinned ? 'p-4' : 'p-8'} z-20`}
         onClick={
@@ -193,12 +291,15 @@ export default function Market() {
             : undefined
         }
       >
+        {/* Premium Mode: Advanced TradingView Chart */}
+        {/* Shows real stock data with OHLC and area charts, crosshair overlays */}
         {isPremium ? (
           <TradingView
             symbol={selectedSymbol}
             onClearSelection={() => setSelectedSymbol('')}
           />
         ) : (
+          /* Free Mode: Simple Chart Component */
           <div className="h-full">
             <Chart />
           </div>
