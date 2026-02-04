@@ -166,7 +166,25 @@ async function seed() {
       tx4.amount = BigInt(50000000);
       tx4.direction = TransactionDirection.Outgoing;
       tx4.status = TransactionStatus.Completed;
-      await db.persist([tx1, tx2, tx3, tx4]).flush();
+
+      const tx5 = new Transaction();
+      tx5.asset = assetXRP;
+      tx5.amount = BigInt(50000000);
+      tx5.direction = TransactionDirection.Outgoing;
+      tx5.status = TransactionStatus.Completed;
+
+      const tx6 = new Transaction();
+      tx6.asset = assetXRP;
+      tx6.amount = BigInt(50000000);
+      tx6.direction = TransactionDirection.Outgoing;
+      tx6.status = TransactionStatus.Completed;
+
+      const tx7 = new Transaction();
+      tx7.asset = assetXRP;
+      tx7.amount = BigInt(50000000);
+      tx7.direction = TransactionDirection.Outgoing;
+      tx7.status = TransactionStatus.Completed;
+      await db.persist([tx1, tx2, tx3, tx4, tx5, tx6, tx7]).flush();
       console.log('✅ Transactions created');
     } else {
       console.log('ℹ️  Transactions already exist');
