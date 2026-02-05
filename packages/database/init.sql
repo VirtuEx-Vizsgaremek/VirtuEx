@@ -1,5 +1,7 @@
 set names 'utf8';
 
+create database "virtuex";
+
 create type "currency_type" as enum ('fiat', 'crypto');
 create type "subscription" as enum ('free', 'standard', 'pro');
 create type "code_type" as enum ('account_activation', 'password_reset');
