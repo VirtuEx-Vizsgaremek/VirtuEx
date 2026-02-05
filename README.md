@@ -2,13 +2,12 @@
 
 ## Developers & roles
 
-- Kenderesi Gábor Bánk: web- and desktop application, frontend, backend
-- Nagy Dániel: web- and desktop application, frontend, backend
-- Herédi Bendek: web- and desktop application, frontend, backend
-
+- Kenderesi Gábor Bánk: web- and desktop application, frontend, backend, database
+- Nagy Dániel: web- and desktop application, frontend, backend, database
+- Herédi Benedek: web- and desktop application, frontend, backend, database
 - Turbobot-temp: Turbobot is the automated commit author used by Turborepo’s `create-turbo` tool to record the initial scaffold commits when a repository is created.
 
-For further details visit our [Trello camban board](https://trello.com/b/ZYBgDurZ/virtuex)
+For further details visit our [Trello kanban board](https://trello.com/b/ZYBgDurZ/virtuex)
 
 ## Introduction
 
@@ -62,13 +61,32 @@ The system is built on three layers: front-end (web React), backend (Node.js RES
 | Full user account management                            |  ✅   |
 | Create account (with web + desktop permissions)         |  ✅   |
 
-### Technologies Used
+### Technologies
 
-1. React
-2. WPF .NET Framework
-3. Node.js
-4. REST API
-5. Git
+- React
+  - We have learnt it in the school
+  - Widely supported
+  - Industry standard
+- Node.js
+  - We have learnt it in the school
+  - Widely supported
+  - Industry standard
+- Express
+  - We have learnt it in the school
+  - Widely supported
+  - Industry standard
+- WPF .NET Core
+  - More responsive than WinForms App
+  - Easier to version control
+  - Multiple application layers for cleaner code
+- Git
+  - Today's most used distributed version control software system
+  - We have learnt it in the school
+- PostgreSQL
+  - Supports custom data types
+  - Smaller disk size
+  - Faster concurrent operation
+  - Better handling of relations
 
 ## Roles and Permissions
 
