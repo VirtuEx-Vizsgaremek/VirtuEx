@@ -8,7 +8,9 @@
     "build": "tsc && resolve-tspaths",
     "dev": "nodemon -r dotenv/config -r tsconfig-paths/register src/index.ts",
     "lint": "eslint",
-    "lint:fix": "eslint --fix"
+    "lint:fix": "eslint --fix",
+    "db:create:dump": "mikro-orm schema:create --dump",
+    "db:update:dump": "mikro-orm schema:update --dump"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.3",
@@ -18,8 +20,8 @@
     "@types/express-ws": "^3.0.6",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/multer": "^2.0.0",
-    "@types/node": "^22.15.3",
-    "@types/nodemailer": "^7.0.5",
+    "@types/node": "^22.19.9",
+    "@types/nodemailer": "^7.0.9",
     "@types/showdown": "^2.0.6",
     "@virtuex/eslint-config": "workspace:*",
     "nodemon": "^3.1.11",
@@ -28,14 +30,15 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.975.0",
-    "@mikro-orm/core": "^6.6.2",
-    "@mikro-orm/postgresql": "^6.6.2",
-    "@mikro-orm/reflection": "^6.6.2",
+    "@aws-sdk/client-s3": "^3.983.0",
+    "@mikro-orm/cli": "^6.6.6",
+    "@mikro-orm/core": "^6.6.6",
+    "@mikro-orm/postgresql": "^6.6.6",
+    "@mikro-orm/reflection": "^6.6.6",
     "@mikro-orm/sql-highlighter": "^1.0.1",
     "bcrypt": "^6.0.0",
     "chalk": "^5.6.2",
-    "cors": "^2.8.5",
+    "cors": "^2.8.6",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
     "express-ws": "^5.0.2",
@@ -43,11 +46,11 @@
     "moment": "^2.30.1",
     "multer": "^2.0.2",
     "nodejs-snowflake": "^2.0.1",
-    "nodemailer": "^7.0.12",
+    "nodemailer": "^7.0.13",
     "sharp": "^0.34.5",
     "showdown": "^2.1.0",
-    "stripe": "^20.1.0",
+    "stripe": "^20.3.0",
     "yahoo-finance2": "^3.13.0",
-    "zod": "^4.2.1"
+    "zod": "^4.3.6"
   }
 }
