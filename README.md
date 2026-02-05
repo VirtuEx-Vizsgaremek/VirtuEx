@@ -591,6 +591,37 @@ The database is structured according to the diagram below.
 | status     | transaction_status    | Transaction state.                                 |
 | direction  | transaction_direction | Incoming or outgoing transaction.                  |
 
+## `order`
+
+**Description:** Represents a buy or sell order placed by a user. Orders track the conversion between two assets at a specified amount and can exist in various states (pending, partially filled, filled, cancelled, expired, rejected). Orders form the basis for trading operations and can be matched with other orders through the `fulfilled_order` table.
+
+| field         | type         | explanation                                   |
+| ------------- | ------------ | --------------------------------------------- |
+| id            | bigint       | **(PK)** Snowflake ID identifying the order.  |
+| created_at    | timestamptz  | When the order was created.                   |
+| updated_at    | timestamptz  | When the order was last updated.              |
+| user_id       | bigint       | **(FK)** Snowflake ID of the user placing it. |
+| from_asset_id | bigint       | **(FK)** Source asset ID (what to sell).      |
+| to_asset_id   | bigint       | **(FK)** Target asset ID (what to buy).       |
+| amount        | bigint       | Amount of source asset in the order.          |
+| status        | order_status | Current state of the order.                   |
+| type          | order_type   | Buy or sell order type.                       |
+
+## `fulfilled_order`
+
+**Description:** Records completed trades where a buy order has been matched with a sell order. This table tracks the execution of trades, including the buyer, seller, matched orders, execution amount, and price at execution time.
+
+| field         | type        | explanation                                            |
+| ------------- | ----------- | ------------------------------------------------------ |
+| id            | bigint      | **(PK)** Snowflake ID identifying the fulfilled order. |
+| created_at    | timestamptz | When the orders were matched and executed.             |
+| updated_at    | timestamptz | When the fulfilled order record was last updated.      |
+| user_id       | bigint      | **(FK)** Snowflake ID of the user (buyer or seller).   |
+| buy_order_id  | bigint      | **(FK)** Snowflake ID of the matched buy order.        |
+| sell_order_id | bigint      | **(FK)** Snowflake ID of the matched sell order.       |
+| amount        | bigint      | Amount of asset executed in the trade.                 |
+| price         | bigint      | Price per unit at the time of execution.               |
+
 ## Database Relationships
 
 | From Table         | To Table   | Foreign Key Field(s)        | References  | Relationship Type |
