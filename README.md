@@ -591,6 +591,21 @@ The database is structured according to the diagram below.
 | status     | transaction_status    | Transaction state.                                 |
 | direction  | transaction_direction | Incoming or outgoing transaction.                  |
 
+## Database Relationships
+
+| From Table         | To Table   | Foreign Key Field(s)        | References  | Relationship Type |
+| ------------------ | ---------- | --------------------------- | ----------- | ----------------- |
+| `currency_history` | `currency` | currency_id                 | currency.id | Many-to-One       |
+| `user`             | `wallet`   | wallet_id                   | wallet.id   | One-to-One        |
+| `code`             | `user`     | user_id                     | user.id     | Many-to-One       |
+| `asset`            | `wallet`   | wallet_id                   | wallet.id   | Many-to-One       |
+| `asset`            | `currency` | currency_id                 | currency.id | Many-to-One       |
+| `transaction`      | `asset`    | asset_id                    | asset.id    | Many-to-One       |
+| `order`            | `user`     | user_id                     | user.id     | Many-to-One       |
+| `order`            | `asset`    | from_asset_id, to_asset_id  | asset.id    | Many-to-One       |
+| `fulfilled_order`  | `user`     | user_id                     | user.id     | Many-to-One       |
+| `fulfilled_order`  | `order`    | buy_order_id, sell_order_id | order.id    | Many-to-One       |
+
 ### API Endpoints
 
 #### 1. Authentication and User Management
