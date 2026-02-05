@@ -71,6 +71,9 @@ The system is built on three layers: front-end (web React), backend (Node.js RES
   - We have learnt it in the school
   - Widely supported
   - Industry standard
+- Next.js
+  - File based routing
+  - Server-side react component
 - Express
   - We have learnt it in the school
   - Widely supported
@@ -87,6 +90,38 @@ The system is built on three layers: front-end (web React), backend (Node.js RES
   - Smaller disk size
   - Faster concurrent operation
   - Better handling of relations
+
+#### Used APIs & Libraries
+
+- Stripe
+  - Widely used
+  - Easy to use
+- Yahoo-finance2
+  - Fully free
+  - No request limit
+  - Large dataset
+  - Easy to install via node.js
+- Tradingview Lightweight Charts
+  - Super compact (35 kB)
+  - Feature rich
+  - Used by multinational companies (CoinMarketCap, Revolut, Coinbase, Binance, etc)
+  - Easy to customize
+- Logo.dev
+  - High request limit (500,000)
+  - Large dataset
+  - Find by domain, stock ticker or brand name
+- Shadcn.ui
+  - Modifiable ui library
+  - Tailwind based
+- Tailwind
+  - Used for Shadcn.ui
+  - No need for separate css files
+- lucide-react
+  - Easy to use
+  - Tons of icons
+- Recharts
+  - Integrate for Shadcn
+  - Fast
 
 ## Roles and Permissions
 
