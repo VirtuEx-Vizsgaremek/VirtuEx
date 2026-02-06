@@ -1,4 +1,5 @@
 /* eslint-disable no-useless-catch */
+// This file should be named as 'history'
 import { Request, Response } from '@/util/handler';
 import { orm } from '@/util/orm';
 
