@@ -19,7 +19,7 @@ export const schemas = {
       avatar: z.string().nullable().optional(),
       wallet: z.bigint(),
       permissions: z.number(),
-      subscription: z.string(),
+      subscription: z.bigint(),
       activated: z.boolean()
     })
   },
@@ -59,7 +59,7 @@ export const get = async (
     avatar: user.avatar,
     wallet: user.wallet.id,
     permissions: user.permissions,
-    subscription: user.subscription,
+    subscription: user.subscription.id,
     activated: user.activated
   });
 };
