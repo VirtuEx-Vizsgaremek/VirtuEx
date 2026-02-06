@@ -6,37 +6,43 @@ import { orm } from '@/util/orm';
 
 import { sign } from 'jsonwebtoken';
 import { z } from 'zod';
-import { generateSecret, generate, verify } from 'otplib';
+import { generateSecret, verify } from 'otplib';
 import moment from 'moment';
 
 export const schemas = {
   post: {
-    req: z.union([
+    req: z.object({
+      action: z.enum(['check', 'new']),
+      code: z.string().regex(/[0-9]{6}/)
+    }),
+    res: z.union([
       z.object({
-        action: 'check',
-        code: z
-          .string()
-          .regex(/[0-9]{6}/)
-          .optional()
+        token: z.string(),
+        expires: z.date()
       }),
       z.object({
-        action: 'new'
+        secret: z.string()
       })
     ])
   }
 };
 
-export const post = async (req: Request, res: Response<any>) => {
-  const { action } = req.validateBody(schemas.post.req);
+export const post = async (
+  req: Request,
+  res: Response<z.infer<typeof schemas.post.res>>
+) => {
+  const { action, code } = req.validateBody(schemas.post.req);
 
   const user = await req.getUser(true);
   const db = (await orm).em.fork();
 
-  if (action === 'check') {
-    const { code } = req.body;
+  let result;
 
-    const result = await verify({ secret: user.mfaSecret!, token: code });
+  if (user.mfaSecret)
+    result = await verify({ secret: user.mfaSecret!, token: code });
+  else result = { valid: true };
 
+  if (action === 'check' && user.mfaSecret) {
     if (result.valid) {
       const token = sign(
         {
@@ -50,13 +56,15 @@ export const post = async (req: Request, res: Response<any>) => {
 
       return res.status(Status.Ok).json({
         token,
-        espires: moment().add({ months: 1 }).toDate()
+        expires: moment().add({ months: 1 }).toDate()
       });
     }
-    return res.error(Status.Unauthorized, 'Invalid token.');
+    return res.error(Status.Unauthorized, 'Invalid code.');
   }
 
   if (action === 'new') {
+    if (!result.valid) return res.error(Status.Unauthorized, 'Invalid code.');
+
     const secret = generateSecret();
 
     user.mfaSecret = secret;
@@ -66,4 +74,6 @@ export const post = async (req: Request, res: Response<any>) => {
       secret
     });
   }
+
+  return res.error(Status.BadRequest, 'Invalid action.');
 };
