@@ -10,7 +10,8 @@
     "lint": "eslint",
     "lint:fix": "eslint --fix",
     "db:create:dump": "mikro-orm schema:create --dump",
-    "db:update:dump": "mikro-orm schema:update --dump"
+    "db:update:dump": "mikro-orm schema:update --dump",
+    "mikro-orm": "mikro-orm"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.3",
