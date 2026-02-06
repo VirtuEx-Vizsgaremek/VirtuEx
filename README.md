@@ -639,30 +639,49 @@ The database is structured according to the diagram below.
 
 ### API Endpoints
 
+The api runs under port 3001, in production it would be under and api subdmain.
+
+All functions with Admin permission requirement will be available from the desktop app.
+
 #### 1. Authentication and User Management
 
 These endpoints are responsible for registration, login, and profile management (F-03, F-13, F-16).
 
-| Method | Endpoint                | Description                                      | Permission |
-| :----- | :---------------------- | :----------------------------------------------- | :--------- |
-| POST   | `/api/auth/register`    | Create new user account (Name, email, password). | Public     |
-| POST   | `/api/auth/login`       | Login, request JWT token.                        | Public     |
-| GET    | `/api/user/profile`     | Query logged-in user's data.                     | User       |
-| PUT    | `/api/user/profile`     | Update profile data (image, bio).                | User       |
-| GET    | `/api/admin/users`      | List all users (Desktop app function).           | Admin      |
-| PUT    | `/api/admin/users/{id}` | Edit user data or set punishment/ban.            | Admin      |
+| Method | Endpoint                     | Description                                                           | Permission  |
+| :----- | :--------------------------- | :-------------------------------------------------------------------- | :---------- |
+| POST   | `/v1/auth/register`          | Create new user account (Name, email, password).                      | Public      |
+| POST   | `/v1/auth/login`             | Login, give JWT only valid for 2fa or regular JWT if 2fa is disabled. | Public      |
+| POST   | `/v1/auth/2fa`               | Validate 2fa token and grant JWT.                                     | Public      |
+| GET    | `/v1/user`                   | List all users.                                                       | Admin       |
+| GET    | `/v1/user/@me`               | Current user.                                                         | User        |
+| PATCH  | `/v1/user/@me`               | Edit current user.                                                    | User        |
+| DELETE | `/v1/user/@me`               | Delete current user.                                                  | User        |
+| PATCH  | `/v1/user/@me/avatar`        | Edit current the user's avatar.                                       | User        |
+| GET    | `/v1/user/{id}`              | Get user.                                                             | User, Admin |
+| PATCH  | `/v1/user/{id}`              | Edit user data.                                                       | Admin       |
+| DELETE | `/v1/user/{id}`              | Delete user.                                                          | Admin       |
+| PATCH  | `/v1/user/{id}/avatar`       | Edit user data.                                                       | Admin       |
+| GET    | `/v1/user/{id}/restrictions` | Get a user's restrictions.                                            | User        |
+| PATCH  | `/v1/user/{id}/restrictions` | Edit a user's restrictions.                                           | Admin       |
 
-#### 2. Wallet and Transactions
+#### 2. Wallet
 
-Handling financial operations, Stripe integration, and internal balance movement (F-04, F-05, F-06, F-15).
+Handling financial operations, and internal balance movement (F-04, F-05, F-06, F-15).
 
-| Method | Endpoint                   | Description                                  | Permission |
-| :----- | :------------------------- | :------------------------------------------- | :--------- |
-| GET    | `/api/wallet/balance`      | Query current balance (Fiat and Crypto).     | User       |
-| POST   | `/api/wallet/deposit`      | Top up balance (Stripe API call simulation). | User       |
-| POST   | `/api/wallet/withdraw`     | Initiate withdrawal.                         | User       |
-| GET    | `/api/wallet/transactions` | Query transaction log (history).             | User/Admin |
-| POST   | `/api/wallet/swap`         | Crypto-crypto exchange (Swapping).           | User       |
+| Method | Endpoint                     | Description                              | Permission |
+| :----- | :--------------------------- | :--------------------------------------- | :--------- |
+| GET    | `/v1/wallet/{id}`            | Query current balance (Fiat and Crypto). | User       |
+| GET    | `/v1/wallet/{id}/asset`      | Get all assets in a wallet.              | User       |
+| GET    | `/v1/wallet/{id}/asset/{id}` | Get an asset in a wallet.                | User       |
+| GET    | `/v1/wallet/{id}/history`    | Query transaction log (history).         | User       |
+
+#### 3. Assets
+
+| Method | Endpoint                      | Description      | Permissions |
+| :----- | :---------------------------- | :--------------- | :---------- |
+| GET    | `/v1/asset`                   | List all assets. | User        |
+| GET    | `/v1/asset/{id}`              | Get an asset.    | User        |
+| POST   | `/v1/asset/{id}/swap/{to_id}` | Swap/Buy assets. | User        |
 
 #### 3. Trading & Market Data
 
