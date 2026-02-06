@@ -5,7 +5,7 @@ import { ValidationError } from '@/util/errors';
 
 import { CookieOptions, RequestFile } from '@/interfaces';
 
-import { ZodObject } from 'zod';
+import { ZodObject, ZodUnion } from 'zod';
 import { User } from '@/entities/user.entity';
 import { orm } from '@/util/orm';
 import { JwtPayload, verify } from 'jsonwebtoken';
@@ -105,7 +105,7 @@ export class Request {
    *
    * @returns {Promise<User>} The current user.
    */
-  public async getUser(): Promise<User> {
+  public async getUser(mfa?: boolean | undefined): Promise<User> {
     const db = (await orm).em.fork();
 
     const token = this.getHeader('authorization')?.split(' ')[1];
@@ -115,6 +115,7 @@ export class Request {
       const td = verify(token, process.env.JWT_SECRET!) as TokenData;
 
       const user = await db.findOne(User, { id: td.id });
+      if (mfa && !td.mfa) throw new Error('Unauthorized');
       if (!user) throw new Error('Unauthorized');
 
       return user;
@@ -137,7 +138,7 @@ export class Request {
    * @returns {T['_output']} The input object.
    * @throws {ValidationError}
    */
-  public validate<T extends ZodObject<any>>(
+  public validate<T extends ZodObject<any> | ZodUnion<any>>(
     schema: T,
     data: any
   ): T['_output'] {
@@ -178,7 +179,9 @@ export class Request {
    * @returns {T['_output']} The request's body.
    * @throws {ValidationError}
    */
-  public validateBody<T extends ZodObject<any>>(schema: T): T['_output'] {
+  public validateBody<T extends ZodObject<any> | ZodUnion<any>>(
+    schema: T
+  ): T['_output'] {
     return this.validate(schema, this.req.body);
   }
 

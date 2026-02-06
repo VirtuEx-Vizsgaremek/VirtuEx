@@ -30,6 +30,9 @@ export class User extends BaseEntity {
   @Property({ length: 72 })
   password!: string;
 
+  @Property({ nullable: true })
+  mfaSecret!: string | undefined | null;
+
   @Property({ length: 256, nullable: true })
   bio: string | undefined | null;
 
