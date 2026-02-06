@@ -20,6 +20,7 @@ import {
   ItemTitle
 } from '@/components/ui/item';
 import SideNav from '@/components/sidenav';
+import { fetchWalletData } from '@/lib/api/wallet';
 
 export default function WalletPage() {
   const [walletData, setWalletData] = useState<any>(null);
@@ -27,49 +28,12 @@ export default function WalletPage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // TODO:
-  // Separate fetching logic into another file
-
   useEffect(() => {
     async function loadWallet() {
       try {
-        // Dev: token is optional during development since backend doesn't validate it yet
-        const token = localStorage.getItem('jwt') || 'dev-token';
-
-        const [balanceResponse, transactionsResponse] = await Promise.all([
-          fetch('http://localhost:3001/v1/wallet/balance', {
-            method: 'GET',
-            headers: {
-              Authorization: `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
-          }),
-          fetch('http://localhost:3001/v1/wallet/transactions', {
-            method: 'GET',
-            headers: {
-              Authorization: `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
-          })
-        ]);
-
-        if (!balanceResponse.ok) {
-          throw new Error(
-            `Failed to fetch wallet balance: ${balanceResponse.status}`
-          );
-        }
-
-        if (!transactionsResponse.ok) {
-          throw new Error(
-            `Failed to fetch transactions: ${transactionsResponse.status}`
-          );
-        }
-
-        const balanceData = await balanceResponse.json();
-        const transactionsData = await transactionsResponse.json();
-
-        setWalletData(balanceData);
-        setTransactionsData(transactionsData);
+        const { wallet, transactions } = await fetchWalletData();
+        setWalletData(wallet);
+        setTransactionsData(transactions);
       } catch (err: any) {
         setError(err.message);
       } finally {
