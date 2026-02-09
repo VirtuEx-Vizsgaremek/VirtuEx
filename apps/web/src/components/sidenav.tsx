@@ -8,9 +8,7 @@ import { User, CreditCard, Settings, ShieldCheck, DollarSign } from "lucide-reac
 const menuItems = [
   { name: "My Profile", href: "/profile", icon: User },
   { name: "Wallet", href: "/wallet", icon: DollarSign },
-  { name: "Subscription", href: "/plan", icon: CreditCard },
-  { name: "Security", href: "/security", icon: ShieldCheck },
-  { name: "Settings", href: "/settings", icon: Settings },
+  { name: "Subscription", href: "/plan", icon: CreditCard }
 ];
 
 export default function SideNav() {
