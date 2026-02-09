@@ -2,6 +2,7 @@ import Status from '@/enum/status';
 
 import { Request, Response } from '@/util/handler';
 import { orm } from '@/util/orm';
+import { UniqueConstraintViolationException } from '@mikro-orm/core';
 import z from 'zod';
 
 export const schemas = {
@@ -69,8 +70,8 @@ export const patch = async (req: Request, res: Response<void>) => {
     await db.persist(user).flush();
 
     res.status(Status.NoContent).end();
-  } catch (e: any) {
-    if (e.name === 'UniqueConstraintViolationException')
+  } catch (e: unknown) {
+    if (e instanceof UniqueConstraintViolationException)
       return res.error(
         Status.Conflict,
         'A user with this username already exists.'
