@@ -49,7 +49,11 @@ export default function ProfilePage() {
     if(user.premium) {
       return(
         <div className="userStat">
-          <span className="font-semibold text-green-600">Premium User</span>
+          <div className="grid grid-col-2">
+            <span className="font-semibold text-green-500">Premium User</span>
+            <span className="font-semibold text-gray-500">Credits: {user.credits}</span>
+            <span className="text-sm text-gray-500">Expires on: {new Date(user.expire).toLocaleDateString('hu-HU')}</span>
+          </div>
         </div>
       )
     }
