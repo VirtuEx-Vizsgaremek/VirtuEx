@@ -180,7 +180,13 @@ export default function ProfilePage() {
                                         >
                                           Remove 2FA
                                         </Button>
+                                        
                                       </div>
+                                      <FieldDescription>
+                                          <p>
+                                          Configuring an authenticator app is a good way to add an extra layer of security to your Discord account to make sure that only you have the ability to log in.                                          
+                                          </p>
+                                        </FieldDescription>
                                     </div>
                                   </div>
                                 </div>
