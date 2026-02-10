@@ -89,11 +89,16 @@ export default function Navbar() {
           />
 
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" className="rounded-full">
-              Sign Up
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-full"
+              asChild
+            >
+              <Link href="/auth/register">Sign Up</Link>
             </Button>
-            <Button size="sm" className="rounded-full">
-              Log In
+            <Button size="sm" className="rounded-full" asChild>
+              <Link href="/auth/login">Log In</Link>
             </Button>
 
             {/* Color Theme Selector */}
@@ -180,10 +185,12 @@ export default function Navbar() {
           />
 
           <div className="flex gap-3">
-            <Button variant="outline" className="text-md">
-              Sign Up
+            <Button variant="outline" className="text-md" asChild>
+              <Link href="/auth/register">Sign Up</Link>
             </Button>
-            <Button className="text-md">Log In</Button>
+            <Button className="text-md" asChild>
+              <Link href="/auth/login">Log In</Link>
+            </Button>
 
             {/* Color Theme Selector */}
             <div className="relative">
