@@ -2,70 +2,63 @@ import { orm } from '@/util/orm';
 import { User } from '@/entities/user.entity';
 import { Wallet } from '@/entities/wallet.entity';
 import { Currency } from '@/entities/currency.entity';
+import { CurrencyHistory } from '@/entities/currency_history.entity';
 import { Asset } from '@/entities/asset.entity';
 import { Transaction } from '@/entities/transaction.entity';
+import { Order } from '@/entities/order.entity';
+import { FulfilledOrder } from '@/entities/fulfilled_order.entity';
 import { CurrencyType } from '@/enum/currency_type';
 import { TransactionDirection, TransactionStatus } from '@/enum/transaction';
+import { OrderStatus, OrderType } from '@/enum/order';
+import { Subscription } from '@/enum/subscription';
 import bcrypt from 'bcrypt';
 
 async function seed() {
   const db = (await orm).em.fork();
 
   try {
-    // Check and create currencies
-    let usd = await db.findOne(Currency, { symbol: 'USD' });
-    if (!usd) {
-      usd = new Currency();
-      usd.symbol = 'USD';
-      usd.name = 'US Dollar';
-      usd.precision = 2;
-      usd.type = CurrencyType.Fiat;
-      await db.persist(usd).flush();
-      console.log('✅ USD currency created');
-    } else {
-      console.log('ℹ️  USD currency already exists');
-    }
+    const getOrCreateCurrency = async (
+      symbol: string,
+      name: string,
+      precision: number,
+      type: CurrencyType
+    ) => {
+      let currency = await db.findOne(Currency, { symbol });
+      if (!currency) {
+        currency = new Currency();
+        currency.symbol = symbol;
+        currency.name = name;
+        currency.precision = precision;
+        currency.type = type;
+        await db.persist(currency).flush();
+        console.log(`OK: ${symbol} currency created`);
+      } else {
+        console.log(`INFO: ${symbol} currency already exists`);
+      }
 
-    let btc = await db.findOne(Currency, { symbol: 'BTC' });
-    if (!btc) {
-      btc = new Currency();
-      btc.symbol = 'BTC';
-      btc.name = 'Bitcoin';
-      btc.precision = 8;
-      btc.type = CurrencyType.Crypto;
-      await db.persist(btc).flush();
-      console.log('✅ BTC currency created');
-    } else {
-      console.log('ℹ️  BTC currency already exists');
-    }
+      return currency;
+    };
 
-    let eth = await db.findOne(Currency, { symbol: 'ETH' });
-    if (!eth) {
-      eth = new Currency();
-      eth.symbol = 'ETH';
-      eth.name = 'Ethereum';
-      eth.precision = 8;
-      eth.type = CurrencyType.Crypto;
-      await db.persist(eth).flush();
-      console.log('✅ ETH currency created');
-    } else {
-      console.log('ℹ️  ETH currency already exists');
-    }
+    const usd = await getOrCreateCurrency(
+      'USD',
+      'US Dollar',
+      2,
+      CurrencyType.Fiat
+    );
+    const eur = await getOrCreateCurrency('EUR', 'Euro', 2, CurrencyType.Fiat);
+    const btc = await getOrCreateCurrency(
+      'BTC',
+      'Bitcoin',
+      8,
+      CurrencyType.Crypto
+    );
+    const eth = await getOrCreateCurrency(
+      'ETH',
+      'Ethereum',
+      8,
+      CurrencyType.Crypto
+    );
 
-    let xrp = await db.findOne(Currency, { symbol: 'XRP' });
-    if (!xrp) {
-      xrp = new Currency();
-      xrp.symbol = 'XRP';
-      xrp.name = 'Ripple';
-      xrp.precision = 6;
-      xrp.type = CurrencyType.Crypto;
-      await db.persist(xrp).flush();
-      console.log('✅ XRP currency created');
-    } else {
-      console.log('ℹ️  XRP currency already exists');
-    }
-
-    // Check and create test user
     let user = await db.findOne(User, { username: 'testuser' });
     let wallet: Wallet;
 
@@ -76,29 +69,64 @@ async function seed() {
       user.email = 'test@virtuex.com';
       user.password = await bcrypt.hash('password123', 10);
       user.activated = true;
+      user.subscription = Subscription.Standard;
 
       wallet = new Wallet();
       user.wallet = wallet;
 
       await db.persist([wallet, user]).flush();
-      console.log('✅ User and Wallet created');
+      console.log('OK: User and wallet created');
     } else {
-      console.log('ℹ️  Test user already exists');
-      wallet = user.wallet;
+      console.log('INFO: Test user already exists');
       await db.populate(user, ['wallet']);
+      wallet = user.wallet;
     }
 
-    // Check and create assets
+    let maker = await db.findOne(User, { username: 'marketmaker' });
+    let makerWallet: Wallet;
+
+    if (!maker) {
+      maker = new User();
+      maker.fullName = 'Market Maker';
+      maker.username = 'marketmaker';
+      maker.email = 'maker@virtuex.com';
+      maker.password = await bcrypt.hash('password123', 10);
+      maker.activated = true;
+      maker.subscription = Subscription.Pro;
+
+      makerWallet = new Wallet();
+      maker.wallet = makerWallet;
+
+      await db.persist([makerWallet, maker]).flush();
+      console.log('OK: Market maker user created');
+    } else {
+      console.log('INFO: Market maker already exists');
+      await db.populate(maker, ['wallet']);
+      makerWallet = maker.wallet;
+    }
+
     let assetUSD = await db.findOne(Asset, { wallet, currency: usd });
     if (!assetUSD) {
       assetUSD = new Asset();
       assetUSD.wallet = wallet;
       assetUSD.currency = usd;
-      assetUSD.amount = BigInt(100000);
+      assetUSD.amount = BigInt(250000);
       await db.persist(assetUSD).flush();
-      console.log('✅ USD asset created');
+      console.log('OK: USD asset created');
     } else {
-      console.log('ℹ️  USD asset already exists');
+      console.log('INFO: USD asset already exists');
+    }
+
+    let assetEUR = await db.findOne(Asset, { wallet, currency: eur });
+    if (!assetEUR) {
+      assetEUR = new Asset();
+      assetEUR.wallet = wallet;
+      assetEUR.currency = eur;
+      assetEUR.amount = BigInt(50000);
+      await db.persist(assetEUR).flush();
+      console.log('OK: EUR asset created');
+    } else {
+      console.log('INFO: EUR asset already exists');
     }
 
     let assetBTC = await db.findOne(Asset, { wallet, currency: btc });
@@ -108,9 +136,9 @@ async function seed() {
       assetBTC.currency = btc;
       assetBTC.amount = BigInt(50000000);
       await db.persist(assetBTC).flush();
-      console.log('✅ BTC asset created');
+      console.log('OK: BTC asset created');
     } else {
-      console.log('ℹ️  BTC asset already exists');
+      console.log('INFO: BTC asset already exists');
     }
 
     let assetETH = await db.findOne(Asset, { wallet, currency: eth });
@@ -120,24 +148,41 @@ async function seed() {
       assetETH.currency = eth;
       assetETH.amount = BigInt(200000000);
       await db.persist(assetETH).flush();
-      console.log('✅ ETH asset created');
+      console.log('OK: ETH asset created');
     } else {
-      console.log('ℹ️  ETH asset already exists');
+      console.log('INFO: ETH asset already exists');
     }
 
-    let assetXRP = await db.findOne(Asset, { wallet, currency: xrp });
-    if (!assetXRP) {
-      assetXRP = new Asset();
-      assetXRP.wallet = wallet;
-      assetXRP.currency = xrp;
-      assetXRP.amount = BigInt(200000000);
-      await db.persist(assetXRP).flush();
-      console.log('✅ XRP asset created');
+    let makerUSD = await db.findOne(Asset, {
+      wallet: makerWallet,
+      currency: usd
+    });
+    if (!makerUSD) {
+      makerUSD = new Asset();
+      makerUSD.wallet = makerWallet;
+      makerUSD.currency = usd;
+      makerUSD.amount = BigInt(750000);
+      await db.persist(makerUSD).flush();
+      console.log('OK: Maker USD asset created');
     } else {
-      console.log('ℹ️  XRP asset already exists');
+      console.log('INFO: Maker USD asset already exists');
     }
 
-    // Check transaction count for this wallet
+    let makerBTC = await db.findOne(Asset, {
+      wallet: makerWallet,
+      currency: btc
+    });
+    if (!makerBTC) {
+      makerBTC = new Asset();
+      makerBTC.wallet = makerWallet;
+      makerBTC.currency = btc;
+      makerBTC.amount = BigInt(150000000);
+      await db.persist(makerBTC).flush();
+      console.log('OK: Maker BTC asset created');
+    } else {
+      console.log('INFO: Maker BTC asset already exists');
+    }
+
     const existingTxCount = await db.count(Transaction, {
       asset: { wallet }
     });
@@ -162,35 +207,84 @@ async function seed() {
       tx3.status = TransactionStatus.Completed;
 
       const tx4 = new Transaction();
-      tx4.asset = assetXRP;
-      tx4.amount = BigInt(50000000);
-      tx4.direction = TransactionDirection.Outgoing;
+      tx4.asset = assetEUR;
+      tx4.amount = BigInt(10000);
+      tx4.direction = TransactionDirection.Incoming;
       tx4.status = TransactionStatus.Completed;
 
-      const tx5 = new Transaction();
-      tx5.asset = assetXRP;
-      tx5.amount = BigInt(50000000);
-      tx5.direction = TransactionDirection.Outgoing;
-      tx5.status = TransactionStatus.Completed;
-
-      const tx6 = new Transaction();
-      tx6.asset = assetXRP;
-      tx6.amount = BigInt(50000000);
-      tx6.direction = TransactionDirection.Outgoing;
-      tx6.status = TransactionStatus.Completed;
-
-      const tx7 = new Transaction();
-      tx7.asset = assetXRP;
-      tx7.amount = BigInt(50000000);
-      tx7.direction = TransactionDirection.Outgoing;
-      tx7.status = TransactionStatus.Completed;
-      await db.persist([tx1, tx2, tx3, tx4, tx5, tx6, tx7]).flush();
-      console.log('✅ Transactions created');
+      await db.persist([tx1, tx2, tx3, tx4]).flush();
+      console.log('OK: Transactions created');
     } else {
-      console.log('ℹ️  Transactions already exist');
+      console.log('INFO: Transactions already exist');
     }
 
-    console.log('\n🎉 Seed completed successfully!');
+    const historyCount = await db.count(CurrencyHistory, { currency: usd });
+    if (historyCount === 0) {
+      const now = Date.now();
+      const historyData: Array<[Currency, bigint, number]> = [
+        [usd, BigInt(100), 0],
+        [usd, BigInt(100), 1],
+        [usd, BigInt(100), 2],
+        [eur, BigInt(110), 0],
+        [eur, BigInt(109), 1],
+        [eur, BigInt(111), 2],
+        [btc, BigInt(6500000), 0],
+        [btc, BigInt(6420000), 1],
+        [btc, BigInt(6580000), 2],
+        [eth, BigInt(320000), 0],
+        [eth, BigInt(315000), 1],
+        [eth, BigInt(328000), 2]
+      ];
+
+      const historyRows = historyData.map(([currency, price, daysAgo]) => {
+        const entry = new CurrencyHistory();
+        entry.currency = currency;
+        entry.timestamp = new Date(now - daysAgo * 24 * 60 * 60 * 1000);
+        entry.price = price;
+        return entry;
+      });
+
+      await db.persist(historyRows).flush();
+      console.log('OK: Currency history created');
+    } else {
+      console.log('INFO: Currency history already exists');
+    }
+
+    const existingOrderCount = await db.count(Order, {});
+    if (existingOrderCount === 0) {
+      const buyOrder = new Order();
+      buyOrder.user = user;
+      buyOrder.from_asset = assetUSD;
+      buyOrder.to_asset = assetBTC;
+      buyOrder.amount = BigInt(250000); // $2,500.00 in cents
+      buyOrder.status = OrderStatus.Filled;
+      buyOrder.type = OrderType.Buy;
+
+      const sellOrder = new Order();
+      sellOrder.user = maker;
+      sellOrder.from_asset = makerBTC;
+      sellOrder.to_asset = makerUSD;
+      sellOrder.amount = BigInt(3846153); // ~0.03846153 BTC in satoshis
+      sellOrder.status = OrderStatus.Filled;
+      sellOrder.type = OrderType.Sell;
+
+      await db.persist([buyOrder, sellOrder]).flush();
+      console.log('OK: Orders created');
+
+      const fulfilled = new FulfilledOrder();
+      fulfilled.user = user;
+      fulfilled.buy_order = buyOrder;
+      fulfilled.sell_order = sellOrder;
+      fulfilled.amount = BigInt(3846153); // BTC amount
+      fulfilled.price = BigInt(6500000); // $65,000.00 in cents
+
+      await db.persist(fulfilled).flush();
+      console.log('OK: Fulfilled order created');
+    } else {
+      console.log('INFO: Orders already exist');
+    }
+
+    console.log('\nSeed completed successfully.');
     console.log('\nTest user credentials:');
     console.log('Email: test@virtuex.com');
     console.log('Password: password123');
