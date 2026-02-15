@@ -9,14 +9,16 @@ import {
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 
-export default function Login() {
+export default function Reset() {
+  const codeStep = false;
+
   return (
     <form className="flex flex-col gap-6">
       <FieldGroup>
         <div className="flex flex-col items-center gap-1 text-center">
-          <h1 className="text-2xl font-bold">Sign In</h1>
+          <h1 className="text-2xl font-bold">Reset Password</h1>
           <p className="text-muted-foreground text-sm text-balance">
-            Enter your email below to login to your account.
+            Enter your email below to reset your password.
           </p>
         </div>
         <Field>
@@ -28,27 +30,18 @@ export default function Login() {
             required
           />
         </Field>
+        {codeStep && (
+          <Field>
+            <FieldLabel htmlFor="code">Code</FieldLabel>
+            <Input id="code" type="text" required />
+          </Field>
+        )}
         <Field>
-          <div className="flex items-center">
-            <FieldLabel htmlFor="password">Password</FieldLabel>
-            <Link
-              href="/auth/reset"
-              className="ml-auto text-sm underline-offset-4 hover:underline"
-            >
-              Forgot your password?
-            </Link>
-          </div>
-          <Input id="password" type="password" required />
-        </Field>
-        <Field>
-          <Button type="submit">Login</Button>
+          <Button type="submit">Send Code</Button>
           <FieldDescription className="text-center">
-            Don&apos;t have an account?{' '}
-            <Link
-              href="/auth/register"
-              className="underline underline-offset-4"
-            >
-              Sign up
+            Remembered you password?{' '}
+            <Link href="/auth/login" className="underline underline-offset-4">
+              Sign in
             </Link>
           </FieldDescription>
         </Field>
