@@ -1,7 +1,7 @@
 import { Request, Response } from '@/util/handler';
 import { orm } from '@/util/orm';
 
-import { User } from '@/entities/user.entity';
+import { Wallet } from '@/entities/wallet.entity';
 import { Asset } from '@/entities/asset.entity';
 
 import Status from '@/enum/status';
@@ -32,50 +32,15 @@ export const get = async (
 ) => {
   try {
     const db = (await orm).em.fork();
+    const { id } = req.params;
 
-    // const user = await req.getUser();
-    //From cookie
+    const wallet = await db.findOne(Wallet, { id }, { populate: ['user'] });
 
-    // if (!user) {
-    //   return res.error(Status.Unauthorized, 'User not authenticated');
-    // }
-    // Error handler usage!
-
-    // const userWithWallet = await db.findOne(
-    //   User,
-    //   { id: user.id },
-    //   { populate: ['wallet'] }
-    // );
-
-    // ----------- Temp dev block -----------//
-    const userWithWallet = await db.findOne(
-      User,
-      { wallet: { $ne: null } },
-      { populate: ['wallet'] }
-    );
-
-    // if (!userWithWallet || !userWithWallet.wallet) {
-    //   return res.error(Status.NotFound, 'Wallet not found');
-    // }
-    if (!userWithWallet || !userWithWallet.wallet) {
-      // Ha ez a hiba jön, akkor az adatbázisodban egyetlen usernek sincs tárcája,
-      // vagy egyáltalán nincs user.
-      return res.error(
-        Status.NotFound,
-        '[DEV] User with wallet does not exist.'
-      );
+    if (!wallet) {
+      return res.error(Status.NotFound, 'Wallet not found');
     }
 
-    // const assets = await db.find(
-    //   Asset,
-    //   { wallet: userWithWallet.wallet },
-    //   { populate: ['currency'] }
-    // );
-    const assets = await db.find(
-      Asset,
-      { wallet: userWithWallet.wallet },
-      { populate: ['currency'] }
-    );
+    const assets = await db.find(Asset, { wallet }, { populate: ['currency'] });
 
     const formattedAssets = assets.map((asset) => ({
       id: asset.id.toString(),
@@ -87,7 +52,7 @@ export const get = async (
     }));
 
     return res.status(Status.Ok).json({
-      wallet_id: userWithWallet.wallet.id.toString(),
+      wallet_id: wallet.id.toString(),
       total_assets: assets.length,
       assets: formattedAssets
     });
