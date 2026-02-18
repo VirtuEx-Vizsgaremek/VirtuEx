@@ -1,9 +1,7 @@
-/* eslint-disable no-useless-catch */
-// This file should be named as 'history'
 import { Request, Response } from '@/util/handler';
 import { orm } from '@/util/orm';
 
-import { User } from '@/entities/user.entity';
+import { Wallet } from '@/entities/wallet.entity';
 import { Transaction } from '@/entities/transaction.entity';
 
 import Status from '@/enum/status';
@@ -37,37 +35,17 @@ export const get = async (
 ) => {
   try {
     const db = (await orm).em.fork();
+    const { id } = req.params;
 
-    // const user = await req.getUser();
-    // From cookie
+    const wallet = await db.findOne(Wallet, { id });
 
-    // if (!user) {
-    //   return res.error(Status.Unauthorized, 'User not authenticated');
-    // }
-
-    // const userWithWallet = await db.findOne(
-    //   User,
-    //   { id: user.id },
-    //   { populate: ['wallet'] }
-    // );
-
-    // ----------- Temp dev block -----------//
-    const userWithWallet = await db.findOne(
-      User,
-      { wallet: { $ne: null } },
-      { populate: ['wallet'] }
-    );
-
-    if (!userWithWallet || !userWithWallet.wallet) {
-      return res.error(
-        Status.NotFound,
-        '[DEV] User with wallet does not exist.'
-      );
+    if (!wallet) {
+      return res.error(Status.NotFound, 'Wallet not found');
     }
 
     const transactions = await db.find(
       Transaction,
-      { asset: { wallet: userWithWallet.wallet } },
+      { asset: { wallet } },
       {
         populate: ['asset', 'asset.currency'],
         orderBy: { createdAt: 'DESC' }
@@ -87,11 +65,16 @@ export const get = async (
     }));
 
     return res.status(Status.Ok).json({
-      wallet_id: userWithWallet.wallet.id.toString(),
+      wallet_id: wallet.id.toString(),
       total_transactions: transactions.length,
       transactions: formattedTransactions
     });
-  } catch (e: any) {
-    throw e;
+  } catch (error) {
+    console.error('Error fetching wallet transactions:', error);
+
+    return res.error(
+      Status.InternalServerError,
+      'Failed to fetch wallet transactions'
+    );
   }
 };
