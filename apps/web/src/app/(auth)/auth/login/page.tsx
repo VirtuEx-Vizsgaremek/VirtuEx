@@ -7,11 +7,12 @@ import {
   FieldDescription
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { login } from '@/lib/actions';
 import Link from 'next/link';
 
 export default function Login() {
   return (
-    <form className="flex flex-col gap-6">
+    <form className="flex flex-col gap-6" action={login}>
       <FieldGroup>
         <div className="flex flex-col items-center gap-1 text-center">
           <h1 className="text-2xl font-bold">Sign In</h1>
@@ -23,6 +24,7 @@ export default function Login() {
           <FieldLabel htmlFor="email">Email</FieldLabel>
           <Input
             id="email"
+            name="email"
             type="email"
             placeholder="john@example.com"
             required
@@ -38,7 +40,7 @@ export default function Login() {
               Forgot your password?
             </Link>
           </div>
-          <Input id="password" type="password" required />
+          <Input id="password" name="password" type="password" required />
         </Field>
         <Field>
           <Button type="submit">Login</Button>
