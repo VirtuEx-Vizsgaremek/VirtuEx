@@ -13,8 +13,26 @@ class MarketData {
     const currencies = await db.findAll(Currency);
     await Promise.all(
       currencies.map(async (c) => {
-        const current = await this.yahooFinance.quote(c.symbol);
+        let shouldUpdate = false;
 
+        if (c.updateFreqency === '1m') {
+          shouldUpdate = true;
+        } else if (c.updateFreqency === '1d') {
+          const lastUpdate = await db.findOne(
+            CurrencyHistory,
+            { currency: c },
+            { orderBy: { timestamp: 'DESC' } }
+          );
+          const alreadyUpdatedToday =
+            lastUpdate &&
+            new Date(lastUpdate.timestamp).toDateString() ===
+              new Date().toDateString();
+          shouldUpdate = !alreadyUpdatedToday;
+        }
+
+        if (!shouldUpdate) return;
+
+        const current = await this.yahooFinance.quote(c.symbol);
         db.create(CurrencyHistory, {
           currency: c,
           timestamp: new Date(),

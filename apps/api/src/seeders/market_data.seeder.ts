@@ -1,5 +1,6 @@
 import { Asset } from '@/entities/asset.entity';
 import { Currency } from '@/entities/currency.entity';
+import { CurrencyHistory } from '@/entities/currency_history.entity';
 import { CurrencyType } from '@/enum/currency_type';
 import { EntityManager } from '@mikro-orm/core';
 import { Seeder } from '@mikro-orm/seeder';
@@ -131,6 +132,9 @@ export class MarketDataSeeder extends Seeder {
 
     em.persist(usd);
 
+    const cc: Currency[] = [];
+
+    // currencies
     await Promise.all(
       tickers.map(async (t) => {
         try {
@@ -140,7 +144,37 @@ export class MarketDataSeeder extends Seeder {
           c.name = (yahooData.longName ?? t.symbol) as string;
           c.precision = yahooData.priceHint as number;
           c.type = t.type;
+          if (t.type == CurrencyType.Crypto) c.updateFreqency = '1m';
           em.persist(c);
+
+          cc.push(c);
+        } catch (e: unknown) {
+          console.error('failed:', t, e);
+        }
+      })
+    );
+
+    // initial history
+    await Promise.all(
+      cc.map(async (t) => {
+        try {
+          const yahooData = await yahoo.chart(t.symbol, {
+            period1: moment().subtract(1, 'y').toDate(),
+            period2: new Date(),
+            interval: '1d'
+          });
+
+          await Promise.all(
+            yahooData.quotes.map((d) => {
+              const h = new CurrencyHistory();
+              h.currency = t;
+              h.timestamp = d.date;
+              h.price = BigInt(
+                (parseFloat((d.open as number).toFixed(2)) * 100).toFixed(0)
+              ) as bigint;
+              em.persist(h);
+            })
+          );
         } catch (e: unknown) {
           console.error('failed:', t, e);
         }
