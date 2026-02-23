@@ -43,6 +43,9 @@ importers:
       "@mikro-orm/reflection":
         specifier: ^6.6.6
         version: 6.6.6(@mikro-orm/core@6.6.6)
+      "@mikro-orm/seeder":
+        specifier: ^6.6.6
+        version: 6.6.6(@mikro-orm/core@6.6.6)
       "@mikro-orm/sql-highlighter":
         specifier: ^1.0.1
         version: 1.0.1
@@ -73,6 +76,9 @@ importers:
       multer:
         specifier: ^2.0.2
         version: 2.0.2
+      node-cron:
+        specifier: ^4.2.1
+        version: 4.2.1
       nodejs-snowflake:
         specifier: ^2.0.1
         version: 2.0.1
@@ -1345,6 +1351,15 @@ packages:
     resolution:
       {
         integrity: sha512-jGI20giRK7vOOzL5+m2/LZrcJc6Hvixxl9aQZd2GRC78iweg3vnjwR1QeLTzHTqR3h3QIPTbHa44vxR4G+oa6w==,
+      }
+    engines: { node: ">= 18.12.0" }
+    peerDependencies:
+      "@mikro-orm/core": ^6.0.0
+
+  "@mikro-orm/seeder@6.6.6":
+    resolution:
+      {
+        integrity: sha512-pMVT0Nk/diG1ykQ+6XMTd4nEqhXrtdkAfv1ic6XNvp+ZJf3ziEngvAQj5/WLEyf+ZobPL3OxdXeufo3mb1Zijg==,
       }
     engines: { node: ">= 18.12.0" }
     peerDependencies:
@@ -6507,6 +6522,13 @@ packages:
       }
     engines: { node: ^18 || ^20 || >= 21 }
 
+  node-cron@4.2.1:
+    resolution:
+      {
+        integrity: sha512-lgimEHPE/QDgFlywTd8yTR61ptugX3Qer29efeyWw2rv259HtGBNn1vZVmp8lB9uo9wC0t/AT4iGqXxia+CJFg==,
+      }
+    engines: { node: ">=6.0.0" }
+
   node-domexception@1.0.0:
     resolution:
       {
@@ -9567,6 +9589,12 @@ snapshots:
       "@mikro-orm/core": 6.6.6
       globby: 11.1.0
       ts-morph: 27.0.2
+
+  "@mikro-orm/seeder@6.6.6(@mikro-orm/core@6.6.6)":
+    dependencies:
+      "@mikro-orm/core": 6.6.6
+      fs-extra: 11.3.3
+      globby: 11.1.0
 
   "@mikro-orm/sql-highlighter@1.0.1":
     dependencies:
@@ -13046,6 +13074,8 @@ snapshots:
       - babel-plugin-macros
 
   node-addon-api@8.5.0: {}
+
+  node-cron@4.2.1: {}
 
   node-domexception@1.0.0: {}
 
