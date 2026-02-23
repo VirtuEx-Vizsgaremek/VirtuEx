@@ -84,7 +84,7 @@ export async function fetchMarketData(
   try {
     // Build query string and make HTTP GET request
     const response = await fetch(
-      `${apiUrl}/market?symbol=${symbol}&days=${days}`
+      `${apiUrl}/v1/market?symbol=${symbol}&days=${days}`
     );
 
     // Check if response status indicates success (200-299)

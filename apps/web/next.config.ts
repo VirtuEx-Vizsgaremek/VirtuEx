@@ -6,10 +6,4 @@ const nextConfig: NextConfig = {
   }
 };
 
-module.exports = {
-  images: {
-    remotePatterns: [new URL('https://avatar.vercel.sh/**')]
-  }
-};
-
 export default nextConfig;
