@@ -112,6 +112,7 @@ export default function WalletPage() {
               </ItemGroup>
             </Card>
 
+            {/*Assets now*/}
             <Card className="w-full shadow-lg border-gray-200 overflow-hidden my-10">
               <CardHeader className="text-left pb-2">
                 <CardTitle className="text-2xl font-bold text-gray-800">
@@ -143,6 +144,7 @@ export default function WalletPage() {
                         >
                           <div className="col-span-1 flex items-center gap-3">
                             <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs">
+                              {/*TODO: real symbol of currency*/}
                               {asset.symbol[0]}
                             </div>
                             <div>
@@ -191,6 +193,7 @@ export default function WalletPage() {
               </CardContent>
             </Card>
 
+            {/*Transaction history*/}
             <Card className="w-full shadow-lg border-gray-200 overflow-hidden">
               <CardHeader className="text-left pb-2">
                 <CardTitle className="w-full text-2xl font-bold text-gray-800">
