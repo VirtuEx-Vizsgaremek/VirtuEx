@@ -101,13 +101,23 @@ export default function Navbar() {
           <NavigationMenu>
             <NavigationMenuList className="gap-6">
               <NavigationMenuItem>
-                <NavigationMenuLink className="text-foreground hover:text-primary transition-colors text-md">
-                  <Link href="">Premium</Link>
+                <NavigationMenuLink asChild>
+                  <Link
+                    href=""
+                    className="text-foreground hover:text-primary transition-colors text-md"
+                  >
+                    Premium
+                  </Link>
                 </NavigationMenuLink>
               </NavigationMenuItem>
               <NavigationMenuItem>
-                <NavigationMenuLink className="text-foreground hover:text-primary transition-colors text-md">
-                  <Link href="">About Us</Link>
+                <NavigationMenuLink asChild>
+                  <Link
+                    href=""
+                    className="text-foreground hover:text-primary transition-colors text-md"
+                  >
+                    About Us
+                  </Link>
                 </NavigationMenuLink>
               </NavigationMenuItem>
             </NavigationMenuList>

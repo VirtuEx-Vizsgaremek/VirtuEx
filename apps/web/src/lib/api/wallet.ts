@@ -1,10 +1,14 @@
-const API_BASE_URL = process.env.API_BASE_URL;
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+const DEV_WALLET_ID = process.env.NEXT_PUBLIC_DEV_WALLET_ID;
 
-type UserMeResponse = {
-  wallet: string | number;
-};
+function getApiBaseUrl(): string {
+  if (!API_BASE_URL) {
+    throw new Error('Missing NEXT_PUBLIC_API_BASE_URL');
+  }
+  return API_BASE_URL;
+}
 
-type WalletBalanceResponse = {
+export type WalletBalanceResponse = {
   wallet_id: string;
   total_assets: number;
   assets: Array<{
@@ -17,7 +21,7 @@ type WalletBalanceResponse = {
   }>;
 };
 
-type WalletTransactionsResponse = {
+export type WalletTransactionsResponse = {
   wallet_id: string;
   total_transactions: number;
   transactions: Array<{
@@ -33,52 +37,27 @@ type WalletTransactionsResponse = {
   }>;
 };
 
-function getAuthToken(): string {
-  if (typeof window === 'undefined') {
-    return 'dev-token';
-  }
-  return localStorage.getItem('jwt') || 'dev-token';
-}
-
-function getHeaders(): HeadersInit {
-  return {
-    Authorization: `Bearer ${getAuthToken()}`,
-    'Content-Type': 'application/json'
-  };
-}
-
-async function fetchMe(): Promise<UserMeResponse> {
-  const response = await fetch(`${API_BASE_URL}/v1/user/@me`, {
-    method: 'GET',
-    headers: getHeaders()
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch user profile: ${response.status}`);
-  }
-
-  return response.json();
-}
-
-export async function fetchWalletBalance(walletId: string) {
-  const response = await fetch(`${API_BASE_URL}/v1/wallet/${walletId}`, {
-    method: 'GET',
-    headers: getHeaders()
+export async function fetchWalletBalance(
+  walletId: string
+): Promise<WalletBalanceResponse> {
+  const response = await fetch(`${getApiBaseUrl()}/v1/wallet/${walletId}`, {
+    method: 'GET'
   });
 
   if (!response.ok) {
     throw new Error(`Failed to fetch wallet balance: ${response.status}`);
   }
 
-  return response.json() as Promise<WalletBalanceResponse>;
+  return response.json();
 }
 
-export async function fetchWalletTransactions(walletId: string) {
+export async function fetchWalletTransactions(
+  walletId: string
+): Promise<WalletTransactionsResponse> {
   const response = await fetch(
-    `${API_BASE_URL}/v1/wallet/${walletId}/history`,
+    `${getApiBaseUrl()}/v1/wallet/${walletId}/history`,
     {
-      method: 'GET',
-      headers: getHeaders()
+      method: 'GET'
     }
   );
 
@@ -86,20 +65,18 @@ export async function fetchWalletTransactions(walletId: string) {
     throw new Error(`Failed to fetch transactions: ${response.status}`);
   }
 
-  return response.json() as Promise<WalletTransactionsResponse>;
+  return response.json();
 }
 
 export async function fetchWalletData() {
-  const me = await fetchMe();
-  const walletId = String(me.wallet);
+  if (!DEV_WALLET_ID) {
+    throw new Error('Missing NEXT_PUBLIC_DEV_WALLET_ID');
+  }
 
-  const [balanceData, transactionsData] = await Promise.all([
-    fetchWalletBalance(walletId),
-    fetchWalletTransactions(walletId)
+  const [wallet, transactions] = await Promise.all([
+    fetchWalletBalance(DEV_WALLET_ID),
+    fetchWalletTransactions(DEV_WALLET_ID)
   ]);
 
-  return {
-    wallet: balanceData,
-    transactions: transactionsData
-  };
+  return { wallet, transactions };
 }
