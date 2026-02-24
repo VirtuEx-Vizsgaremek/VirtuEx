@@ -1,4 +1,3 @@
-import { Asset } from '@/entities/asset.entity';
 import { Currency } from '@/entities/currency.entity';
 import { CurrencyHistory } from '@/entities/currency_history.entity';
 import { CurrencyType } from '@/enum/currency_type';
