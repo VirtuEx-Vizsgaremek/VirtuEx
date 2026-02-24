@@ -55,7 +55,7 @@ export default function WalletPage() {
   if (error) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-xl text-red-600">Error: {error}</div>
+        <div className="text-xl text-destructive">Error: {error}</div>
       </div>
     );
   }
@@ -91,17 +91,17 @@ export default function WalletPage() {
           <SideNav />
 
           <main className="text-lg">
-            <Card className="w-full col-span-2 shadow-lg border-gray-200 overflow-hidden mb-10">
+            <Card className="w-full col-span-2 shadow-lg border-border bg-card overflow-hidden mb-10">
               <ItemGroup className="px-6">
                 {
                   <Item>
                     <div className="flex items-center gap-8">
                       <ItemContent className="space-y-1">
-                        <ItemTitle className="text-4xl mb-2 font-extrabold text-gray-900 tracking-tight">
+                        <ItemTitle className="text-4xl mb-2 font-extrabold text-foreground tracking-tight">
                           Estimated Balance
                         </ItemTitle>
                         <div className="flex items-center gap-2">
-                          <ItemDescription className="text-lg font-mono text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
+                          <ItemDescription className="text-lg font-mono text-primary bg-primary/10 px-2 py-0.5 rounded">
                             {formattedBalance}
                           </ItemDescription>
                         </div>
@@ -113,22 +113,22 @@ export default function WalletPage() {
             </Card>
 
             {/*Assets now*/}
-            <Card className="w-full shadow-lg border-gray-200 overflow-hidden my-10">
+            <Card className="w-full shadow-lg border-border bg-card overflow-hidden my-10">
               <CardHeader className="text-left pb-2">
-                <CardTitle className="text-2xl font-bold text-gray-800">
+                <CardTitle className="text-2xl font-bold text-foreground">
                   Your Assets
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex flex-col">
-                  <div className="grid grid-cols-4 px-6 py-3 bg-gray-50 border-b border-gray-100 text-xs font-semibold text-gray-500      uppercase tracking-wider">
+                  <div className="grid grid-cols-4 px-6 py-3 bg-muted border-b border-border text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                     <div className="col-span-1">Asset</div>
                     <div className="text-right">Price</div>
                     <div className="text-right">Balance</div>
                     <div className="text-right">Value (USD)</div>
                   </div>
 
-                  <div className="divide-y divide-gray-100 max-h-[350px] overflow-y-auto">
+                  <div className="divide-y divide-border max-h-[350px] overflow-y-auto">
                     {dashboardAssets.map((asset: any) => {
                       const rawAmount = BigInt(asset.amount);
                       const divisor = Math.pow(10, asset.precision);
@@ -140,46 +140,46 @@ export default function WalletPage() {
                       return (
                         <div
                           key={asset.id}
-                          className="grid grid-cols-4 items-center px-6 py-4 hover:bg-gray-50 transition-colors "
+                          className="grid grid-cols-4 items-center px-6 py-4 hover:bg-muted transition-colors "
                         >
                           <div className="col-span-1 flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs">
+                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">
                               {/*TODO: real symbol of currency*/}
                               {asset.symbol[0]}
                             </div>
                             <div>
-                              <div className="font-bold text-gray-900">
+                              <div className="font-bold text-foreground">
                                 {asset.symbol}
                               </div>
-                              <div className="text-xs text-gray-500 hidden sm:block">
+                              <div className="text-xs text-muted-foreground hidden sm:block">
                                 {asset.currency}
                               </div>
                             </div>
                           </div>
 
                           <div className="text-right">
-                            <div className="font-medium text-gray-900">
+                            <div className="font-medium text-foreground">
                               {new Intl.NumberFormat('en-US').format(
                                 currentPrice
                               )}{' '}
                               USD
                             </div>
                             <div
-                              className={`text-xs font-medium ${change24h >= 0 ? 'text-green-600' : 'text-red-600'}`}
+                              className={`text-xs font-medium ${change24h >= 0 ? 'text-primary' : 'text-destructive'}`}
                             >
                               {change24h > 0 ? '+' : ''}
                               {change24h.toFixed(2)}%
                             </div>
                           </div>
 
-                          <div className="text-right text-gray-700 font-mono text-sm">
+                          <div className="text-right text-muted-foreground font-mono text-sm">
                             {realBalance.toLocaleString(undefined, {
                               maximumFractionDigits: asset.precision
                             })}{' '}
                             {asset.symbol}
                           </div>
 
-                          <div className="text-right font-bold text-gray-900">
+                          <div className="text-right font-bold text-foreground">
                             {new Intl.NumberFormat('en-US', {
                               style: 'currency',
                               currency: 'USD'
@@ -194,20 +194,20 @@ export default function WalletPage() {
             </Card>
 
             {/*Transaction history*/}
-            <Card className="w-full shadow-lg border-gray-200 overflow-hidden">
+            <Card className="w-full shadow-lg border-border bg-card overflow-hidden">
               <CardHeader className="text-left pb-2">
-                <CardTitle className="w-full text-2xl font-bold text-gray-800">
+                <CardTitle className="w-full text-2xl font-bold text-foreground">
                   Transaction History
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 {transactions.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
+                  <div className="text-center py-8 text-muted-foreground">
                     No transactions yet
                   </div>
                 ) : (
                   <div className="flex flex-col">
-                    <div className="grid grid-cols-5 px-6 py-3 bg-gray-50 border-b border-gray-100 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    <div className="grid grid-cols-5 px-6 py-3 bg-muted border-b border-border text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                       <div className="col-span-1">Asset</div>
                       <div className="text-right">Type</div>
                       <div className="text-right">Amount</div>
@@ -215,7 +215,7 @@ export default function WalletPage() {
                       <div className="text-right">Date</div>
                     </div>
 
-                    <div className="divide-y divide-gray-100 max-h-[350px] overflow-y-auto">
+                    <div className="divide-y divide-border max-h-[350px] overflow-y-auto">
                       {transactions.map((tx: any) => {
                         // Find the asset details for precision
                         const asset = dashboardAssets.find(
@@ -228,33 +228,33 @@ export default function WalletPage() {
                         const realAmount = Number(rawAmount) / divisor;
 
                         const isIncoming = tx.direction === 'in';
-                        const statusColor =
+                        const statusClasses =
                           tx.status === 'completed'
-                            ? 'text-green-600'
+                            ? 'text-primary bg-primary/10'
                             : tx.status === 'failed'
-                              ? 'text-red-600'
-                              : 'text-yellow-600';
+                              ? 'text-destructive bg-destructive/10'
+                              : 'text-muted-foreground bg-muted';
 
                         return (
                           <div
                             key={tx.id}
-                            className="grid grid-cols-5 items-center px-6 py-4 hover:bg-gray-50 transition-colors"
+                            className="grid grid-cols-5 items-center px-6 py-4 hover:bg-muted transition-colors"
                           >
                             <div className="col-span-1 flex items-center gap-3">
                               <div
                                 className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${
                                   isIncoming
-                                    ? 'bg-green-100 text-green-600'
-                                    : 'bg-red-100 text-red-600'
+                                    ? 'bg-primary/10 text-primary'
+                                    : 'bg-destructive/10 text-destructive'
                                 }`}
                               >
                                 {tx.symbol[0]}
                               </div>
                               <div>
-                                <div className="font-bold text-gray-900">
+                                <div className="font-bold text-foreground">
                                   {tx.symbol}
                                 </div>
-                                <div className="text-xs text-gray-500 hidden sm:block">
+                                <div className="text-xs text-muted-foreground hidden sm:block">
                                   {tx.currency}
                                 </div>
                               </div>
@@ -262,13 +262,13 @@ export default function WalletPage() {
 
                             <div className="text-right">
                               <div
-                                className={`font-medium ${isIncoming ? 'text-green-600' : 'text-red-600'}`}
+                                className={`font-medium ${isIncoming ? 'text-primary' : 'text-destructive'}`}
                               >
                                 {isIncoming ? '↓ IN' : '↑ OUT'}
                               </div>
                             </div>
 
-                            <div className="text-right font-mono text-sm text-gray-700">
+                            <div className="text-right font-mono text-sm text-muted-foreground">
                               {isIncoming ? '+' : '-'}
                               {realAmount.toLocaleString(undefined, {
                                 maximumFractionDigits: precision
@@ -278,13 +278,13 @@ export default function WalletPage() {
 
                             <div className="text-right">
                               <span
-                                className={`text-xs font-semibold px-2 py-1 rounded ${statusColor} bg-opacity-10`}
+                                className={`text-xs font-semibold px-2 py-1 rounded ${statusClasses}`}
                               >
                                 {tx.status.toUpperCase()}
                               </span>
                             </div>
 
-                            <div className="text-right text-xs text-gray-500">
+                            <div className="text-right text-xs text-muted-foreground">
                               {new Date(tx.created_at).toLocaleDateString()}
                               <br />
                               {new Date(tx.created_at).toLocaleTimeString()}
