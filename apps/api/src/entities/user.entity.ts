@@ -1,6 +1,5 @@
 import {
   Entity,
-  Enum,
   OneToOne,
   Property,
   Unique,
@@ -11,8 +10,7 @@ import {
 import { BaseEntity } from '@/entities/base.entity';
 import { Wallet } from '@/entities/wallet.entity';
 import { Code } from '@/entities/code.entity';
-
-import { Subscription } from '@/enum/subscription';
+import { Subscription } from '@/entities/subscription.entity';
 
 @Entity()
 export class User extends BaseEntity {
@@ -29,6 +27,9 @@ export class User extends BaseEntity {
 
   @Property({ length: 72 })
   password!: string;
+
+  @Property({ nullable: true })
+  mfaSecret!: string | undefined | null;
 
   @Property({ length: 256, nullable: true })
   bio: string | undefined | null;
@@ -53,6 +54,8 @@ export class User extends BaseEntity {
   @Property()
   activated: boolean = false;
 
-  @Enum({ items: () => Subscription, nativeEnumName: 'subscription' })
-  subscription: Subscription = Subscription.Free;
+  @OneToOne(() => Subscription, (subscription) => subscription.user, {
+    orphanRemoval: true
+  })
+  subscription!: Subscription;
 }

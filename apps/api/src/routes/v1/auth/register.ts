@@ -12,6 +12,7 @@ import EMail from '@/util/email';
 import bcrypt from 'bcrypt';
 import { sign } from 'jsonwebtoken';
 import { z } from 'zod';
+import { UniqueConstraintViolationException } from '@mikro-orm/core';
 
 export const schemas = {
   post: {
@@ -75,8 +76,8 @@ export const post = async (
       jwt: token,
       expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30)
     });
-  } catch (e: any) {
-    if (e.name === 'UniqueConstraintViolationException')
+  } catch (e: unknown) {
+    if (e instanceof UniqueConstraintViolationException)
       return res.error(
         Status.Conflict,
         'A user with this email or username already exists.'

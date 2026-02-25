@@ -1,10 +1,11 @@
-import { Entity, ManyToOne, Property } from '@mikro-orm/core';
+import { Entity, ManyToOne, Property, Unique } from '@mikro-orm/core';
 
 import { BaseEntity } from '@/entities/base.entity';
 import { Wallet } from '@/entities/wallet.entity';
 import { Currency } from '@/entities/currency.entity';
 
 @Entity()
+@Unique({ properties: ['wallet', 'currency'] })
 export class Asset extends BaseEntity {
   @ManyToOne(() => Wallet)
   wallet!: Wallet;

@@ -8,11 +8,13 @@ import { User } from '@/entities/user.entity';
 import bcrypt from 'bcrypt';
 import { sign } from 'jsonwebtoken';
 import { z } from 'zod';
+import moment from 'moment';
 
 export const schemas = {
   post: {
     res: z.object({
       jwt: z.string(),
+      mfa: z.boolean(),
       expires: z.date()
     }),
     req: z.object({
@@ -28,37 +30,39 @@ export const post = async (
 ) => {
   const { email, password } = req.validateBody(schemas.post.req);
 
-  try {
-    const db = (await orm).em.fork();
+  const db = (await orm).em.fork();
 
-    const user = await db.findOne(User, { email });
-    if (!user)
-      return res.error(
-        Status.Forbidden,
-        'Either the email or password was wrong.'
-      );
-
-    const valid = await bcrypt.compare(password, user.password);
-    if (!valid)
-      return res.error(
-        Status.Forbidden,
-        'Either the email or password was wrong.'
-      );
-
-    const token = sign(
-      {
-        id: user.id.toString(),
-        email: user.email
-      },
-      process.env.JWT_SECRET!,
-      { expiresIn: '30d' }
+  const user = await db.findOne(User, { email });
+  if (!user)
+    return res.error(
+      Status.Forbidden,
+      'Either the email or password was wrong.'
     );
 
-    return res.status(Status.Ok).send({
-      jwt: token,
-      expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30)
-    });
-  } catch (e: any) {
-    throw e;
-  }
+  const valid = await bcrypt.compare(password, user.password);
+  if (!valid)
+    return res.error(
+      Status.Forbidden,
+      'Either the email or password was wrong.'
+    );
+
+  const hasMfa = user.mfaSecret !== null && user.mfaSecret !== undefined;
+
+  const token = sign(
+    {
+      id: user.id.toString(),
+      email: user.email,
+      mfa: hasMfa
+    },
+    process.env.JWT_SECRET!,
+    { expiresIn: hasMfa ? '15m' : '30d' }
+  );
+
+  return res.status(Status.Ok).send({
+    jwt: token,
+    mfa: hasMfa,
+    expires: moment()
+      .add(hasMfa ? { minutes: 15 } : { months: 1 })
+      .toDate()
+  });
 };
