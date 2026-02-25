@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Check, X } from 'lucide-react';
 import { ModifyPlanModal } from '@/components/planmod';
+import { fetchCurrentPlan, type PlanKey } from '@/lib/subscriptionApi';
 
 export default function Subscription() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -12,21 +13,10 @@ export default function Subscription() {
     plan: 'Standard',
     credits: 30
   });
-  const [userPlan, setUserPlan] = useState<string | null>(null);
+  const [userPlan, setUserPlan] = useState<PlanKey | null>(null);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
-
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-    fetch(`${apiUrl}/v1/user/@me`, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (data?.subscription_plan) setUserPlan(data.subscription_plan);
-      })
-      .catch(() => {});
+    fetchCurrentPlan().then(setUserPlan);
   }, []);
 
   const handleOpenModal = (planName: string, credits: number) => {
@@ -34,17 +24,7 @@ export default function Subscription() {
     setIsModalOpen(true);
   };
 
-  // Map API plan names to card identifiers (handles DB naming variations)
-  const isCurrentPlan = (cardKey: 'Free' | 'Standard' | 'Pro') => {
-    if (!userPlan) return false;
-    const normalized = userPlan.toLowerCase();
-    if (cardKey === 'Free')
-      return normalized === 'free' || normalized === 'starter';
-    if (cardKey === 'Standard') return normalized === 'standard';
-    if (cardKey === 'Pro')
-      return normalized === 'pro' || normalized === 'professional';
-    return false;
-  };
+  const isCurrentPlan = (cardKey: PlanKey) => userPlan === cardKey;
 
   return (
     <div>
