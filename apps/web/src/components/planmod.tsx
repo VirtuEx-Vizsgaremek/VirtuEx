@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import {
@@ -31,6 +31,13 @@ export function ModifyPlanModal({
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>(
     'monthly'
   );
+
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedPlan(currentPlan);
+      setBillingCycle('monthly');
+    }
+  }, [isOpen, currentPlan]);
 
   const currentPrice =
     PRICES[selectedPlan as keyof typeof PRICES][billingCycle];

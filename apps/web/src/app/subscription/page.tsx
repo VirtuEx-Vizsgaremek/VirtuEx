@@ -1,17 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Check, X } from 'lucide-react';
 import { ModifyPlanModal } from '@/components/planmod';
-
-interface ModifyPlanModalProps {
-  isOpen: boolean;
-  onClose: React.Dispatch<React.SetStateAction<boolean>>;
-  currentPlan: string;
-  currentCredits: number;
-}
 
 export default function Subscription() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -19,10 +12,38 @@ export default function Subscription() {
     plan: 'Standard',
     credits: 30
   });
+  const [userPlan, setUserPlan] = useState<string | null>(null);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    fetch(`${apiUrl}/v1/user/@me`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.subscription_plan) setUserPlan(data.subscription_plan);
+      })
+      .catch(() => {});
+  }, []);
 
   const handleOpenModal = (planName: string, credits: number) => {
     setSelectedPlanData({ plan: planName, credits: credits });
     setIsModalOpen(true);
+  };
+
+  // Map API plan names to card identifiers (handles DB naming variations)
+  const isCurrentPlan = (cardKey: 'Free' | 'Standard' | 'Pro') => {
+    if (!userPlan) return false;
+    const normalized = userPlan.toLowerCase();
+    if (cardKey === 'Free')
+      return normalized === 'free' || normalized === 'starter';
+    if (cardKey === 'Standard') return normalized === 'standard';
+    if (cardKey === 'Pro')
+      return normalized === 'pro' || normalized === 'professional';
+    return false;
   };
 
   return (
@@ -40,7 +61,14 @@ export default function Subscription() {
 
           <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
             {/* STARTER (FREE) CARD */}
-            <Card className="p-8 bg-card border border-border flex flex-col">
+            <Card
+              className={`p-8 bg-card border flex flex-col relative ${isCurrentPlan('Free') ? 'border-muted opacity-60' : 'border-border'}`}
+            >
+              {isCurrentPlan('Free') && (
+                <div className="absolute top-0 right-0 bg-muted text-muted-foreground text-xs font-bold px-3 py-1 rounded-bl-lg rounded-tr-lg">
+                  CURRENT PLAN
+                </div>
+              )}
               <div className="mb-4">
                 <span className="text-muted-foreground text-sm uppercase tracking-wider">
                   Starter
@@ -68,16 +96,29 @@ export default function Subscription() {
                   <X className="w-5 h-5 text-red-500 mr-3" /> No Stop-Loss
                 </li>
               </ul>
-              <Button variant="outline" className="w-full">
-                Get Started
+              <Button
+                variant="outline"
+                className="w-full"
+                disabled={isCurrentPlan('Free')}
+                onClick={() => handleOpenModal('Free', 5)}
+              >
+                {isCurrentPlan('Free') ? 'Current Plan' : 'Get Started'}
               </Button>
             </Card>
 
             {/* STANDARD CARD */}
-            <Card className="p-8 bg-card border-2 border-primary relative flex flex-col">
-              <div className="absolute top-0 right-0 bg-primary text-primary-foreground text-xs font-bold px-3 py-1 rounded-bl-lg rounded-tr-lg">
-                POPULAR
-              </div>
+            <Card
+              className={`p-8 bg-card border-2 relative flex flex-col ${isCurrentPlan('Standard') ? 'border-muted opacity-60' : 'border-primary'}`}
+            >
+              {isCurrentPlan('Standard') ? (
+                <div className="absolute top-0 right-0 bg-muted text-muted-foreground text-xs font-bold px-3 py-1 rounded-bl-lg rounded-tr-lg">
+                  CURRENT PLAN
+                </div>
+              ) : (
+                <div className="absolute top-0 right-0 bg-primary text-primary-foreground text-xs font-bold px-3 py-1 rounded-bl-lg rounded-tr-lg">
+                  POPULAR
+                </div>
+              )}
               <div className="mb-4">
                 <span className="text-primary text-sm uppercase tracking-wider">
                   Standard
@@ -109,18 +150,24 @@ export default function Subscription() {
                   Support
                 </li>
               </ul>
-
-              {/* Gomb bekötve a modal nyitásához */}
               <Button
                 className="w-full shadow-lg"
+                disabled={isCurrentPlan('Standard')}
                 onClick={() => handleOpenModal('Standard', 30)}
               >
-                Subscribe Now
+                {isCurrentPlan('Standard') ? 'Current Plan' : 'Subscribe Now'}
               </Button>
             </Card>
 
             {/* PROFESSIONAL CARD */}
-            <Card className="p-8 bg-card border border-border flex flex-col">
+            <Card
+              className={`p-8 bg-card border flex flex-col relative ${isCurrentPlan('Pro') ? 'border-muted opacity-60' : 'border-border'}`}
+            >
+              {isCurrentPlan('Pro') && (
+                <div className="absolute top-0 right-0 bg-muted text-muted-foreground text-xs font-bold px-3 py-1 rounded-bl-lg rounded-tr-lg">
+                  CURRENT PLAN
+                </div>
+              )}
               <div className="mb-4">
                 <span className="text-accent text-sm uppercase tracking-wider">
                   Professional
@@ -153,14 +200,13 @@ export default function Subscription() {
                   <Check className="w-5 h-5 text-accent mr-3" /> 100 AI Credits
                 </li>
               </ul>
-
-              {/* Gomb bekötve a modal nyitásához */}
               <Button
                 variant="outline"
                 className="w-full hover:border-accent hover:text-accent transition-colors"
+                disabled={isCurrentPlan('Pro')}
                 onClick={() => handleOpenModal('Pro', 100)}
               >
-                Go Pro
+                {isCurrentPlan('Pro') ? 'Current Plan' : 'Go Pro'}
               </Button>
             </Card>
           </div>
