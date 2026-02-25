@@ -7,26 +7,19 @@ import { Check, X } from 'lucide-react';
 import { ModifyPlanModal } from '@/components/planmod';
 
 interface ModifyPlanModalProps {
-  isOpen: boolean; // Add this line
-
-  onClose: React.Dispatch<React.SetStateAction<boolean>>; // Add this line
-
+  isOpen: boolean;
+  onClose: React.Dispatch<React.SetStateAction<boolean>>;
   currentPlan: string;
-
   currentCredits: number;
 }
 
 export default function Subscription() {
-  // State a modal láthatóságának kezelésére
   const [isModalOpen, setIsModalOpen] = useState(false);
-
-  // State a kiválasztott terv adatainak átadására (hogy a modal tudja, mit mutasson)
   const [selectedPlanData, setSelectedPlanData] = useState({
     plan: 'Standard',
     credits: 30
   });
 
-  // Segédfüggvény a modal megnyitásához a megfelelő adatokkal
   const handleOpenModal = (planName: string, credits: number) => {
     setSelectedPlanData({ plan: planName, credits: credits });
     setIsModalOpen(true);
@@ -34,17 +27,6 @@ export default function Subscription() {
 
   return (
     <div>
-      {/* Itt hívjuk meg a Modalt.
-        Mivel a Dialog komponens (Shadcn/Radix) 'portal'-t használ, 
-        technikailag mindegy hol van a DOM-ban, de logikailag itt a legtisztább.
-      */}
-      <ModifyPlanModal
-        isOpen={isModalOpen}
-        onClose={setIsModalOpen} // A Dialog automatikusan false-t küld ide bezáráskor
-        currentPlan={selectedPlanData.plan}
-        currentCredits={selectedPlanData.credits}
-      />
-
       <section id="pricing" className="py-24 relative">
         <div className="container mx-auto px-6">
           <div className="text-center mb-16">
@@ -184,6 +166,13 @@ export default function Subscription() {
           </div>
         </div>
       </section>
+
+      <ModifyPlanModal
+        isOpen={isModalOpen}
+        onClose={setIsModalOpen}
+        currentPlan={selectedPlanData.plan}
+        currentCredits={selectedPlanData.credits}
+      />
     </div>
   );
 }

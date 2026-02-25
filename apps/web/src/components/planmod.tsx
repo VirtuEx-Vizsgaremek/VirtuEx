@@ -1,16 +1,13 @@
 'use client';
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 import {
   Dialog,
   DialogContent,
   DialogFooter,
   DialogHeader,
-  DialogTitle,
-  DialogTrigger
+  DialogTitle
 } from '@/components/ui/dialog';
 
 const PRICES = {
@@ -21,12 +18,15 @@ const PRICES = {
 
 export function ModifyPlanModal({
   currentCredits,
-  currentPlan
+  currentPlan,
+  isOpen,
+  onClose
 }: {
   currentCredits: number;
   currentPlan: string;
+  isOpen: boolean;
+  onClose: React.Dispatch<React.SetStateAction<boolean>>;
 }) {
-  const [open, setOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(currentPlan);
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>(
     'monthly'
@@ -36,13 +36,7 @@ export function ModifyPlanModal({
     PRICES[selectedPlan as keyof typeof PRICES][billingCycle];
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button className="w-full sm:w-auto bg-gray-900 hover:bg-black text-white px-10 py-6 text-lg font-semibold transition-all shadow-md">
-          Modify
-        </Button>
-      </DialogTrigger>
-
+    <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[500px] p-6">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold">
@@ -115,7 +109,7 @@ export function ModifyPlanModal({
         </div>
 
         <DialogFooter className="gap-2 sm:gap-0">
-          <Button variant="outline" onClick={() => setOpen(false)}>
+          <Button variant="outline" onClick={() => onClose(false)}>
             Cancel
           </Button>
           <Button className="bg-blue-600 hover:bg-blue-700 text-white ml-3">
