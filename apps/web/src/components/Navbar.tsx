@@ -1,34 +1,50 @@
+/**
+ * Navbar Component
+ *
+ * Main navigation bar displayed on all non-market pages (via ConditionalLayout).
+ * Provides theme toggling, color theme selection, and navigation links.
+ *
+ * Features:
+ * - Fixed navbar that appears on scroll (after 100px)
+ * - Floating pill-shaped design with backdrop blur
+ * - Dark/light mode toggle
+ * - Chart color theme selector (MIDNIGHT, OCEAN, TOKYO, etc.)
+ * - Product links and CTA buttons
+ * - Responsive design
+ *
+ * Layout:
+ * - Top section: Logo and navigation links
+ * - Right section: Theme toggle, color selector, and CTA button
+ *
+ * Data Flow:
+ * - Uses ThemeContext for theme state and setters
+ * - Theme choices persist to localStorage
+ * - Color theme changes apply to all chart components in real-time
+ */
+
 'use client';
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { Moon, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   NavigationMenu,
-  NavigationMenuContent,
-  NavigationMenuIndicator,
   NavigationMenuItem,
   NavigationMenuLink,
-  NavigationMenuList,
-  NavigationMenuTrigger,
-  NavigationMenuViewport
+  NavigationMenuList
 } from '@/components/ui/navigation-menu';
+import { useTheme } from '@/contexts/ThemeContext';
+import { ChartColorTheme, THEME_NAMES } from '@/lib/chartThemes';
+import { Moon, Palette, Sun } from 'lucide-react';
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
 
 export default function Navbar() {
-  // State for dark mode toggle
-  const [isDark, setIsDark] = useState(false);
+  // Use theme context instead of local state
+  const { theme, toggleTheme, colorTheme, setColorTheme } = useTheme();
+  const isDark = theme === 'dark';
+  const [showThemeMenu, setShowThemeMenu] = useState(false);
+
   // State for floating navbar visibility on scroll
   const [showFloatingNav, setShowFloatingNav] = useState(false);
-
-  // Apply dark mode class to document root
-  useEffect(() => {
-    if (isDark) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [isDark]);
 
   // Show floating navbar after scrolling 100px down
   useEffect(() => {
@@ -79,11 +95,49 @@ export default function Navbar() {
             <Button size="sm" className="rounded-full">
               Log In
             </Button>
+
+            {/* Color Theme Selector */}
+            <div className="relative">
+              <Button
+                size="icon"
+                variant="ghost"
+                className="rounded-full"
+                onClick={() => setShowThemeMenu(!showThemeMenu)}
+                title="Change color theme"
+              >
+                <Palette className="w-4 h-4" />
+              </Button>
+              {showThemeMenu && (
+                <div className="absolute right-0 mt-2 w-48 bg-card border border-border rounded-lg shadow-lg z-50">
+                  <div className="py-2">
+                    {(Object.keys(THEME_NAMES) as ChartColorTheme[]).map(
+                      (themeKey) => (
+                        <button
+                          key={themeKey}
+                          onClick={() => {
+                            setColorTheme(themeKey);
+                            setShowThemeMenu(false);
+                          }}
+                          className={`w-full px-4 py-2 text-left text-sm hover:bg-muted transition-colors ${
+                            colorTheme === themeKey
+                              ? 'bg-primary/10 text-primary font-semibold'
+                              : 'text-foreground'
+                          }`}
+                        >
+                          {THEME_NAMES[themeKey]}
+                        </button>
+                      )
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <Button
               size="icon"
               variant="ghost"
               className="rounded-full"
-              onClick={() => setIsDark(!isDark)}
+              onClick={toggleTheme}
             >
               {isDark ? (
                 <Sun className="w-4 h-4" />
@@ -101,12 +155,18 @@ export default function Navbar() {
           <NavigationMenu>
             <NavigationMenuList className="gap-6">
               <NavigationMenuItem>
-                <NavigationMenuLink className="text-foreground hover:text-primary transition-colors text-md">
+                <NavigationMenuLink
+                  asChild
+                  className="text-foreground hover:text-primary transition-colors text-md"
+                >
                   <Link href="">Premium</Link>
                 </NavigationMenuLink>
               </NavigationMenuItem>
               <NavigationMenuItem>
-                <NavigationMenuLink className="text-foreground hover:text-primary transition-colors text-md">
+                <NavigationMenuLink
+                  asChild
+                  className="text-foreground hover:text-primary transition-colors text-md"
+                >
                   <Link href="">About Us</Link>
                 </NavigationMenuLink>
               </NavigationMenuItem>
@@ -124,11 +184,45 @@ export default function Navbar() {
               Sign Up
             </Button>
             <Button className="text-md">Log In</Button>
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={() => setIsDark(!isDark)}
-            >
+
+            {/* Color Theme Selector */}
+            <div className="relative">
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => setShowThemeMenu(!showThemeMenu)}
+                title="Change color theme"
+              >
+                <Palette />
+              </Button>
+              {showThemeMenu && (
+                <div className="absolute right-0 mt-2 w-48 bg-card border border-border rounded-lg shadow-lg z-50">
+                  <div className="py-2">
+                    {(Object.keys(THEME_NAMES) as ChartColorTheme[]).map(
+                      (themeKey) => (
+                        <button
+                          key={themeKey}
+                          onClick={() => {
+                            setColorTheme(themeKey);
+                            setShowThemeMenu(false);
+                          }}
+                          className={`w-full px-4 py-2 text-left text-sm hover:bg-muted transition-colors ${
+                            colorTheme === themeKey
+                              ? 'bg-primary/10 text-primary font-semibold'
+                              : 'text-foreground'
+                          }`}
+                        >
+                          {THEME_NAMES[themeKey]}
+                        </button>
+                      )
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Light/Dark Mode Toggle */}
+            <Button size="icon" variant="ghost" onClick={toggleTheme}>
               {isDark ? <Sun /> : <Moon />}
             </Button>
           </div>

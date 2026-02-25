@@ -1,8 +1,29 @@
+/**
+ * Footer Component
+ *
+ * Application footer displayed on all non-market pages (via ConditionalLayout).
+ * Contains branding, navigation links, legal information, and social links.
+ *
+ * Structure:
+ * - Brand section with logo and description
+ * - Product links (features, pricing, etc.)
+ * - Company information links
+ * - Legal links (privacy, terms, etc.)
+ * - Newsletter signup section
+ * - Social media links
+ *
+ * Features:
+ * - Responsive grid layout (1 column mobile, 4 columns desktop)
+ * - GitHub link to project repository
+ * - Newsletter subscription form
+ * - Links to /market page for getting started
+ */
+
 'use client';
 
-import Link from 'next/link';
-import { ArrowUpFromDot } from 'lucide-react';
 import { SiGithub } from '@icons-pack/react-simple-icons';
+import { ArrowUpFromDot } from 'lucide-react';
+import Link from 'next/link';
 
 export default function Footer() {
   return (
