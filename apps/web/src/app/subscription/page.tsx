@@ -28,21 +28,21 @@ export default function Subscription() {
 
   return (
     <div>
-      <section id="pricing" className="py-24 relative">
-        <div className="container mx-auto px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-foreground">
+      <section id="pricing" className="py-12 md:py-24 relative">
+        <div className="container mx-auto px-4 sm:px-6">
+          <div className="text-center mb-10 md:mb-16">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 md:mb-4 text-foreground">
               Choose Your Plan
             </h2>
-            <p className="text-muted-foreground">
+            <p className="text-sm sm:text-base text-muted-foreground">
               Start learning for free, or unlock professional trading features.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 max-w-6xl mx-auto">
             {/* STARTER (FREE) CARD */}
             <Card
-              className={`p-8 bg-card border flex flex-col relative ${isCurrentPlan('Free') ? 'border-muted opacity-60' : 'border-border'}`}
+              className={`p-5 sm:p-6 md:p-8 bg-card border flex flex-col relative ${isCurrentPlan('Free') ? 'border-muted opacity-60' : 'border-border'}`}
             >
               {isCurrentPlan('Free') && (
                 <div className="absolute top-0 right-0 bg-muted text-muted-foreground text-xs font-bold px-3 py-1 rounded-bl-lg rounded-tr-lg">
@@ -88,7 +88,7 @@ export default function Subscription() {
 
             {/* STANDARD CARD */}
             <Card
-              className={`p-8 bg-card border-2 relative flex flex-col ${isCurrentPlan('Standard') ? 'border-muted opacity-60' : 'border-primary'}`}
+              className={`p-5 sm:p-6 md:p-8 bg-card border-2 relative flex flex-col sm:col-span-2 lg:col-span-1 ${isCurrentPlan('Standard') ? 'border-muted opacity-60' : 'border-primary'}`}
             >
               {isCurrentPlan('Standard') ? (
                 <div className="absolute top-0 right-0 bg-muted text-muted-foreground text-xs font-bold px-3 py-1 rounded-bl-lg rounded-tr-lg">
@@ -141,7 +141,7 @@ export default function Subscription() {
 
             {/* PROFESSIONAL CARD */}
             <Card
-              className={`p-8 bg-card border flex flex-col relative ${isCurrentPlan('Pro') ? 'border-muted opacity-60' : 'border-border'}`}
+              className={`p-5 sm:p-6 md:p-8 bg-card border flex flex-col relative ${isCurrentPlan('Pro') ? 'border-muted opacity-60' : 'border-border'}`}
             >
               {isCurrentPlan('Pro') && (
                 <div className="absolute top-0 right-0 bg-muted text-muted-foreground text-xs font-bold px-3 py-1 rounded-bl-lg rounded-tr-lg">

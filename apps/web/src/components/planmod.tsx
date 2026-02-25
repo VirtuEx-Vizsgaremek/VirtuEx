@@ -44,7 +44,7 @@ export function ModifyPlanModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px] p-6">
+      <DialogContent className="w-[calc(100vw-2rem)] sm:max-w-[500px] p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold">
             Subscription & Credits
@@ -113,11 +113,11 @@ export function ModifyPlanModal({
           </div>
         </div>
 
-        <DialogFooter className="gap-2 sm:gap-0">
+        <DialogFooter className="flex flex-col-reverse gap-2 sm:flex-row sm:gap-0">
           <Button variant="outline" onClick={() => onClose(false)}>
             Cancel
           </Button>
-          <Button className="ml-3">Update Subscription</Button>
+          <Button className="sm:ml-3">Update Subscription</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
