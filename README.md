@@ -809,7 +809,7 @@ Handling financial operations, and internal balance movement (F-04, F-05, F-06, 
 | GET    | `/v1/wallet/{id}/asset/{id}` | Get an asset in a wallet.                | User       |
 | GET    | `/v1/wallet/{id}/history`    | Query transaction log (history).         | User       |
 
-#### 4. Assets & Market Data
+#### 4. Assets
 
 | Method | Endpoint                      | Description             | Permissions |
 | :----- | :---------------------------- | :---------------------- | :---------- |
@@ -818,37 +818,16 @@ Handling financial operations, and internal balance movement (F-04, F-05, F-06, 
 | GET    | `/v1/asset/{id}/history`      | Get an asset's history. | User        |
 | POST   | `/v1/asset/{id}/swap/{to_id}` | Swap/Buy assets.        | User        |
 
-<!--
-#### 3. Trading & Market Data
+#### 5. Market Data
 
-
-Querying market data and handling trading orders (F-01, F-11, F-12).
-
-| Method | Endpoint                     | Description                                                               | Permission |
-| :----- | :--------------------------- | :------------------------------------------------------------------------ | :--------- |
-| GET    | `/api/market/assets`         | Query available cryptocurrencies and current rates (CoinMarketCap proxy). | User       |
-| GET    | `/api/market/chart/{symbol}` | Query chart data (OHLC format) for TradingView.                           | User       |
-| POST   | `/api/trade/order`           | Create new order (Spot, Limit, Margin).                                   | User       |
-| DELETE | `/api/trade/order/{id}`      | Cancel open order (e.g., Limit order).                                    | User       |
-| GET    | `/api/trade/history`         | List own trading history.                                                 | User       |
-| Method | Endpoint                     | Description                                                               | Permission |
-| :----- | :--------------------------- | :------------------------------------------------------------------------ | :--------- |
-| GET    | `/api/market/assets`         | Query available cryptocurrencies and current rates (CoinMarketCap proxy). | User       |
-| GET    | `/api/market/chart/{symbol}` | Query chart data (OHLC format) for TradingView.                           | User       |
-| POST   | `/api/trade/order`           | Create new order (Spot, Limit, Margin).                                   | User       |
-| DELETE | `/api/trade/order/{id}`      | Cancel open order (e.g., Limit order).                                    | User       |
-| GET    | `/api/trade/history`         | List own trading history.                                                 | User       |
-
-#### 4. AI and Subscription
-
-
-Accessing premium functions and the chatbot (F-09, F-10).
-
-| Method | Endpoint                    | Description                                              | Permission          |
-| :----- | :-------------------------- | :------------------------------------------------------- | :------------------ |
-| GET    | `/api/ai/analyze`           | Request market analysis from AI (with credit deduction). | User (Standard/Pro) |
-| POST   | `/api/subscription/upgrade` | Switch subscription package (Free -> Standard/Pro).      | User                |
--->
+| Method | Endpoint                            | Description                         | Permissions |
+| :----- | :---------------------------------- | :---------------------------------- | :---------- |
+| GET    | `/v1/currency`                      | List all currency/stock/etf-s.      | User        |
+| POST   | `/v1/currency`                      | Create a new currency/stock/etf.    | Admin       |
+| PATCH  | `/v1/currency`                      | Edit a currency/stock/etf.          | Admin       |
+| DELETE | `/v1/currency`                      | Delete a currency/stock/etf.        | Admin       |
+| GET    | `/v1/currency/{id\|symbol}`         | Get a currency/stock/etf.           | User        |
+| GET    | `/v1/currency/{id\|symbol}/history` | Get a currency/stock/etf's history. | User        |
 
 ## System Requirements
 
@@ -857,7 +836,11 @@ Accessing premium functions and the chatbot (F-09, F-10).
 1. Microsoft Visual Studio Code
 2. Microsoft Visual Studio
 3. JetBrains Rider
-4. DBeaver
+4. Zed
+5. Zen Browser
+6. Vivaldi
+7. Google Chrome
+8. DBeaver
 
 ### Tech Stack
 
