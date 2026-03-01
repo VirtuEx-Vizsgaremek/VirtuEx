@@ -116,6 +116,11 @@ The system is built on three layers: front-end (web React), backend (Node.js RES
   - Smaller disk size
   - Faster concurrent operation
   - Better handling of relations
+- Docker
+  - Containerization for easier deployment and scalability
+  - Industry standard for modern applications
+  - Always the same environment for development and production
+  - Easier development in teams and on Linux
 
 #### Used APIs & Libraries
 
@@ -841,12 +846,15 @@ Handling financial operations, and internal balance movement (F-04, F-05, F-06, 
 6. Vivaldi
 7. Google Chrome
 8. DBeaver
+9. Linux (Arch Linux)
+10. Windows 11
 
 ### Tech Stack
 
 1. React, WPF
 2. Express.js
 3. PostgreSQL
+4. Docker
 
 ### General Expectations
 
