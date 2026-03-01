@@ -112,10 +112,13 @@ The system is built on three layers: front-end (web React), backend (Node.js RES
   - Today's most used distributed version control software system
   - We have learnt it in the school
 - PostgreSQL
-  - Supports custom data types
-  - Smaller disk size
-  - Faster concurrent operation
-  - Better handling of relations
+  - Supports custom data types: Enables user-defined types and operators to precisely match specific business logic
+  - Smaller disk size: Optimizes storage footprint through efficient data packing and automatic compression of large attributes
+  - Faster concurrent operation: Uses Multi-Version Concurrency Control (MVCC) to ensure reads never block writes under heavy loads
+  - Better handling of relations: Ensures strict data integrity with robust foreign key constraints, complex JOINs, and table inheritance
+  - Open Source & Cost-Effective: Completely free and driven by an independent community, eliminating enterprise licensing fees (like Oracle) and preventing vendor lock-in
+  - Seamless Ecosystem Integration: Excellent compatibility with modern backend environments (such as Node.js and C#) and industry-standard migration tools like Flyway or Liquibase
+  - Maximum Data Integrity: Strict ACID compliance, Serializable transaction isolation, and Write-Ahead Logging (WAL) with point-in-time recovery ensure robust safety for critical financial or permission data
 
 #### Used APIs & Libraries
 
