@@ -8,6 +8,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using Wpf.Ui.Appearance;
 using Wpf.Ui.Controls;
 
 namespace VirtuExAdmin.Windows;
@@ -17,6 +18,10 @@ namespace VirtuExAdmin.Windows;
 /// </summary>
 public partial class MainWindow : FluentWindow {
     public MainWindow() {
+        SystemThemeWatcher.Watch(this);
+        
+        DataContext = this;
+        
         InitializeComponent();
     }
 }

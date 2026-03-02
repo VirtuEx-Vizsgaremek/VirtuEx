@@ -4,8 +4,14 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+        xmlns:windows="clr-namespace:VirtuExAdmin.Windows"
+        xmlns:pages="clr-namespace:VirtuExAdmin.Pages"
         mc:Ignorable="d"
-        Title="VirtuEx - Home" Height="450" Width="800"
+        Title="VirtuEx - Home" Height="800" Width="1400"
+        d:DataContext="{d:DesignInstance windows:MainWindow,
+                                     IsDesignTimeCreatable=False}"
+        ui:Design.Background="{DynamicResource ApplicationBackgroundBrush}"
+        ui:Design.Foreground="{DynamicResource TextFillColorPrimaryBrush}"
         WindowStartupLocation="CenterScreen"
         ExtendsContentIntoTitleBar="True"
         ResizeMode="NoResize"
@@ -17,8 +23,34 @@
             FrameMargin="0"
             TitleBar="{Binding ElementName=TitleBar, Mode=OneWay}">
             <ui:NavigationView.MenuItems>
-                <ui:NavigationViewItem Content="Home" Icon="Home24"/>
+                <ui:NavigationViewItem 
+                    Content="Users" 
+                    Icon="{ui:SymbolIcon BookContacts24}"
+                    TargetPageType="{x:Type pages:UsersPage}"/>
+                <ui:NavigationViewItem
+                    Content="Transactions"
+                    Icon="{ui:SymbolIcon BookClock24}"
+                    TargetPageType="{x:Type pages:TransactionsPage}"/>
+                <ui:NavigationViewItem
+                    Content="Audit Log"
+                    Icon="{ui:SymbolIcon Book24}"
+                    TargetPageType="{x:Type pages:AuditLogPage}"/>
             </ui:NavigationView.MenuItems>
+            
+            <ui:NavigationView.FooterMenuItems>
+                <ui:NavigationViewItem
+                    Content="Web"
+                    Icon="{ui:SymbolIcon Globe24}"
+                    TargetPageType="{x:Type pages:WebPage}"/>
+                <ui:NavigationViewItem
+                    Content="Account"
+                    Icon="{ui:SymbolIcon Person24}"
+                    TargetPageType="{x:Type pages:AccountPage}"/>
+                <ui:NavigationViewItem
+                    Content="Settings"
+                    Icon="{ui:SymbolIcon Settings24}"
+                    TargetPageType="{x:Type pages:SettingsPage}"/>
+            </ui:NavigationView.FooterMenuItems>
         </ui:NavigationView>
         
         <ui:TitleBar x:Name="TitleBar" Title="VirtuEx" Grid.Row="0" />
