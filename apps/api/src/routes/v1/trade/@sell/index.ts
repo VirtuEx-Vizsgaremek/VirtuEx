@@ -1,22 +1,33 @@
 /**
  * Trade API — Sell Order
  *
- * POST /v1/trade/sell
+ * POST /v1/trade/@sell
  *
- * Body:
- *   from_currency_id  — ID of the currency you are selling (e.g. AAPL)
- *   to_currency_id    — ID of the currency you want to receive (e.g. USD)
- *   amount            — Amount of "from" currency units to sell (as string)
+ * Authenticated. Sells a given number of units of one currency and credits the
+ * proceeds (at the latest market price) into another currency.
+ *
+ * Request body:
+ *   from_currency_id  — ID of the currency being sold (e.g. AAPL)
+ *   to_currency_id    — ID of the currency to receive (e.g. USD)
+ *   amount            — Number of units to sell, as an integer string
+ *
+ * Response:
+ *   order_id        — ID of the created Order record
+ *   status          — Order status (always "filled" for market orders)
+ *   sold            — Units deducted from the source asset
+ *   received        — Proceeds credited to the target asset (cents string)
+ *   price_per_unit  — Execution price (cents string)
  *
  * Logic:
- *   1. Load the user + wallet.
- *   2. Find the "from" Asset and verify sufficient balance.
- *   3. Look up the latest price of the "from" Currency.
- *   4. Calculate the proceeds in the "to" currency.
- *   5. Deduct sold units from the "from" Asset.
- *   6. Credit proceeds to the "to" Asset (create if needed).
- *   7. Persist an Order (type=sell, status=filled) and two Transactions.
- *   8. Return the created order.
+ *   1. Verify the JWT and load the authenticated user.
+ *   2. Validate and load both currencies.
+ *   3. Find the user's source Asset and check for sufficient balance.
+ *   4. Fetch the latest CurrencyHistory price for the source currency.
+ *   5. Calculate proceeds: (sellAmount × pricePerUnit) / 10^precision.
+ *   6. Find or create the target Asset in the user's wallet.
+ *   7. Debit the source Asset, credit the target Asset.
+ *   8. Persist an Order (sell/filled) and two Transactions (outgoing + incoming).
+ *   9. Return the order summary.
  */
 
 import Status from '@/enum/status';
@@ -68,7 +79,7 @@ export const post = async (
   if (sellAmount <= 0n)
     return res.error(Status.BadRequest, 'Amount must be greater than zero.');
 
-  // ── 1. Load currencies ────────────────────────────────────────────────────
+  // ── 1. Validate and load both currencies ──────────────────────────────────
   const fromCurrency = await db.findOne(Currency, {
     id: BigInt(from_currency_id)
   });
@@ -85,7 +96,7 @@ export const post = async (
       'Source and target currency must differ.'
     );
 
-  // ── 2. Find the user's asset for the currency being sold ─────────────────
+  // ── 2. Find the source Asset and verify sufficient balance ────────────────
   const fromAsset = await db.findOne(
     Asset,
     { wallet: user.wallet, currency: fromCurrency },
@@ -101,7 +112,7 @@ export const post = async (
   if (fromAsset.amount < sellAmount)
     return res.error(Status.BadRequest, 'Insufficient balance.');
 
-  // ── 3. Get latest price of the "from" currency ───────────────────────────
+  // ── 3. Fetch the latest market price for the source currency ──────────────
   const latestHistory = await db.findOne(
     CurrencyHistory,
     { currency: fromCurrency },
@@ -116,9 +127,9 @@ export const post = async (
 
   const pricePerUnit = latestHistory.price; // e.g. 17500n = $175.00 per unit
 
-  // ── 4. Calculate proceeds in the "to" currency ───────────────────────────
-  // proceeds = sellAmount * pricePerUnit / 10^fromPrecision
-  // This converts the sold units back into the target currency value (cents).
+  // ── 4. Calculate proceeds in the target currency ──────────────────────────
+  // proceeds = (sellAmount × pricePerUnit) / 10^precision
+  // Converts sold units back into the target currency value (cents).
   const proceeds =
     (sellAmount * pricePerUnit) / BigInt(10 ** fromCurrency.precision);
 
@@ -128,7 +139,7 @@ export const post = async (
       'Proceeds amount rounds down to zero — increase sell amount.'
     );
 
-  // ── 5. Find or create the "to" asset ─────────────────────────────────────
+  // ── 5. Find or create the target Asset in the user's wallet ───────────────
   let toAsset = await db.findOne(
     Asset,
     { wallet: user.wallet, currency: toCurrency },
@@ -143,11 +154,11 @@ export const post = async (
     db.persist(toAsset);
   }
 
-  // ── 6. Debit / credit balances ────────────────────────────────────────────
+  // ── 6. Debit source Asset, credit target Asset ────────────────────────────
   fromAsset.amount -= sellAmount;
   toAsset.amount += proceeds;
 
-  // ── 7. Create Order + Transactions ───────────────────────────────────────
+  // ── 7. Persist Order and Transactions ─────────────────────────────────────
   const order = new Order();
   order.user = user;
   order.from_asset = fromAsset;
@@ -157,6 +168,7 @@ export const post = async (
   order.status = OrderStatus.Filled;
   db.persist(order);
 
+  // Outgoing transaction: units debited from source asset
   const txOut = new Transaction();
   txOut.asset = fromAsset;
   txOut.amount = sellAmount;
@@ -164,6 +176,7 @@ export const post = async (
   txOut.status = TransactionStatus.Completed;
   db.persist(txOut);
 
+  // Incoming transaction: proceeds credited to target asset
   const txIn = new Transaction();
   txIn.asset = toAsset;
   txIn.amount = proceeds;

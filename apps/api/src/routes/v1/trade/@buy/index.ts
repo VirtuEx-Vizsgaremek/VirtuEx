@@ -1,22 +1,33 @@
 /**
  * Trade API — Buy Order
  *
- * POST /v1/trade/buy
+ * POST /v1/trade/@buy
  *
- * Body:
- *   from_currency_id  — ID of the currency you are spending (e.g. USD asset)
- *   to_currency_id    — ID of the currency you want to buy  (e.g. AAPL asset)
- *   amount            — Amount to spend (in smallest unit / cents as string to avoid float issues)
+ * Authenticated. Spends a given amount of one currency to purchase units of another
+ * at the latest market price recorded in CurrencyHistory.
+ *
+ * Request body:
+ *   from_currency_id  — ID of the currency being spent (e.g. USD)
+ *   to_currency_id    — ID of the currency being bought (e.g. AAPL)
+ *   amount            — Amount to spend in the smallest unit (cents), as an integer string
+ *
+ * Response:
+ *   order_id        — ID of the created Order record
+ *   status          — Order status (always "filled" for market orders)
+ *   spent           — Amount deducted from the source asset (cents string)
+ *   received        — Units credited to the target asset
+ *   price_per_unit  — Execution price (cents string)
  *
  * Logic:
- *   1. Load the user + wallet.
- *   2. Find (or create) the "from" Asset in the wallet and verify sufficient balance.
- *   3. Look up the latest price of the "to" Currency from CurrencyHistory.
- *   4. Calculate how many units the amount buys.
- *   5. Deduct the spent amount from the "from" Asset.
- *   6. Credit the bought units to the "to" Asset (create if it doesn't exist yet).
- *   7. Persist an Order (type=buy, status=filled) and two Transactions (out + in).
- *   8. Return the created order.
+ *   1. Verify the JWT and load the authenticated user.
+ *   2. Validate and load both currencies.
+ *   3. Find the user's source Asset and check for sufficient balance.
+ *   4. Fetch the latest CurrencyHistory price for the target currency.
+ *   5. Calculate units received: (amount × 10^precision) / pricePerUnit.
+ *   6. Find or create the target Asset in the user's wallet.
+ *   7. Debit the source Asset, credit the target Asset.
+ *   8. Persist an Order (buy/filled) and two Transactions (outgoing + incoming).
+ *   9. Return the order summary.
  */
 
 import Status from '@/enum/status';
@@ -68,7 +79,7 @@ export const post = async (
   if (spendAmount <= 0n)
     return res.error(Status.BadRequest, 'Amount must be greater than zero.');
 
-  // ── 1. Load currencies ────────────────────────────────────────────────────
+  // ── 1. Validate and load both currencies ──────────────────────────────────
   const fromCurrency = await db.findOne(Currency, {
     id: BigInt(from_currency_id)
   });
@@ -85,7 +96,7 @@ export const post = async (
       'Source and target currency must differ.'
     );
 
-  // ── 2. Find the user's wallet asset for the "from" currency ───────────────
+  // ── 2. Find the source Asset and verify sufficient balance ────────────────
   const fromAsset = await db.findOne(
     Asset,
     { wallet: user.wallet, currency: fromCurrency },
@@ -101,7 +112,7 @@ export const post = async (
   if (fromAsset.amount < spendAmount)
     return res.error(Status.BadRequest, 'Insufficient balance.');
 
-  // ── 3. Get latest price of the target currency (price stored in cents) ────
+  // ── 3. Fetch the latest market price for the target currency ──────────────
   const latestHistory = await db.findOne(
     CurrencyHistory,
     { currency: toCurrency },
@@ -116,8 +127,9 @@ export const post = async (
 
   const pricePerUnit = latestHistory.price; // e.g. 17500n = $175.00
 
-  // ── 4. Calculate how many units the spend amount buys ────────────────────
-  // Both are in "cents" — dividing gives us units in the target currency precision.
+  // ── 4. Calculate units received ───────────────────────────────────────────
+  // units = (spendAmount × 10^precision) / pricePerUnit
+  // Both amounts are in cents; scaling by precision gives fractional units.
   const unitsReceived =
     (spendAmount * BigInt(10 ** toCurrency.precision)) / pricePerUnit;
 
@@ -127,7 +139,7 @@ export const post = async (
       'Amount too small to purchase any units at the current price.'
     );
 
-  // ── 5. Find or create the "to" asset ─────────────────────────────────────
+  // ── 5. Find or create the target Asset in the user's wallet ───────────────
   let toAsset = await db.findOne(
     Asset,
     { wallet: user.wallet, currency: toCurrency },
@@ -142,13 +154,11 @@ export const post = async (
     db.persist(toAsset);
   }
 
-  const now = new Date();
-
-  // ── 6. Debit / credit balances ────────────────────────────────────────────
+  // ── 6. Debit source Asset, credit target Asset ────────────────────────────
   fromAsset.amount -= spendAmount;
   toAsset.amount += unitsReceived;
 
-  // ── 7. Create Order + Transactions ───────────────────────────────────────
+  // ── 7. Persist Order and Transactions ─────────────────────────────────────
   const order = new Order();
   order.user = user;
   order.from_asset = fromAsset;
@@ -158,7 +168,7 @@ export const post = async (
   order.status = OrderStatus.Filled;
   db.persist(order);
 
-  // Outgoing: amount spent from the source asset
+  // Outgoing transaction: amount debited from source asset
   const txOut = new Transaction();
   txOut.asset = fromAsset;
   txOut.amount = spendAmount;
@@ -166,7 +176,7 @@ export const post = async (
   txOut.status = TransactionStatus.Completed;
   db.persist(txOut);
 
-  // Incoming: units received into the target asset
+  // Incoming transaction: units credited to target asset
   const txIn = new Transaction();
   txIn.asset = toAsset;
   txIn.amount = unitsReceived;

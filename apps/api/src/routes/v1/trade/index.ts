@@ -2,12 +2,19 @@
  * Trade API — Order List
  *
  * GET /v1/trade
- *   Returns the authenticated user's orders.
- *   Query params (all optional):
- *     status  — filter by OrderStatus  ("pending" | "filled" | ...)
- *     type    — filter by OrderType    ("buy" | "sell")
- *     limit   — page size, default 50, max 200
- *     offset  — page offset, default 0
+ *
+ * Authenticated. Returns a paginated list of the authenticated user's orders,
+ * optionally filtered by status and/or type.
+ *
+ * Query parameters (all optional):
+ *   status  — filter by order status  ("pending" | "filled" | "cancelled")
+ *   type    — filter by order type    ("buy" | "sell")
+ *   limit   — page size, default 50, max 200
+ *   offset  — page offset, default 0
+ *
+ * Response:
+ *   orders  — array of serialized Order objects (newest first)
+ *   total   — total number of matching orders (ignoring pagination)
  */
 
 import Status from '@/enum/status';
@@ -58,11 +65,13 @@ export const get = async (
   const user = await req.getUser();
   const db = (await orm).em.fork();
 
+  // ── Parse and validate query parameters ───────────────────────────────────
   const rawStatus = req.query.status as string | undefined;
   const rawType = req.query.type as string | undefined;
   const limit = Math.min(parseInt(req.query.limit as string) || 50, 200);
   const offset = parseInt(req.query.offset as string) || 0;
 
+  // Only accept values that are valid enum members; ignore unknown strings
   const status =
     rawStatus && Object.values(OrderStatus).includes(rawStatus as OrderStatus)
       ? (rawStatus as OrderStatus)
@@ -73,12 +82,14 @@ export const get = async (
       ? (rawType as OrderType)
       : undefined;
 
+  // ── Build query filter ─────────────────────────────────────────────────────
   const where = {
     user,
     ...(status ? { status } : {}),
     ...(type ? { type } : {})
   };
 
+  // ── Fetch orders with related asset/currency data ──────────────────────────
   const [orders, total] = await db.findAndCount(Order, where, {
     populate: [
       'from_asset',

@@ -1,8 +1,14 @@
 /**
  * Trade API Service
  *
- * Frontend service layer for executing buy/sell orders against the backend API.
- * Abstracts HTTP communication and provides type-safe trade operations.
+ * Frontend service layer for executing buy/sell orders and looking up currencies
+ * from the backend API. Abstracts HTTP communication and provides type-safe operations.
+ *
+ * Features:
+ * - Type-safe buy and sell order execution
+ * - Currency ID lookup with in-memory session cache
+ * - Structured error type carrying HTTP status codes
+ * - Reusable across components (TradeModal, TradingView, etc.)
  *
  * Configuration:
  * - Set NEXT_PUBLIC_API_URL in .env.local (e.g., http://localhost:3001)
@@ -11,35 +17,40 @@
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
-// ─── Response types ────────────────────────────────────────────────────────────
+// ─── Response types ───────────────────────────────────────────────────────────
 
+/** Successful response from POST /v1/trade/@buy */
 export interface BuyResult {
   order_id: string;
   status: string;
   spent: string; // amount deducted from the source asset (cents string)
   received: string; // units credited to the target asset
-  price_per_unit: string; // price at execution time (cents string)
+  price_per_unit: string; // execution price (cents string)
 }
 
+/** Successful response from POST /v1/trade/@sell */
 export interface SellResult {
   order_id: string;
   status: string;
   sold: string; // units deducted from the source asset
   received: string; // proceeds credited to the target asset (cents string)
-  price_per_unit: string; // price at execution time (cents string)
+  price_per_unit: string; // execution price (cents string)
 }
 
 export type TradeResult = BuyResult | SellResult;
 
-// ─── Shared error type ─────────────────────────────────────────────────────────
-
+/** Raw error shape returned by the backend on non-2xx responses. */
 export interface TradeError {
   error: number;
   message: string;
 }
 
-// ─── Internal helper ───────────────────────────────────────────────────────────
+// ─── Internal helper ──────────────────────────────────────────────────────────
 
+/**
+ * Performs an authenticated POST request to the given endpoint.
+ * Throws a `TradeApiError` if the response is not ok.
+ */
 async function request<T>(
   endpoint: string,
   token: string,
@@ -64,16 +75,16 @@ async function request<T>(
   return data as T;
 }
 
-// ─── Public API ────────────────────────────────────────────────────────────────
+// ─── Public API ───────────────────────────────────────────────────────────────
 
 /**
- * Buy an asset.
+ * Place a market buy order.
  *
  * @param token           JWT access token
  * @param fromCurrencyId  ID of the currency being spent (e.g. USD)
  * @param toCurrencyId    ID of the currency being bought (e.g. AAPL)
- * @param amount          Amount to spend in smallest unit (cents), as a string
- *                        e.g. "1750000" = $17 500.00
+ * @param amount          Amount to spend in cents as an integer string
+ *                        e.g. "1750000" = $17,500.00
  */
 export async function buyAsset(
   token: string,
@@ -89,12 +100,12 @@ export async function buyAsset(
 }
 
 /**
- * Sell an asset.
+ * Place a market sell order.
  *
  * @param token           JWT access token
  * @param fromCurrencyId  ID of the currency being sold (e.g. AAPL)
- * @param toCurrencyId    ID of the currency to receive  (e.g. USD)
- * @param amount          Number of units to sell, as a string
+ * @param toCurrencyId    ID of the currency to receive (e.g. USD)
+ * @param amount          Number of units to sell as an integer string
  *                        e.g. "100" = 100 units (precision-adjusted)
  */
 export async function sellAsset(
@@ -110,8 +121,9 @@ export async function sellAsset(
   });
 }
 
-// ─── Currency lookup ───────────────────────────────────────────────────────────
+// ─── Currency lookup ──────────────────────────────────────────────────────────
 
+/** Currency record as returned by GET /v1/currency. */
 export interface Currency {
   id: string;
   symbol: string;
@@ -120,11 +132,12 @@ export interface Currency {
   precision: number;
 }
 
+// Simple in-memory cache — populated on the first call and reused for the session.
 let _currencyCache: Currency[] | null = null;
 
 /**
- * Fetch all currencies from the backend and cache them for the session.
- * Uses the existing GET /v1/currency endpoint.
+ * Fetches all currencies from GET /v1/currency and caches the result.
+ * Subsequent calls within the same session return the cached list.
  */
 export async function fetchCurrencies(): Promise<Currency[]> {
   if (_currencyCache) return _currencyCache;
@@ -138,8 +151,8 @@ export async function fetchCurrencies(): Promise<Currency[]> {
 }
 
 /**
- * Look up a currency's ID by its symbol (e.g. "AAPL", "USD").
- * Returns null if the symbol is not found.
+ * Looks up a currency ID by ticker symbol (case-insensitive).
+ * Returns null if the symbol is not found in the currency list.
  */
 export async function fetchCurrencyId(symbol: string): Promise<string | null> {
   const currencies = await fetchCurrencies();

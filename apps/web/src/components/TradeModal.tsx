@@ -3,47 +3,55 @@
 /**
  * TradeModal Component
  *
- * A modal dialog that appears when the user clicks Buy or Sell in the TradingView chart.
- * Allows the user to enter an amount, previews the expected outcome, and submits
- * the trade to the backend API.
+ * Modal dialog for placing a market buy or sell order on a selected asset.
+ * Opened by the Buy / Sell buttons in TradingView and communicates directly
+ * with the backend trade endpoints via tradeApi.
  *
  * Features:
- * - Buy and Sell modes with distinct colors (green / red) following the theme tokens
- * - Amount input with live preview of expected units received / proceeds
- * - Loading state during API call
- * - Inline error display
- * - Keyboard-friendly (Enter to confirm, Escape to close)
+ * - Buy and Sell modes with distinct theme colors (success / danger)
+ * - Dollar amount input (buy) or unit amount input (sell)
+ * - Live estimated outcome preview based on the last known price
+ * - Loading state with spinner while the API request is in flight
+ * - Inline error display for API and validation failures
+ * - Keyboard-friendly: Enter to confirm, Escape to close
  * - Closes on backdrop click
+ *
+ * Dependencies:
+ * - tradeApi: buyAsset / sellAsset service functions
+ * - AuthContext: TODO — replace direct localStorage read with useAuth() after login branch merge
  */
 
 import { buyAsset, BuyResult, sellAsset, SellResult } from '@/lib/tradeApi';
 import { useEffect, useRef, useState } from 'react';
 
-// ─── Props ─────────────────────────────────────────────────────────────────────
+// ─── Props ────────────────────────────────────────────────────────────────────
 
 interface TradeModalProps {
+  /** Whether this is a buy or sell action — controls labels, colors, and input units. */
   mode: 'buy' | 'sell';
-  /** Display symbol, e.g. "AAPL" */
+  /** Ticker symbol displayed in the header, e.g. "AAPL". */
   symbol: string;
-  /** Currency ID of the asset being spent (buy) or sold (sell) */
+  /** Currency ID of the asset being spent (buy mode) or sold (sell mode). */
   fromCurrencyId: string;
-  /** Currency ID of the asset being received */
+  /** Currency ID of the asset being received. */
   toCurrencyId: string;
   /**
-   * Latest known price in dollars (used only for the live preview label).
-   * The backend always uses its own latest CurrencyHistory price for the
-   * actual calculation — this is display-only.
+   * Latest known price in dollars — used only for the live preview estimate.
+   * The backend always recalculates using its own latest CurrencyHistory entry;
+   * this value is display-only and may differ slightly from the execution price.
    */
   currentPrice: number;
-  /** JWT access token for the authenticated user */
+  /** JWT access token for the authenticated user, forwarded to the API. */
   token: string;
+  /** Called when the modal should be dismissed (cancel, backdrop click, Escape). */
   onClose: () => void;
+  /** Called after a successful trade with the API response payload. */
   onSuccess: (result: BuyResult | SellResult) => void;
 }
 
-// ─── Helpers ───────────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-/** Format a cents-string to a human-readable dollar amount, e.g. "17500" → "$175.00" */
+/** Converts a cents integer string to a display dollar amount, e.g. "17500" → "$175.00". */
 function centsToDisplay(cents: string): string {
   const n = parseInt(cents, 10);
   if (isNaN(n)) return '$0.00';
@@ -64,18 +72,21 @@ export default function TradeModal({
 }: TradeModalProps) {
   const isBuy = mode === 'buy';
 
+  // ── State ─────────────────────────────────────────────────────────────────
   const [amount, setAmount] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Focus the input when the modal opens
+  // ── Side effects ──────────────────────────────────────────────────────────
+
+  // Focus the amount input as soon as the modal mounts
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
 
-  // Close on Escape key
+  // Close the modal when the user presses Escape
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -89,9 +100,9 @@ export default function TradeModal({
   const validAmount = !isNaN(parsedAmount) && parsedAmount > 0;
 
   /**
-   * Preview the expected outcome based on the frontend-known price.
-   * The actual server-side result may differ slightly because the backend
-   * uses the latest CurrencyHistory entry.
+   * Estimate the expected outcome using the frontend-known price.
+   * The backend recalculates with its own latest CurrencyHistory entry,
+   * so the actual result may differ slightly from this preview.
    */
   const previewLine = (() => {
     if (!validAmount || currentPrice <= 0) return null;
@@ -121,8 +132,8 @@ export default function TradeModal({
       return;
     }
 
-    // Convert the human-readable dollar/unit amount to cents string
-    // (matches the backend bigint convention where 1 dollar = 100 cents)
+    // Convert the human-readable dollar (buy) or unit (sell) amount to an
+    // integer cents string — matches the backend BigInt convention (1 USD = 100).
     const amountInCents = String(Math.round(parsedAmount * 100));
 
     setIsLoading(true);
@@ -142,6 +153,7 @@ export default function TradeModal({
     }
   };
 
+  // Submit on Enter key inside the amount input
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') handleSubmit();
   };
