@@ -511,9 +511,9 @@ export default function TradingView({
   // ========== SSR Prevention ==========
   // ========== Component Render ==========
   return (
-    <>
+    <div className="flex h-full min-h-0 flex-col">
       {/* ========== Control Panel ========== */}
-      <div className="flex flex-wrap gap-2 mb-4">
+      <div className="mb-4 flex flex-wrap gap-2 shrink-0">
         {/* Mock Data Generation Button */}
         <button
           onClick={handleRegenerateData}
@@ -585,13 +585,13 @@ export default function TradingView({
 
       {/* ========== Error Message Display ========== */}
       {error && (
-        <div className="mb-4 p-3 bg-red-100 dark:bg-red-900 border border-red-400 dark:border-red-700 rounded-lg text-red-700 dark:text-red-200 text-sm">
+        <div className="mb-4 p-3 bg-red-100 dark:bg-red-900 border border-red-400 dark:border-red-700 rounded-lg text-red-700 dark:text-red-200 text-sm shrink-0">
           {error}
         </div>
       )}
 
       {/* ========== Chart Container with Overlays ========== */}
-      <div className="relative w-full h-full">
+      <div className="relative w-full flex-1 min-h-0">
         {/* Main chart canvas - always rendered */}
         <div
           ref={chartContainerRef}
@@ -663,7 +663,7 @@ export default function TradingView({
             );
           })()}
       </div>
-    </>
+    </div>
   );
 }
 
