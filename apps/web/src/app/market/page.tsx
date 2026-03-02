@@ -77,7 +77,7 @@ export default function Market() {
         onTogglePremium={() => setIsPremium((prev) => !prev)}
       />
 
-      <div className="row-start-2 col-start-1 border-r border-border bg-background p-3 z-40">
+      <div className="row-start-2 col-start-1 border-r border-border bg-background px-0 py-3 z-40 flex items-start justify-center">
         <button
           onClick={() => setShowAssetNav(!showAssetNav)}
           className="p-2 rounded-full border border-border bg-card hover:bg-muted transition-colors"
@@ -93,7 +93,7 @@ export default function Market() {
         onClose={() => setShowAssetNav(false)}
       />
       {/* Main Chart Container */}
-      {/* 
+      {/*
         Layout Behavior:
         - flex-1: Takes all remaining horizontal space (shrinks when nav pinned)
         - w-full h-full: Fills container

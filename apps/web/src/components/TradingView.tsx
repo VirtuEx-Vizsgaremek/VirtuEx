@@ -513,7 +513,7 @@ export default function TradingView({
   return (
     <div className="flex h-full min-h-0 flex-col">
       {/* ========== Control Panel ========== */}
-      <div className="mb-4 flex flex-wrap gap-2 shrink-0">
+      <div className="m-3 flex flex-wrap gap-2 shrink-0">
         {/* Mock Data Generation Button */}
         <button
           onClick={handleRegenerateData}
@@ -580,6 +580,21 @@ export default function TradingView({
             />
           </button>
           <span className="text-xs text-muted-foreground">Theme</span>
+        </div>
+
+        <div className="ml-auto flex items-center gap-2 ">
+          <button
+            className="px-4 py-2 text-sm rounded-lg text-primary-foreground disabled:opacity-50 transition-all
+            bg-[rgb(var(--color-success)/1)] hover:bg-[rgb(var(--color-success)/0.65)]"
+          >
+            Buy
+          </button>
+          <button
+            className="px-4 py-2 text-sm rounded-lg text-primary-foreground disabled:opacity-50 transition-all
+            bg-[rgb(var(--color-danger)/1)] hover:bg-[rgb(var(--color-danger)/0.65)]"
+          >
+            Sell
+          </button>
         </div>
       </div>
 

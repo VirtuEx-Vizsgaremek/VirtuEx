@@ -63,6 +63,11 @@
   --accent: oklch(0.488 0.243 264.376);
   --accent-foreground: oklch(0.97 0.014 254.604);
   --destructive: oklch(0.577 0.245 27.325);
+
+  /* Theme-aware semantic tokens for actions (RGB triplets for convenient use with Tailwind arbitrary colors) */
+  --color-success: 16 185 129; /* green (emerald-500) */
+  --color-danger: 239 68 68; /* red (rose-500) */
+
   --border: oklch(0.92 0.004 286.32);
   --input: oklch(0.92 0.004 286.32);
   --ring: oklch(0.705 0.015 286.067);
