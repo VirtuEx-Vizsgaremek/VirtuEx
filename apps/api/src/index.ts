@@ -3,6 +3,7 @@ import cors from 'cors';
 import multer from 'multer';
 import chalk from 'chalk';
 import expressWs from 'express-ws';
+import cron from 'node-cron';
 
 import path from 'node:path';
 
@@ -15,6 +16,8 @@ import version from '@/util/version';
 import { orm } from '@/util/orm';
 
 import Method from '@/enum/method';
+import MarketData from './util/market_data';
+import { MarketDataSeeder } from './seeders/market_data.seeder';
 
 const app = expressWs(express()).app;
 
@@ -50,7 +53,18 @@ app.use(multer().any());
   const db = await orm;
   const { ok } = await db.checkConnection();
   if (!ok) throw new Error();
-  await db.schema.refreshDatabase();
+
+  if (process.env.NODE_ENV !== 'production') {
+    await db.schema.refreshDatabase();
+    await db.seeder.seed(MarketDataSeeder);
+  }
+
+  // Marked Data Updater
+  await MarketData.updateData();
+  cron.schedule('* * * * *', async () => {
+    logger.info('Updating market data...');
+    await MarketData.updateData();
+  });
 
   const routes: string[] = await getRoutes(path.join(__dirname, 'routes'));
 
