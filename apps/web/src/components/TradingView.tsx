@@ -32,6 +32,7 @@ import {
   generateTradingViewChartData
 } from '@/lib/dataGenerator';
 import { fetchMarketData } from '@/lib/marketApi';
+import { BuyResult, fetchCurrencyId, SellResult } from '@/lib/tradeApi';
 import { tickerToName } from '@/lib/stocks';
 import {
   AreaSeries,
@@ -41,6 +42,7 @@ import {
 } from 'lightweight-charts';
 import { useEffect, useRef, useState } from 'react';
 import ChartOverlay from './ChartOverlay';
+import TradeModal from './TradeModal';
 
 // Chart type: area (line chart) or candlestick (OHLC bars)
 type chartType = 'area' | 'candle';
@@ -100,6 +102,11 @@ export default function TradingView({
   // ========== Context & Theme ==========
   const { theme, colorTheme } = useTheme(); // Get current theme (dark/light) and color theme from context
 
+  // TODO: Replace this with useAuth() from AuthContext once the login branch is merged.
+  const token =
+    typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+  const isLoggedIn = !!token;
+
   // Get active color scheme based on theme and selected color theme
   const colors =
     theme === 'dark'
@@ -138,6 +145,17 @@ export default function TradingView({
   // Crosshair hover data for overlay display
   const [ohlcData, setOhlcData] = useState<OHLCData>(null); // OHLC data when hovering candlestick
   const [areaDisplayData, setAreaDisplayData] = useState<AreaData>(null); // Price data when hovering area
+
+  // Trade modal state
+  const [tradeMode, setTradeMode] = useState<'buy' | 'sell' | null>(null);
+  const [tradeNotification, setTradeNotification] = useState<{
+    type: 'buy' | 'sell';
+    result: BuyResult | SellResult;
+  } | null>(null);
+
+  // Currency IDs for the trade modal — resolved dynamically from /v1/currency
+  const [usdCurrencyId, setUsdCurrencyId] = useState<string | null>(null);
+  const [symbolCurrencyId, setSymbolCurrencyId] = useState<string | null>(null);
 
   // Candlestick color scheme preference (theme colors vs standard red/green)
   const [useThemeColors, setUseThemeColors] = useState<boolean>(() => {
@@ -506,6 +524,22 @@ export default function TradingView({
     }
   }, [symbol]);
 
+  // Resolve currency IDs whenever symbol changes
+  useEffect(() => {
+    if (!symbol) return;
+
+    setUsdCurrencyId(null);
+    setSymbolCurrencyId(null);
+
+    fetchCurrencyId('USD')
+      .then(setUsdCurrencyId)
+      .catch(() => setUsdCurrencyId(null));
+
+    fetchCurrencyId(symbol)
+      .then(setSymbolCurrencyId)
+      .catch(() => setSymbolCurrencyId(null));
+  }, [symbol]);
+
   const onIntervalClick = () => {};
 
   // ========== SSR Prevention ==========
@@ -582,25 +616,85 @@ export default function TradingView({
           <span className="text-xs text-muted-foreground">Theme</span>
         </div>
 
-        <div className="ml-auto flex items-center gap-2 ">
+        <div className="ml-auto flex items-center gap-2">
           <button
-            className="px-4 py-2 text-sm rounded-lg text-primary-foreground disabled:opacity-50 transition-all
-            bg-[rgb(var(--color-success)/1)] hover:bg-[rgb(var(--color-success)/0.65)]"
+            onClick={() => setTradeMode('buy')}
+            disabled={
+              !symbol || dataSource !== 'realtime' || isLoading || !isLoggedIn
+            }
+            title={
+              !isLoggedIn
+                ? 'Sign in to trade'
+                : !symbol
+                  ? 'Select an asset first'
+                  : dataSource !== 'realtime'
+                    ? 'Switch to real data first'
+                    : 'Buy this asset'
+            }
+            className="px-4 py-2 text-sm rounded-lg text-white disabled:opacity-40 disabled:cursor-not-allowed transition-all
+              bg-[rgb(var(--color-success)/1)] hover:bg-[rgb(var(--color-success)/0.75)]"
           >
             Buy
           </button>
           <button
-            className="px-4 py-2 text-sm rounded-lg text-primary-foreground disabled:opacity-50 transition-all
-            bg-[rgb(var(--color-danger)/1)] hover:bg-[rgb(var(--color-danger)/0.65)]"
+            onClick={() => setTradeMode('sell')}
+            disabled={
+              !symbol || dataSource !== 'realtime' || isLoading || !isLoggedIn
+            }
+            title={
+              !isLoggedIn
+                ? 'Sign in to trade'
+                : !symbol
+                  ? 'Select an asset first'
+                  : dataSource !== 'realtime'
+                    ? 'Switch to real data first'
+                    : 'Sell this asset'
+            }
+            className="px-4 py-2 text-sm rounded-lg text-white disabled:opacity-40 disabled:cursor-not-allowed transition-all
+              bg-[rgb(var(--color-danger)/1)] hover:bg-[rgb(var(--color-danger)/0.75)]"
           >
             Sell
           </button>
         </div>
       </div>
 
+      {/* ========== Trade Success Notification ========== */}
+      {tradeNotification && (
+        <div
+          className="mx-3 mb-2 px-4 py-2.5 rounded-lg border text-sm flex items-center justify-between shrink-0 animate-in fade-in slide-in-from-top-2 duration-200"
+          style={{
+            backgroundColor:
+              tradeNotification.type === 'buy'
+                ? 'rgb(var(--color-success) / 0.12)'
+                : 'rgb(var(--color-danger) / 0.12)',
+            borderColor:
+              tradeNotification.type === 'buy'
+                ? 'rgb(var(--color-success) / 0.35)'
+                : 'rgb(var(--color-danger) / 0.35)',
+            color:
+              tradeNotification.type === 'buy'
+                ? 'rgb(var(--color-success))'
+                : 'rgb(var(--color-danger))'
+          }}
+        >
+          <span>
+            {tradeNotification.type === 'buy'
+              ? `✓ Bought ${symbol} — received ${'received' in tradeNotification.result ? tradeNotification.result.received : '?'} units`
+              : `✓ Sold ${symbol} — received ${'received' in tradeNotification.result ? (parseInt(tradeNotification.result.received) / 100).toFixed(2) : '?'} USD`}
+          </span>
+          <button
+            onClick={() => setTradeNotification(null)}
+            className="ml-4 opacity-60 hover:opacity-100 transition-opacity leading-none"
+            aria-label="Dismiss"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
       {/* ========== Error Message Display ========== */}
       {error && (
-        <div className="mb-4 p-3 bg-red-100 dark:bg-red-900 border border-red-400 dark:border-red-700 rounded-lg text-red-700 dark:text-red-200 text-sm shrink-0">
+        <div className="m-2 p-3 bg-red-100 dark:bg-red-900 border border-red-400 dark:border-red-700 rounded-lg text-red-700 dark:text-red-200 text-sm shrink-0">
           {error}
         </div>
       )}
@@ -678,6 +772,39 @@ export default function TradingView({
             );
           })()}
       </div>
+
+      {/* ========== Trade Modal ========== */}
+      {tradeMode && (
+        <TradeModal
+          mode={tradeMode}
+          symbol={symbol}
+          fromCurrencyId={
+            tradeMode === 'buy'
+              ? (usdCurrencyId ?? '')
+              : (symbolCurrencyId ?? '')
+          }
+          toCurrencyId={
+            tradeMode === 'buy'
+              ? (symbolCurrencyId ?? '')
+              : (usdCurrencyId ?? '')
+          }
+          currentPrice={
+            chartType === 'area' && areaData.length > 0
+              ? (areaData[areaData.length - 1] as { value: number }).value
+              : chartType === 'candle' && candleData.length > 0
+                ? (candleData[candleData.length - 1] as { close: number }).close
+                : 0
+          }
+          token={token ?? ''}
+          onClose={() => setTradeMode(null)}
+          onSuccess={(result) => {
+            setTradeNotification({ type: tradeMode, result });
+            setTradeMode(null);
+            // Auto-dismiss after 5 seconds
+            setTimeout(() => setTradeNotification(null), 5000);
+          }}
+        />
+      )}
     </div>
   );
 }

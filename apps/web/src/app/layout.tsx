@@ -72,6 +72,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased `}
       >
         <ThemeProvider>
+          {/* TODO: Wrap with <AuthProvider> from AuthContext once the login branch is merged. */}
           <ConditionalLayout>{children}</ConditionalLayout>
         </ThemeProvider>
       </body>
