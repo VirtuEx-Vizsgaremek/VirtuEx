@@ -27,6 +27,10 @@
                     Content="Users" 
                     Icon="{ui:SymbolIcon BookContacts24}"
                     TargetPageType="{x:Type pages:UsersPage}"/>
+                <ui:NavigationViewItem 
+                    Content="Currencies, Stocks &amp; ETFs" 
+                    Icon="{ui:SymbolIcon BookCoins24}"
+                    TargetPageType="{x:Type pages:UsersPage}"/>
                 <ui:NavigationViewItem
                     Content="Transactions"
                     Icon="{ui:SymbolIcon BookClock24}"

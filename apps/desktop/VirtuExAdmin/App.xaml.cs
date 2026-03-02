@@ -17,7 +17,7 @@ public partial class App : Application {
         var apiClient = ApiClient.Instance;
         
         // TODO: Get User Auth
-        Current.MainWindow = new MainWindow();
+        Current.MainWindow = new AuthWindow();
         Current.MainWindow.Show();
     }
 }

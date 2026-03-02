@@ -30,6 +30,10 @@ public partial class AuthWindow : FluentWindow {
 
             if (user.Permissions.HasFlag(Permission.Admin)) {
                 MessageBox.Show($"You are now logged in as {user.Username}.");
+                
+                Application.Current.MainWindow = new MainWindow();
+                Application.Current.MainWindow.Show();
+                this.Close();
             } else {
                 MessageBox.Show($"You are not an admin, how the hell do you have access to this??????");
                 
