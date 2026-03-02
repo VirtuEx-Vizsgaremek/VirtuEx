@@ -14,7 +14,18 @@ public class ApiClient : IDisposable {
         }
     }
 
-    private HttpClient _httpClient;
+    private string _token;
+    public string Token {
+        get => _token;
+        set {
+            _token = value ?? throw new ArgumentNullException(nameof(value));
+            
+            _httpClient.DefaultRequestHeaders.Remove("Authorization");
+            _httpClient.DefaultRequestHeaders.Add("Authorization", "Bearer " + _token);
+        }
+    }
+
+    private readonly HttpClient _httpClient;
     private DefaultContractResolver _contractResolver = new() {
         NamingStrategy = new SnakeCaseNamingStrategy()
     };
@@ -22,28 +33,40 @@ public class ApiClient : IDisposable {
     private ApiClient() {
         _httpClient = new HttpClient();
         
-        // TODO: make dynamic
+        // TODO: configurable api uri
         _httpClient.BaseAddress = new Uri("http://localhost:3001");
         _httpClient.DefaultRequestHeaders.UserAgent.Clear();
         _httpClient.DefaultRequestHeaders.Add("User-Agent", "VirtuExAdmin/1.0.0");
     }
 
-    public async Task<LoginResponse?> Login(String email, String password) {
-        try {
-            var p = new Dictionary<String, String>() {
-                { "email", email },
-                { "password", password }
-            };
-            var res = await _httpClient.PostAsync("/v1/auth/login", new FormUrlEncodedContent(p));
-            Console.WriteLine(res.Content.ReadAsStringAsync().GetAwaiter().GetResult());
-            res.EnsureSuccessStatusCode();
+    public async Task<LoginResponse> Login(string email, string password) {
+        var res = await _httpClient.PostAsync("/v1/auth/login", new FormUrlEncodedContent(new Dictionary<string, string> {
+            { "email", email },
+            { "password", password }
+        }));
 
-            return JsonConvert.DeserializeObject<LoginResponse>(await res.Content.ReadAsStringAsync());
-        }
-        catch (HttpRequestException e) {
-            Console.WriteLine(e);
-            return null;
-        }
+        if (res.IsSuccessStatusCode)
+            return JsonConvert.DeserializeObject<LoginResponse>(await res.Content.ReadAsStringAsync())!;
+            
+        var err = JsonConvert.DeserializeObject<ErrorResponse>(await res.Content.ReadAsStringAsync())!;
+        throw new ResponseException(err);
+    }
+
+    /// <summary>
+    /// The currently logged-in user.
+    /// </summary>
+    /// <returns></returns>
+    public async Task<User> User() {
+        if (_token == null)
+            throw new InvalidOperationException("You must login dummy.");
+        
+        var res = await _httpClient.GetAsync("/v1/user/@me");
+        
+        if (res.IsSuccessStatusCode)
+            return JsonConvert.DeserializeObject<User>(await res.Content.ReadAsStringAsync())!;
+        
+        var err = JsonConvert.DeserializeObject<ErrorResponse>(await res.Content.ReadAsStringAsync())!;
+        throw new ResponseException(err);
     }
 
     public void Dispose() {
