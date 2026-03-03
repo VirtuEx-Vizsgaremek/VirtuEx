@@ -7,10 +7,11 @@ import { Asset } from '@/entities/asset.entity';
 import { Transaction } from '@/entities/transaction.entity';
 import { Order } from '@/entities/order.entity';
 import { FulfilledOrder } from '@/entities/fulfilled_order.entity';
+import { Subscription } from '@/entities/subscription.entity';
+import { SubscriptionPlan } from '@/entities/subscription_plan.entity';
 import { CurrencyType } from '@/enum/currency_type';
 import { TransactionDirection, TransactionStatus } from '@/enum/transaction';
 import { OrderStatus, OrderType } from '@/enum/order';
-import { Subscription } from '@/enum/subscription';
 import bcrypt from 'bcrypt';
 
 async function seed() {
@@ -30,7 +31,8 @@ async function seed() {
         currency.name = name;
         currency.precision = precision;
         currency.type = type;
-        await db.persist(currency).flush();
+        db.persist(currency);
+        await db.flush();
         console.log(`OK: ${symbol} currency created`);
       } else {
         console.log(`INFO: ${symbol} currency already exists`);
@@ -59,6 +61,60 @@ async function seed() {
       CurrencyType.Crypto
     );
 
+    // Create subscription plans
+    let freePlan = await db.findOne(SubscriptionPlan, { name: 'Free' });
+    if (!freePlan) {
+      freePlan = new SubscriptionPlan();
+      freePlan.name = 'Free';
+      freePlan.monthlyAiCredits = 10;
+      freePlan.assetsMax = 5;
+      freePlan.stopLoss = false;
+      freePlan.realTime = false;
+      freePlan.price = 0;
+      freePlan.displayFeatures = { version: 1, tradingView: false };
+      db.persist(freePlan);
+      await db.flush();
+      console.log('OK: Free plan created');
+    } else {
+      console.log('INFO: Free plan already exists');
+    }
+
+    let standardPlan = await db.findOne(SubscriptionPlan, {
+      name: 'Standard'
+    });
+    if (!standardPlan) {
+      standardPlan = new SubscriptionPlan();
+      standardPlan.name = 'Standard';
+      standardPlan.monthlyAiCredits = 100;
+      standardPlan.assetsMax = 20;
+      standardPlan.stopLoss = true;
+      standardPlan.realTime = false;
+      standardPlan.price = 999; // $9.99
+      standardPlan.displayFeatures = { version: 1, tradingView: true };
+      db.persist(standardPlan);
+      await db.flush();
+      console.log('OK: Standard plan created');
+    } else {
+      console.log('INFO: Standard plan already exists');
+    }
+
+    let proPlan = await db.findOne(SubscriptionPlan, { name: 'Pro' });
+    if (!proPlan) {
+      proPlan = new SubscriptionPlan();
+      proPlan.name = 'Pro';
+      proPlan.monthlyAiCredits = 500;
+      proPlan.assetsMax = 100;
+      proPlan.stopLoss = true;
+      proPlan.realTime = true;
+      proPlan.price = 1999; // $19.99
+      proPlan.displayFeatures = { version: 1, tradingView: true };
+      db.persist(proPlan);
+      await db.flush();
+      console.log('OK: Pro plan created');
+    } else {
+      console.log('INFO: Pro plan already exists');
+    }
+
     let user = await db.findOne(User, { username: 'testuser' });
     let wallet: Wallet;
 
@@ -69,16 +125,21 @@ async function seed() {
       user.email = 'test@virtuex.com';
       user.password = await bcrypt.hash('password123', 10);
       user.activated = true;
-      user.subscription = Subscription.Standard;
 
       wallet = new Wallet();
       user.wallet = wallet;
 
-      await db.persist([wallet, user]).flush();
+      const userSubscription = new Subscription();
+      userSubscription.user = user;
+      userSubscription.plan = standardPlan;
+      user.subscription = userSubscription;
+
+      db.persist([wallet, user, userSubscription]);
+      await db.flush();
       console.log('OK: User and wallet created');
     } else {
       console.log('INFO: Test user already exists');
-      await db.populate(user, ['wallet']);
+      await db.populate(user, ['wallet', 'subscription']);
       wallet = user.wallet;
     }
 
@@ -92,16 +153,21 @@ async function seed() {
       maker.email = 'maker@virtuex.com';
       maker.password = await bcrypt.hash('password123', 10);
       maker.activated = true;
-      maker.subscription = Subscription.Pro;
 
       makerWallet = new Wallet();
       maker.wallet = makerWallet;
 
-      await db.persist([makerWallet, maker]).flush();
+      const makerSubscription = new Subscription();
+      makerSubscription.user = maker;
+      makerSubscription.plan = proPlan;
+      maker.subscription = makerSubscription;
+
+      db.persist([makerWallet, maker, makerSubscription]);
+      await db.flush();
       console.log('OK: Market maker user created');
     } else {
       console.log('INFO: Market maker already exists');
-      await db.populate(maker, ['wallet']);
+      await db.populate(maker, ['wallet', 'subscription']);
       makerWallet = maker.wallet;
     }
 
@@ -111,7 +177,8 @@ async function seed() {
       assetUSD.wallet = wallet;
       assetUSD.currency = usd;
       assetUSD.amount = BigInt(250000);
-      await db.persist(assetUSD).flush();
+      db.persist(assetUSD);
+      await db.flush();
       console.log('OK: USD asset created');
     } else {
       console.log('INFO: USD asset already exists');
@@ -123,7 +190,8 @@ async function seed() {
       assetEUR.wallet = wallet;
       assetEUR.currency = eur;
       assetEUR.amount = BigInt(50000);
-      await db.persist(assetEUR).flush();
+      db.persist(assetEUR);
+      await db.flush();
       console.log('OK: EUR asset created');
     } else {
       console.log('INFO: EUR asset already exists');
@@ -135,7 +203,8 @@ async function seed() {
       assetBTC.wallet = wallet;
       assetBTC.currency = btc;
       assetBTC.amount = BigInt(50000000);
-      await db.persist(assetBTC).flush();
+      db.persist(assetBTC);
+      await db.flush();
       console.log('OK: BTC asset created');
     } else {
       console.log('INFO: BTC asset already exists');
@@ -147,7 +216,8 @@ async function seed() {
       assetETH.wallet = wallet;
       assetETH.currency = eth;
       assetETH.amount = BigInt(200000000);
-      await db.persist(assetETH).flush();
+      db.persist(assetETH);
+      await db.flush();
       console.log('OK: ETH asset created');
     } else {
       console.log('INFO: ETH asset already exists');
@@ -162,7 +232,8 @@ async function seed() {
       makerUSD.wallet = makerWallet;
       makerUSD.currency = usd;
       makerUSD.amount = BigInt(750000);
-      await db.persist(makerUSD).flush();
+      db.persist(makerUSD);
+      await db.flush();
       console.log('OK: Maker USD asset created');
     } else {
       console.log('INFO: Maker USD asset already exists');
@@ -177,7 +248,8 @@ async function seed() {
       makerBTC.wallet = makerWallet;
       makerBTC.currency = btc;
       makerBTC.amount = BigInt(150000000);
-      await db.persist(makerBTC).flush();
+      db.persist(makerBTC);
+      await db.flush();
       console.log('OK: Maker BTC asset created');
     } else {
       console.log('INFO: Maker BTC asset already exists');
@@ -212,7 +284,8 @@ async function seed() {
       tx4.direction = TransactionDirection.Incoming;
       tx4.status = TransactionStatus.Completed;
 
-      await db.persist([tx1, tx2, tx3, tx4]).flush();
+      db.persist([tx1, tx2, tx3, tx4]);
+      await db.flush();
       console.log('OK: Transactions created');
     } else {
       console.log('INFO: Transactions already exist');
@@ -244,7 +317,8 @@ async function seed() {
         return entry;
       });
 
-      await db.persist(historyRows).flush();
+      db.persist(historyRows);
+      await db.flush();
       console.log('OK: Currency history created');
     } else {
       console.log('INFO: Currency history already exists');
@@ -268,7 +342,8 @@ async function seed() {
       sellOrder.status = OrderStatus.Filled;
       sellOrder.type = OrderType.Sell;
 
-      await db.persist([buyOrder, sellOrder]).flush();
+      db.persist([buyOrder, sellOrder]);
+      await db.flush();
       console.log('OK: Orders created');
 
       const fulfilled = new FulfilledOrder();
@@ -278,7 +353,8 @@ async function seed() {
       fulfilled.amount = BigInt(3846153); // BTC amount
       fulfilled.price = BigInt(6500000); // $65,000.00 in cents
 
-      await db.persist(fulfilled).flush();
+      db.persist(fulfilled);
+      await db.flush();
       console.log('OK: Fulfilled order created');
     } else {
       console.log('INFO: Orders already exist');
