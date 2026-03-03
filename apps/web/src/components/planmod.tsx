@@ -44,80 +44,97 @@ export function ModifyPlanModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-[calc(100vw-2rem)] sm:max-w-[500px] p-4 sm:p-6">
+      <DialogContent className="w-[calc(100vw-2rem)] sm:w-[90vw] md:w-full md:max-w-[500px] p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold">
-            Subscription & Credits
+          <DialogTitle className="text-xl sm:text-2xl font-bold">
+            Modify Subscription
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6 py-4">
-          <div className="bg-primary/10 p-4 rounded-lg flex items-center justify-between border border-primary/20">
+          {/* Current Credits Card */}
+          <div className="bg-primary/10 p-4 sm:p-5 rounded-lg flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border border-primary/20">
             <div>
-              <p className="text-sm text-primary font-semibold uppercase">
+              <p className="text-xs sm:text-sm text-primary font-semibold uppercase">
                 Current Credits
               </p>
-              <p className="text-2xl font-bold text-foreground">
+              <p className="text-2xl sm:text-3xl font-bold text-foreground mt-1">
                 {currentCredits}
               </p>
             </div>
-            <Button size="sm">Buy More</Button>
+            <Button size="sm" className="w-full sm:w-auto">
+              Buy More
+            </Button>
           </div>
 
+          {/* Plan Selection */}
           <div className="space-y-2">
             <Label className="text-sm font-bold text-foreground">
               Select Plan
             </Label>
             <select
-              className="w-full p-2 border border-border rounded-md focus:ring-2 focus:ring-primary outline-none bg-background text-foreground"
+              className="w-full p-2.5 text-sm sm:text-base border border-border rounded-md focus:ring-2 focus:ring-primary outline-none bg-background text-foreground transition-colors"
               value={selectedPlan}
               onChange={(e) => setSelectedPlan(e.target.value)}
             >
-              <option value="Free">Free Plan</option>
-              <option value="Standard">Standard Plan</option>
-              <option value="Pro">Pro Plan</option>
+              <option value="Free">Free Plan - $0/month</option>
+              <option value="Standard">Standard Plan - $35/month</option>
+              <option value="Pro">Pro Plan - $49/month</option>
             </select>
           </div>
 
+          {/* Billing Cycle */}
           <div className="space-y-2">
             <Label className="text-sm font-bold text-foreground">
               Billing Cycle
             </Label>
-            <div className="flex gap-2 p-1 bg-muted rounded-lg">
+            <div className="flex gap-2 p-1.5 bg-muted rounded-lg">
               <button
                 onClick={() => setBillingCycle('monthly')}
-                className={`flex-1 py-2 text-sm font-medium rounded-md transition-all 
-                  ${billingCycle === 'monthly' ? 'bg-card shadow-sm text-primary' : 'text-muted-foreground'}
-                  ${selectedPlan === 'Free' ? 'cursor-not-allowed opacity-50' : 'hover:text-foreground'}`}
+                className={`flex-1 py-2.5 text-sm font-medium rounded-md transition-all 
+                  ${billingCycle === 'monthly' ? 'bg-card shadow-sm text-primary' : 'text-muted-foreground hover:text-foreground'}
+                  ${selectedPlan === 'Free' ? 'cursor-not-allowed opacity-50' : ''}`}
                 disabled={selectedPlan === 'Free'}
               >
                 Monthly
               </button>
               <button
                 onClick={() => setBillingCycle('yearly')}
-                className={`flex-1 py-2 text-sm font-medium rounded-md transition-all 
-                  ${billingCycle === 'yearly' ? 'bg-card shadow-sm text-primary' : 'text-muted-foreground'}
-                  ${selectedPlan === 'Free' ? 'cursor-not-allowed opacity-50' : 'hover:text-foreground'}`}
+                className={`flex-1 py-2.5 text-sm font-medium rounded-md transition-all 
+                  ${billingCycle === 'yearly' ? 'bg-card shadow-sm text-primary' : 'text-muted-foreground hover:text-foreground'}
+                  ${selectedPlan === 'Free' ? 'cursor-not-allowed opacity-50' : ''}`}
                 disabled={selectedPlan === 'Free'}
               >
-                Yearly (Save 15%+)
+                Yearly
+                <span className="block text-xs text-muted-foreground">
+                  Save 15%+
+                </span>
               </button>
             </div>
           </div>
 
-          <div className="pt-4 border-t border-border flex items-center justify-between">
-            <span className="text-muted-foreground">Total to pay now:</span>
-            <span className="text-2xl font-extrabold text-foreground">
+          {/* Price Display */}
+          <div className="pt-4 border-t border-border flex items-center justify-between bg-muted/50 p-4 rounded-lg">
+            <span className="text-sm sm:text-base text-muted-foreground font-medium">
+              Amount Due:
+            </span>
+            <span className="text-2xl sm:text-3xl font-extrabold text-foreground">
               ${currentPrice}
             </span>
           </div>
         </div>
 
-        <DialogFooter className="flex flex-col-reverse gap-2 sm:flex-row sm:gap-0">
-          <Button variant="outline" onClick={() => onClose(false)}>
+        <DialogFooter className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-between">
+          <Button
+            variant="outline"
+            onClick={() => onClose(false)}
+            className="w-full sm:w-auto"
+          >
             Cancel
           </Button>
-          <Button className="sm:ml-3">Update Subscription</Button>
+          <Button className="w-full sm:w-auto">
+            {selectedPlan === 'Free' ? 'Downgrade' : 'Update Subscription'}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
