@@ -15,7 +15,7 @@ import {
 const menuItems = [
   { name: 'My Profile', href: '/profile', icon: User },
   { name: 'Wallet', href: '/wallet', icon: DollarSign },
-  { name: 'Subscription', href: '/plan', icon: CreditCard },
+  { name: 'Subscription', href: '/subscription', icon: CreditCard },
   { name: 'Logout', href: '/', icon: LogOut }
 ];
 
