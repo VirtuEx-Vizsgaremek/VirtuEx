@@ -86,22 +86,24 @@ export default function WalletPage() {
 
   return (
     <div>
-      <div className="max-w-[80vw] mx-auto my-10 px-4">
-        <div className="grid grid-cols-[250px_1fr] gap-6">
-          <SideNav />
+      <div className="max-w-[95vw] lg:max-w-[80vw] mx-auto my-4 md:my-10 px-2 md:px-4">
+        <div className="grid grid-cols-1 lg:grid-cols-[250px_1fr] gap-4 lg:gap-6">
+          <div className="hidden lg:block">
+            <SideNav />
+          </div>
 
-          <main className="text-lg">
-            <Card className="w-full col-span-2 shadow-lg border-border bg-card overflow-hidden mb-10">
-              <ItemGroup className="px-6">
+          <main className="text-base md:text-lg">
+            <Card className="w-full col-span-2 shadow-lg border-border bg-card overflow-hidden mb-6 md:mb-10">
+              <ItemGroup className="px-4 md:px-6">
                 {
                   <Item>
-                    <div className="flex items-center gap-8">
+                    <div className="flex items-center gap-4 md:gap-8">
                       <ItemContent className="space-y-1">
-                        <ItemTitle className="text-4xl mb-2 font-extrabold text-foreground tracking-tight">
+                        <ItemTitle className="text-2xl md:text-3xl lg:text-4xl mb-1 md:mb-2 font-extrabold text-foreground tracking-tight">
                           Estimated Balance
                         </ItemTitle>
                         <div className="flex items-center gap-2">
-                          <ItemDescription className="text-lg font-mono text-primary bg-primary/10 px-2 py-0.5 rounded">
+                          <ItemDescription className="text-base md:text-lg font-mono text-primary bg-primary/10 px-2 py-0.5 rounded">
                             {formattedBalance}
                           </ItemDescription>
                         </div>
@@ -113,15 +115,16 @@ export default function WalletPage() {
             </Card>
 
             {/*Assets now*/}
-            <Card className="w-full shadow-lg border-border bg-card overflow-hidden my-10">
-              <CardHeader className="text-left pb-2">
-                <CardTitle className="text-2xl font-bold text-foreground">
+            <Card className="w-full shadow-lg border-border bg-card overflow-hidden my-6 md:my-10">
+              <CardHeader className="text-left pb-2 px-4 md:px-6">
+                <CardTitle className="text-xl md:text-2xl font-bold text-foreground">
                   Your Assets
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="px-0">
                 <div className="flex flex-col">
-                  <div className="grid grid-cols-4 px-6 py-3 bg-muted border-b border-border text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  {/* Desktop header */}
+                  <div className="hidden md:grid grid-cols-4 px-4 md:px-6 py-3 bg-muted border-b border-border text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                     <div className="col-span-1">Asset</div>
                     <div className="text-right">Price</div>
                     <div className="text-right">Balance</div>
@@ -140,25 +143,35 @@ export default function WalletPage() {
                       return (
                         <div
                           key={asset.id}
-                          className="grid grid-cols-4 items-center px-6 py-4 hover:bg-muted transition-colors "
+                          className="md:grid md:grid-cols-4 items-center px-4 md:px-6 py-4 hover:bg-muted transition-colors"
                         >
-                          <div className="col-span-1 flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">
-                              {/*TODO: real symbol of currency*/}
-                              {asset.symbol[0]}
+                          {/* Mobile layout */}
+                          <div className="md:col-span-1 flex items-center justify-between md:justify-start gap-3 mb-3 md:mb-0">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 md:w-8 md:h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">
+                                {/*TODO: real symbol of currency*/}
+                                {asset.symbol[0]}
+                              </div>
+                              <div>
+                                <div className="font-bold text-foreground">
+                                  {asset.symbol}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {asset.currency}
+                                </div>
+                              </div>
                             </div>
-                            <div>
-                              <div className="font-bold text-foreground">
-                                {asset.symbol}
-                              </div>
-                              <div className="text-xs text-muted-foreground hidden sm:block">
-                                {asset.currency}
-                              </div>
+                            <div className="md:hidden text-right font-bold text-foreground">
+                              {new Intl.NumberFormat('en-US', {
+                                style: 'currency',
+                                currency: 'USD'
+                              }).format(totalValue)}
                             </div>
                           </div>
 
-                          <div className="text-right">
-                            <div className="font-medium text-foreground">
+                          {/* Desktop price */}
+                          <div className="hidden md:block text-right">
+                            <div className="font-medium text-foreground text-sm">
                               {new Intl.NumberFormat('en-US').format(
                                 currentPrice
                               )}{' '}
@@ -172,14 +185,21 @@ export default function WalletPage() {
                             </div>
                           </div>
 
-                          <div className="text-right text-muted-foreground font-mono text-sm">
-                            {realBalance.toLocaleString(undefined, {
-                              maximumFractionDigits: asset.precision
-                            })}{' '}
-                            {asset.symbol}
+                          {/* Mobile/Desktop balance */}
+                          <div className="md:text-right text-muted-foreground font-mono text-sm flex justify-between md:block">
+                            <span className="md:hidden text-xs text-muted-foreground">
+                              Balance:
+                            </span>
+                            <span>
+                              {realBalance.toLocaleString(undefined, {
+                                maximumFractionDigits: asset.precision
+                              })}{' '}
+                              {asset.symbol}
+                            </span>
                           </div>
 
-                          <div className="text-right font-bold text-foreground">
+                          {/* Desktop value */}
+                          <div className="hidden md:block text-right font-bold text-foreground">
                             {new Intl.NumberFormat('en-US', {
                               style: 'currency',
                               currency: 'USD'
@@ -195,19 +215,20 @@ export default function WalletPage() {
 
             {/*Transaction history*/}
             <Card className="w-full shadow-lg border-border bg-card overflow-hidden">
-              <CardHeader className="text-left pb-2">
-                <CardTitle className="w-full text-2xl font-bold text-foreground">
+              <CardHeader className="text-left pb-2 px-4 md:px-6">
+                <CardTitle className="w-full text-xl md:text-2xl font-bold text-foreground">
                   Transaction History
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="px-0">
                 {transactions.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     No transactions yet
                   </div>
                 ) : (
                   <div className="flex flex-col">
-                    <div className="grid grid-cols-5 px-6 py-3 bg-muted border-b border-border text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    {/* Desktop header */}
+                    <div className="hidden md:grid grid-cols-5 px-4 md:px-6 py-3 bg-muted border-b border-border text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                       <div className="col-span-1">Asset</div>
                       <div className="text-right">Type</div>
                       <div className="text-right">Amount</div>
@@ -238,29 +259,40 @@ export default function WalletPage() {
                         return (
                           <div
                             key={tx.id}
-                            className="grid grid-cols-5 items-center px-6 py-4 hover:bg-muted transition-colors"
+                            className="md:grid md:grid-cols-5 items-start md:items-center px-4 md:px-6 py-4 hover:bg-muted transition-colors"
                           >
-                            <div className="col-span-1 flex items-center gap-3">
-                              <div
-                                className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${
-                                  isIncoming
-                                    ? 'bg-primary/10 text-primary'
-                                    : 'bg-destructive/10 text-destructive'
-                                }`}
-                              >
-                                {tx.symbol[0]}
+                            {/* Mobile: Asset and Status row */}
+                            <div className="md:col-span-1 flex items-center justify-between md:justify-start gap-3 mb-2 md:mb-0">
+                              <div className="flex items-center gap-3">
+                                <div
+                                  className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${
+                                    isIncoming
+                                      ? 'bg-primary/10 text-primary'
+                                      : 'bg-destructive/10 text-destructive'
+                                  }`}
+                                >
+                                  {tx.symbol[0]}
+                                </div>
+                                <div>
+                                  <div className="font-bold text-foreground text-sm md:text-base">
+                                    {tx.symbol}
+                                  </div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {tx.currency}
+                                  </div>
+                                </div>
                               </div>
-                              <div>
-                                <div className="font-bold text-foreground">
-                                  {tx.symbol}
-                                </div>
-                                <div className="text-xs text-muted-foreground hidden sm:block">
-                                  {tx.currency}
-                                </div>
+                              <div className="md:hidden">
+                                <span
+                                  className={`text-xs font-semibold px-2 py-1 rounded ${statusClasses}`}
+                                >
+                                  {tx.status.toUpperCase()}
+                                </span>
                               </div>
                             </div>
 
-                            <div className="text-right">
+                            {/* Desktop: Type */}
+                            <div className="hidden md:block text-right">
                               <div
                                 className={`font-medium ${isIncoming ? 'text-primary' : 'text-destructive'}`}
                               >
@@ -268,15 +300,26 @@ export default function WalletPage() {
                               </div>
                             </div>
 
-                            <div className="text-right font-mono text-sm text-muted-foreground">
-                              {isIncoming ? '+' : '-'}
-                              {realAmount.toLocaleString(undefined, {
-                                maximumFractionDigits: precision
-                              })}{' '}
-                              {tx.symbol}
+                            {/* Mobile/Desktop: Amount and Type */}
+                            <div className="md:text-right flex justify-between md:block mb-1 md:mb-0">
+                              <div className="md:hidden flex items-center gap-2">
+                                <span
+                                  className={`font-medium text-sm ${isIncoming ? 'text-primary' : 'text-destructive'}`}
+                                >
+                                  {isIncoming ? '↓ IN' : '↑ OUT'}
+                                </span>
+                              </div>
+                              <div className="font-mono text-sm text-muted-foreground">
+                                {isIncoming ? '+' : '-'}
+                                {realAmount.toLocaleString(undefined, {
+                                  maximumFractionDigits: precision
+                                })}{' '}
+                                {tx.symbol}
+                              </div>
                             </div>
 
-                            <div className="text-right">
+                            {/* Desktop: Status */}
+                            <div className="hidden md:block text-right">
                               <span
                                 className={`text-xs font-semibold px-2 py-1 rounded ${statusClasses}`}
                               >
@@ -284,10 +327,22 @@ export default function WalletPage() {
                               </span>
                             </div>
 
-                            <div className="text-right text-xs text-muted-foreground">
+                            {/* Mobile/Desktop: Date */}
+                            <div className="md:text-right text-xs text-muted-foreground">
                               {new Date(tx.created_at).toLocaleDateString()}
-                              <br />
-                              {new Date(tx.created_at).toLocaleTimeString()}
+                              <span className="hidden md:inline">
+                                <br />
+                                {new Date(tx.created_at).toLocaleTimeString()}
+                              </span>
+                              <span className="md:hidden ml-2">
+                                {new Date(tx.created_at).toLocaleTimeString(
+                                  [],
+                                  {
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  }
+                                )}
+                              </span>
                             </div>
                           </div>
                         );
