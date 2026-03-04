@@ -1,4 +1,4 @@
-<Page x:Class="VirtuExAdmin.Pages.AccountPage"
+<Page x:Class="VirtuExAdmin.Pages.CurrenciesPage"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -14,14 +14,6 @@
       d:DesignHeight="450"
       d:DesignWidth="800">
     <Grid>
-        <StackPanel DataContext="{Binding User}"
-                    Visibility="{Binding DataContext.User, 
-                        RelativeSource={RelativeSource AncestorType=Page},
-                        Converter={StaticResource NullToVisibility}}">
-            <ui:TextBox Text="{Binding FullName}"/>
-            <ui:TextBox Text="{Binding Username}" />
-            <ui:TextBox Text="{Binding Email}" />
-            <ui:TextBox Text="{Binding Bio}" />
-        </StackPanel>
+        <TextBlock>Currencies</TextBlock>
     </Grid>
 </Page>

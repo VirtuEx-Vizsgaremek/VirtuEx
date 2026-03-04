@@ -11,6 +11,7 @@ public partial class WebPage : Page {
         
         WebView.DefaultBackgroundColor =  Color.Transparent;
         
+        /*
         WebView.Initialized += (sender, args) => {
             // Authenticate the user automagically.
             var cookie = WebView.CoreWebView2.CookieManager.CreateCookie("vtx_token", ApiClient.Instance.Token, "legany.hu", "/");
@@ -18,5 +19,6 @@ public partial class WebPage : Page {
             cookie.IsSecure   = true;
             WebView.CoreWebView2.CookieManager.AddOrUpdateCookie(cookie);
         };
+        */
     }
 }

@@ -5,6 +5,9 @@
         Title="VirtuEx - Sign In"
         Height="400"
         Width="400"
+        ui:Design.Background="{DynamicResource ApplicationBackgroundBrush}"
+        ui:Design.Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+        Foreground="{DynamicResource TextFillColorPrimaryBrush}"
         WindowStartupLocation="CenterScreen"
         ExtendsContentIntoTitleBar="True"
         ResizeMode="NoResize"
@@ -41,12 +44,12 @@
 
                 <TextBlock Text="Username"/>
                 <ui:TextBox x:Name="EmailBox"
-                            Text="admin@example.com"
+                            Text="{Binding Email, UpdateSourceTrigger=PropertyChanged}"
                              Margin="0,5,0,15"/>
 
                 <TextBlock Text="Password"/>
                 <ui:PasswordBox x:Name="PasswordBox"
-                                Password="SecurePassword123"
+                                Password="{Binding Password, UpdateSourceTrigger=PropertyChanged}"
                              Margin="0,5,0,20"/>
                 
                 <CheckBox Margin="0,5,0,20" Content="Remember Me" />
@@ -54,7 +57,8 @@
                 <ui:Button Appearance="Primary"
                            Content="Sign In"
                            Icon="{ui:SymbolIcon LockClosed24}"
-                           Click="Login_Click"/>
+                           Command="{Binding LoginCommand}"
+                           IsEnabled="True"/>
             </StackPanel>
 
             <!-- 2FA Panel -->
@@ -74,7 +78,8 @@
                 <ui:Button Appearance="Primary"
                            Content="Verify"
                            Height="40"
-                           Icon="{ui:SymbolIcon ShieldCheckmark24}"/>
+                           Icon="{ui:SymbolIcon ShieldCheckmark24}"
+                           IsEnabled="True"/>
             </StackPanel>
 
         </Grid>

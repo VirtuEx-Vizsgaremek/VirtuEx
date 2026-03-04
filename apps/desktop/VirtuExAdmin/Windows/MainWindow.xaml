@@ -12,6 +12,7 @@
                                      IsDesignTimeCreatable=False}"
         ui:Design.Background="{DynamicResource ApplicationBackgroundBrush}"
         ui:Design.Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+        Foreground="{DynamicResource TextFillColorPrimaryBrush}"
         WindowStartupLocation="CenterScreen"
         ExtendsContentIntoTitleBar="True"
         ResizeMode="NoResize"
@@ -30,7 +31,7 @@
                 <ui:NavigationViewItem 
                     Content="Currencies, Stocks &amp; ETFs" 
                     Icon="{ui:SymbolIcon BookCoins24}"
-                    TargetPageType="{x:Type pages:UsersPage}"/>
+                    TargetPageType="{x:Type pages:CurrenciesPage}"/>
                 <ui:NavigationViewItem
                     Content="Transactions"
                     Icon="{ui:SymbolIcon BookClock24}"
@@ -57,6 +58,9 @@
             </ui:NavigationView.FooterMenuItems>
         </ui:NavigationView>
         
-        <ui:TitleBar x:Name="TitleBar" Title="VirtuEx" Grid.Row="0" />
+        <ui:TitleBar
+            x:Name="TitleBar"
+            Title="VirtuEx"
+            Grid.Row="0" />
     </Grid>
 </ui:FluentWindow>

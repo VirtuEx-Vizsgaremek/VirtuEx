@@ -1,4 +1,5 @@
 using System.Net.Http;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using VirtuExAdmin.Serializables;
@@ -6,14 +7,6 @@ using VirtuExAdmin.Serializables;
 namespace VirtuExAdmin.Util;
 
 public class ApiClient : IDisposable {
-    private static ApiClient? _instance;
-    public static ApiClient Instance {
-        get {
-            _instance ??= new ApiClient();
-            return _instance;
-        }
-    }
-
     private string _token;
     public string Token {
         get => _token;
@@ -30,7 +23,7 @@ public class ApiClient : IDisposable {
         NamingStrategy = new SnakeCaseNamingStrategy()
     };
 
-    private ApiClient() {
+    public ApiClient() {
         _httpClient = new HttpClient();
         
         // TODO: configurable api uri
@@ -70,6 +63,6 @@ public class ApiClient : IDisposable {
     }
 
     public void Dispose() {
-        _instance?.Dispose();
+        _httpClient.Dispose();
     }
 }
