@@ -168,8 +168,17 @@ export class MarketDataSeeder extends Seeder {
               const h = new CurrencyHistory();
               h.currency = t;
               h.timestamp = d.date;
-              h.price = BigInt(
+              h.open = BigInt(
                 (parseFloat((d.open as number).toFixed(2)) * 100).toFixed(0)
+              ) as bigint;
+              h.high = BigInt(
+                (parseFloat((d.high as number).toFixed(2)) * 100).toFixed(0)
+              ) as bigint;
+              h.low = BigInt(
+                (parseFloat((d.low as number).toFixed(2)) * 100).toFixed(0)
+              ) as bigint;
+              h.close = BigInt(
+                (parseFloat((d.close as number).toFixed(2)) * 100).toFixed(0)
               ) as bigint;
               em.persist(h);
             })
