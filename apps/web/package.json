@@ -2,7 +2,7 @@
   "name": "@virutex/web",
   "version": "0.1.0",
   "scripts": {
-    "dev": "next dev --hostname ${NEXT_DEV_HOSTNAME:-localhost}",
+    "dev": "node -e \"require('child_process').spawnSync('next',['dev','--hostname',process.env.NEXT_DEV_HOSTNAME||'localhost'],{stdio:'inherit',shell:true})\"",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"
