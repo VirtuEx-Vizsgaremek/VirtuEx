@@ -32,7 +32,8 @@ import {
   NavigationMenuList
 } from '@/components/ui/navigation-menu';
 import { useTheme } from '@/contexts/ThemeContext';
-import { ChartColorTheme, THEME_NAMES } from '@/lib/chartThemes';
+import { type ChartColorTheme, THEME_NAMES } from '@/lib/chartThemes';
+import Image from 'next/image';
 import { Moon, Palette, Sun } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -63,7 +64,7 @@ export default function Navbar() {
     <>
       {/* ── Floating Navbar — appears on scroll ───────────────────────────── */}
       <nav
-        className={`fixed w-[92%] md:w-[70%] top-4 left-1/2 -translate-x-1/2 z-[60] transition-all duration-300 ${
+        className={`fixed w-[92%] md:w-[70%] top-4 left-1/2 -translate-x-1/2 z-60 transition-all duration-300 ${
           showFloatingNav
             ? 'opacity-100 translate-y-0'
             : 'opacity-0 -translate-y-4 pointer-events-none'
@@ -87,10 +88,12 @@ export default function Navbar() {
           </div>
 
           {/* Logo — centered on desktop, left on mobile */}
-          <img
-            src="VirtuEx_logo_pfp-bg-gl-cr.svg"
+          <Image
+            src="/VirtuEx_logo_pfp-bg-gl-cr.svg"
             alt="Logo"
-            className="h-8 w-fit md:absolute md:left-1/2 md:-translate-x-1/2"
+            width={32}
+            height={32}
+            className="w-auto md:absolute md:left-1/2 md:-translate-x-1/2"
           />
 
           {/* Desktop: action buttons */}
@@ -296,10 +299,12 @@ export default function Navbar() {
             )}
           </button>
 
-          <img
-            src="VirtuEx_logo_pfp-bg-gl-cr.svg"
+          <Image
+            src="/VirtuEx_logo_pfp-bg-gl-cr.svg"
             alt="Logo"
-            className="h-10 md:h-13 w-fit"
+            width={40}
+            height={40}
+            className="w-auto"
           />
 
           {/* Desktop: action buttons */}

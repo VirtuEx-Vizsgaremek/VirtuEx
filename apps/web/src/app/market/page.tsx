@@ -78,9 +78,9 @@ export default function Market() {
 
       <FloatingNavbar
         show={showNavbar}
-        onClose={() => setShowNavbar(false)}
+        onCloseAction={() => setShowNavbar(false)}
         isPremium={isPremium}
-        onTogglePremium={() => setIsPremium((prev) => !prev)}
+        onTogglePremiumAction={() => setIsPremium((prev) => !prev)}
       />
 
       {/* ── Left icon column (desktop only) ────────────────────────────── */}

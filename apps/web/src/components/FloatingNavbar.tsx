@@ -1,23 +1,22 @@
 'use client';
 
 import { useTheme } from '@/contexts/ThemeContext';
-import { ChartColorTheme, THEME_NAMES } from '@/lib/chartThemes';
+import { type ChartColorTheme, THEME_NAMES } from '@/lib/chartThemes';
 import { Moon, Palette, Sun } from 'lucide-react';
 import Link from 'next/link';
-import { useState } from 'react';
 
 type FloatingNavbarProps = {
   show: boolean;
-  onClose: () => void;
+  onCloseAction: () => void;
   isPremium: boolean;
-  onTogglePremium: () => void;
+  onTogglePremiumAction: () => void;
 };
 
 export default function FloatingNavbar({
   show,
-  onClose,
+  onCloseAction,
   isPremium,
-  onTogglePremium
+  onTogglePremiumAction
 }: FloatingNavbarProps) {
   const { theme, toggleTheme, colorTheme, setColorTheme } = useTheme();
   const isDark = theme === 'dark';
@@ -28,7 +27,7 @@ export default function FloatingNavbar({
         <div
           className="fixed inset-0 z-900"
           style={{ pointerEvents: 'auto', background: 'transparent' }}
-          onClick={onClose}
+          onClick={onCloseAction}
           aria-label="Close navbar overlay"
         />
       )}
@@ -80,7 +79,7 @@ export default function FloatingNavbar({
                 >
                   <Palette size={18} />
                 </button>
-                <div className="absolute right-0 top-12 bg-card border border-border rounded-lg shadow-xl p-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 min-w-[160px]">
+                <div className="absolute right-0 top-12 bg-card border border-border rounded-lg shadow-xl p-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 min-w-40">
                   {(Object.keys(THEME_NAMES) as ChartColorTheme[]).map(
                     (themeKey) => (
                       <button
@@ -100,7 +99,7 @@ export default function FloatingNavbar({
               </div>
 
               <button
-                onClick={onTogglePremium}
+                onClick={onTogglePremiumAction}
                 className="px-4 py-2 text-xs bg-primary text-primary-foreground rounded-full hover:bg-primary/80 transition-all"
               >
                 {isPremium ? 'Free' : 'Premium'}

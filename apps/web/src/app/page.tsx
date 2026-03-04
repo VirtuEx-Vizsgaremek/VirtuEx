@@ -37,7 +37,7 @@ export default function Home() {
       <main className="container mx-auto px-6 py-16 text-center max-w-5xl">
         <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold mb-6 leading-tight">
           Master the Markets <br />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent">
+          <span className="text-transparent bg-clip-text bg-linear-to-r from-primary to-accent">
             Without the Risk.
           </span>
         </h1>

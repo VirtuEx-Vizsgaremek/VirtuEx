@@ -17,9 +17,8 @@
 
 'use client';
 
-import { useTheme } from '@/contexts/ThemeContext';
 import tickerToDomain, { tickerToName } from '@/lib/stocks';
-import { Pin, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import StockLogo from './StockLogo';
 import { Card } from './ui/card';
 
@@ -47,8 +46,6 @@ export default function SideNav({
   showAssetNav,
   onClose
 }: SidenavProps) {
-  const { theme } = useTheme();
-
   /**
    * Convert stock ticker object to array format for easier rendering
    *
@@ -69,7 +66,7 @@ export default function SideNav({
       className={`
         absolute bottom-0 bg-background transition-transform duration-300 z-30
         left-0 top-0 w-full
-        md:left-[56px] md:top-[56px] md:w-96
+        md:left-14 md:top-14 md:w-96
         ${showAssetNav ? 'translate-x-0' : '-translate-x-full'}
       `}
     >
@@ -84,7 +81,7 @@ export default function SideNav({
           </button>
         </div>
 
-        <Card className="w-full h-full flex flex-col !rounded-none !rounded-r-2xl">
+        <Card className="w-full h-full flex flex-col rounded-none! rounded-r-2xl!">
           <div className="p-4 border-b">
             <h2 className="text-xs font-bold text-muted-foreground uppercase">
               Select Asset
