@@ -16,8 +16,10 @@ import version from '@/util/version';
 import { orm } from '@/util/orm';
 
 import Method from '@/enum/method';
-import MarketData from './util/market_data';
-import { MarketDataSeeder } from './seeders/market_data.seeder';
+import MarketData from '@/util/market_data';
+
+import { MarketDataSeeder } from '@/seeders/market_data.seeder';
+import { UsersSeeder } from '@/seeders/users.seeder';
 
 const app = expressWs(express()).app;
 
@@ -56,7 +58,7 @@ app.use(multer().any());
 
   if (process.env.NODE_ENV !== 'production') {
     await db.schema.refreshDatabase();
-    await db.seeder.seed(MarketDataSeeder);
+    await db.seeder.seed(MarketDataSeeder, UsersSeeder);
   }
 
   // Marked Data Updater
