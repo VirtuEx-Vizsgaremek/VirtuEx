@@ -38,6 +38,8 @@ import {
   AreaSeries,
   CandlestickSeries,
   ColorType,
+  CrosshairMode,
+  TrackingModeExitMode,
   createChart
 } from 'lightweight-charts';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -107,8 +109,11 @@ function getVisibleDaysForWidth(widthPx: number): number {
 function buildVisibleRange(
   toDateStr: string,
   days: number
-): { from: number; to: number } {
-  const to = new Date(toDateStr).getTime() / 1000;
+): { from: number; to: number } | null {
+  // Parse as UTC explicitly (appending T00:00:00Z) to avoid timezone shifting.
+  const toMs = Date.parse(toDateStr + 'T00:00:00Z');
+  if (isNaN(toMs)) return null;
+  const to = Math.floor(toMs / 1000);
   const from = to - days * 24 * 60 * 60;
   return { from, to };
 }
@@ -185,16 +190,23 @@ export default function TradingView({
       const dataset = data ?? activeDataRef.current ?? [];
       const lastPoint = dataset[dataset.length - 1];
 
-      if (lastPoint?.time) {
-        const toStr =
-          typeof lastPoint.time === 'string'
-            ? lastPoint.time
-            : `${lastPoint.time.year}-${String(lastPoint.time.month).padStart(2, '0')}-${String(lastPoint.time.day).padStart(2, '0')}`;
-        chartRef.current
-          .timeScale()
-          .setVisibleRange(buildVisibleRange(toStr, days));
-      } else {
+      try {
+        if (lastPoint?.time) {
+          const toStr =
+            typeof lastPoint.time === 'string'
+              ? lastPoint.time
+              : `${lastPoint.time.year}-${String(lastPoint.time.month).padStart(2, '0')}-${String(lastPoint.time.day).padStart(2, '0')}`;
+
+          const range = buildVisibleRange(toStr, days);
+          if (range) {
+            chartRef.current.timeScale().setVisibleRange(range);
+            return;
+          }
+        }
+        // Fall back to showing all data if range can't be computed.
         chartRef.current.timeScale().fitContent();
+      } catch {
+        // If the chart is being torn down, ignore the error gracefully.
       }
     },
     [] // refs are stable — no deps needed
@@ -207,6 +219,13 @@ export default function TradingView({
 
   // Animation state for progressive rendering
   const [isAnimating, setIsAnimating] = useState(false);
+
+  // Crosshair mode toggle.
+  // On desktop: switches CrosshairMode between Normal and Hidden.
+  // On touch: switches TrackingModeExitMode between OnNextTap (default, tap-to-exit)
+  // and OnTouchEnd (crosshair stays while finger is down, lifts to drag).
+  // Both are needed so the button works correctly on all devices.
+  const [isCrosshairVisible, setIsCrosshairVisible] = useState(true);
 
   // Chart data arrays
   const [areaData, setAreaData] = useState(
@@ -368,6 +387,17 @@ export default function TradingView({
       },
       rightPriceScale: {
         borderColor: colors.borderColor
+      },
+      // Always keep crosshair in Normal mode on init.
+      // Without this, a dblclick (fitContent) in lightweight-charts v5 can
+      // silently switch the mode to Hidden, breaking the hover overlay.
+      crosshair: {
+        mode: CrosshairMode.Normal
+      },
+      // Default touch tracking: OnTouchEnd so crosshair follows the finger
+      // while held, then drag resumes on lift — matches isCrosshairVisible=true.
+      trackingMode: {
+        exitMode: TrackingModeExitMode.OnTouchEnd
       }
     });
 
@@ -409,6 +439,18 @@ export default function TradingView({
     });
 
     /**
+     * lightweight-charts fires a dblclick internally to trigger fitContent.
+     * In v5 this can leave the crosshair in a hidden state.
+     * Re-apply Normal mode every time the user double-clicks so the crosshair
+     * is always restored.
+     */
+    const handleDblClick = () => {
+      chart.applyOptions({ crosshair: { mode: CrosshairMode.Normal } });
+    };
+
+    chartContainerRef.current.addEventListener('dblclick', handleDblClick);
+
+    /**
      * Handle window resize to keep chart responsive
      */
     const handleResize = () => {
@@ -440,8 +482,12 @@ export default function TradingView({
       resizeObserver.observe(chartContainerRef.current);
     }
 
-    // Cleanup function: remove event listener and destroy chart
+    // Cleanup function: remove event listeners and destroy chart
     return () => {
+      chartContainerRef.current?.removeEventListener(
+        'dblclick',
+        handleDblClick
+      );
       window.removeEventListener('resize', handleResize);
       resizeObserver.disconnect();
       if (chartRef.current) {
@@ -618,6 +664,26 @@ export default function TradingView({
     }
   }, [symbol]);
 
+  // ========== Crosshair Toggle ==========
+  useEffect(() => {
+    if (!chartRef.current || !isClient) return;
+    chartRef.current.applyOptions({
+      // Desktop: show or hide the crosshair lines visually.
+      crosshair: {
+        mode: isCrosshairVisible ? CrosshairMode.Normal : CrosshairMode.Hidden
+      },
+      // Touch: when crosshair is "on", use OnTouchEnd so the crosshair follows
+      // the finger as long as it's held down, and drag resumes on lift.
+      // When "off", use OnNextTap (default) so a single tap dismisses the
+      // crosshair and subsequent drags scroll freely.
+      trackingMode: {
+        exitMode: isCrosshairVisible
+          ? TrackingModeExitMode.OnTouchEnd
+          : TrackingModeExitMode.OnNextTap
+      }
+    });
+  }, [isCrosshairVisible, isClient]);
+
   // Resolve currency IDs whenever symbol changes
   useEffect(() => {
     if (!symbol) return;
@@ -636,12 +702,231 @@ export default function TradingView({
 
   const onIntervalClick = () => {};
 
+  // TODO: Fix touch crosshair behaviour on mobile.
+  //       lightweight-charts v5 does not expose a reliable API for keeping the
+  //       crosshair active during a finger drag. The CrosshairMode / TrackingMode
+  //       approaches were tried and did not produce the expected UX. A manual
+  //       touchmove → setCrosshairPosition approach was also attempted but broke
+  //       the pan/scroll interaction. Needs a proper solution before shipping mobile.
+
   // ========== SSR Prevention ==========
   // ========== Component Render ==========
   return (
     <div className="flex h-full min-h-0 flex-col">
       {/* ========== Control Panel ========== */}
-      <div className="m-3 flex flex-wrap gap-2 shrink-0">
+
+      {/* ── Mobile toolbar (< md) — icon buttons in a single tight row ── */}
+      <div className="flex md:hidden items-center gap-1.5 px-2 py-1.5 shrink-0 border-b border-border">
+        {/* Crosshair toggle */}
+        <button
+          onClick={() => setIsCrosshairVisible((v) => !v)}
+          title={isCrosshairVisible ? 'Hide crosshair' : 'Show crosshair'}
+          className={`p-2 rounded-lg border transition-all ${
+            isCrosshairVisible
+              ? 'border-primary/50 bg-primary/10 text-primary'
+              : 'border-border bg-card text-muted-foreground'
+          }`}
+        >
+          {/* Crosshair icon */}
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <circle cx="12" cy="12" r="3" />
+            <line x1="12" y1="2" x2="12" y2="7" />
+            <line x1="12" y1="17" x2="12" y2="22" />
+            <line x1="2" y1="12" x2="7" y2="12" />
+            <line x1="17" y1="12" x2="22" y2="12" />
+          </svg>
+        </button>
+
+        {/* Regenerate */}
+        <button
+          onClick={handleRegenerateData}
+          disabled={isLoading}
+          title="Generate mock data"
+          className="p-2 rounded-lg bg-primary text-primary-foreground disabled:opacity-50 transition-all"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <polyline points="1 4 1 10 7 10" />
+            <path d="M3.51 15a9 9 0 1 0 .49-3.17" />
+          </svg>
+        </button>
+
+        {/* Chart type toggle */}
+        <button
+          onClick={handleToggleChartType}
+          disabled={isLoading}
+          title={`Switch to ${chartType === 'area' ? 'Candlestick' : 'Area'} chart`}
+          className="p-2 rounded-lg border border-primary/30 bg-primary/10 text-primary disabled:opacity-50 transition-all"
+        >
+          {chartType === 'area' ? (
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <rect x="2" y="4" width="4" height="16" />
+              <rect x="10" y="8" width="4" height="12" />
+              <rect x="18" y="2" width="4" height="18" />
+            </svg>
+          ) : (
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+            </svg>
+          )}
+        </button>
+
+        {/* Source badge */}
+        <div className="px-2 py-1 text-xs bg-card border border-border rounded-lg text-muted-foreground">
+          {dataSource === 'realtime' ? symbol : 'Mock'}
+        </div>
+
+        {/* Color legend dots */}
+        <div className="flex items-center gap-1.5 px-2 py-1 bg-card border border-border rounded-lg">
+          <div
+            className={`w-2.5 h-2.5 rounded-sm ${useThemeColors ? 'bg-[rgb(var(--color-success)/1)]' : 'bg-[#22c55e]'}`}
+          />
+          <div
+            className={`w-2.5 h-2.5 rounded-sm ${useThemeColors ? 'bg-[rgb(var(--color-danger)/1)]' : 'bg-[#ef4444]'}`}
+          />
+        </div>
+
+        {/* Theme color toggle */}
+        <button
+          onClick={() => setUseThemeColors(!useThemeColors)}
+          title={
+            isClient
+              ? useThemeColors
+                ? 'Using theme colors'
+                : 'Using standard colors'
+              : 'Toggle colors'
+          }
+          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${useThemeColors ? 'bg-[rgb(var(--color-success)/1)]' : 'bg-[#94a3b8]'}`}
+        >
+          <span
+            className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${useThemeColors ? 'translate-x-5' : 'translate-x-1'}`}
+          />
+        </button>
+
+        {/* Buy / Sell */}
+        <div className="ml-auto flex items-center gap-1.5">
+          <button
+            onClick={() => setTradeMode('buy')}
+            disabled={
+              !isClient ||
+              !symbol ||
+              dataSource !== 'realtime' ||
+              isLoading ||
+              !isLoggedIn
+            }
+            title={
+              !isClient
+                ? 'Loading…'
+                : !isLoggedIn
+                  ? 'Sign in to trade'
+                  : !symbol
+                    ? 'Select an asset first'
+                    : dataSource !== 'realtime'
+                      ? 'Switch to real data first'
+                      : 'Buy'
+            }
+            className="px-3 py-1.5 text-xs rounded-lg text-white font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-all bg-[rgb(var(--color-success)/1)] hover:bg-[rgb(var(--color-success)/0.75)]"
+          >
+            Buy
+          </button>
+          <button
+            onClick={() => setTradeMode('sell')}
+            disabled={
+              !isClient ||
+              !symbol ||
+              dataSource !== 'realtime' ||
+              isLoading ||
+              !isLoggedIn
+            }
+            title={
+              !isClient
+                ? 'Loading…'
+                : !isLoggedIn
+                  ? 'Sign in to trade'
+                  : !symbol
+                    ? 'Select an asset first'
+                    : dataSource !== 'realtime'
+                      ? 'Switch to real data first'
+                      : 'Sell'
+            }
+            className="px-3 py-1.5 text-xs rounded-lg text-white font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-all bg-[rgb(var(--color-danger)/1)] hover:bg-[rgb(var(--color-danger)/0.75)]"
+          >
+            Sell
+          </button>
+        </div>
+      </div>
+
+      {/* ── Desktop toolbar (>= md) — full labeled row, same as before ── */}
+      <div className="hidden md:flex m-3 flex-wrap gap-2 shrink-0">
+        {/* Crosshair toggle */}
+        <button
+          onClick={() => setIsCrosshairVisible((v) => !v)}
+          title={isCrosshairVisible ? 'Hide crosshair' : 'Show crosshair'}
+          className={`px-3 py-2 text-sm rounded-lg border transition-all flex items-center gap-2 ${
+            isCrosshairVisible
+              ? 'border-primary/50 bg-primary/10 text-primary'
+              : 'border-border bg-card text-muted-foreground hover:bg-muted'
+          }`}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <circle cx="12" cy="12" r="3" />
+            <line x1="12" y1="2" x2="12" y2="7" />
+            <line x1="12" y1="17" x2="12" y2="22" />
+            <line x1="2" y1="12" x2="7" y2="12" />
+            <line x1="17" y1="12" x2="22" y2="12" />
+          </svg>
+          Crosshair
+        </button>
+
         {/* Mock Data Generation Button */}
         <button
           onClick={handleRegenerateData}
@@ -673,13 +958,13 @@ export default function TradingView({
           <div className="flex items-center gap-1.5">
             <div
               className={`w-3 h-3 rounded-sm ${useThemeColors ? 'bg-[rgb(var(--color-success)/1)]' : 'bg-[#22c55e]'}`}
-            ></div>
+            />
             <span className="text-muted-foreground">Bullish</span>
           </div>
           <div className="flex items-center gap-1.5">
             <div
               className={`w-3 h-3 rounded-sm ${useThemeColors ? 'bg-[rgb(var(--color-danger)/1)]' : 'bg-[#ef4444]'}`}
-            ></div>
+            />
             <span className="text-muted-foreground">Bearish</span>
           </div>
         </div>

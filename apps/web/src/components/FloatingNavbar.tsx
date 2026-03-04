@@ -37,14 +37,14 @@ export default function FloatingNavbar({
         onMouseEnter={() => {}}
       >
         <nav
-          className={`absolute top-4 left-1/2 w-[50%] max-w-6xl transition-all duration-300 pointer-events-auto ${
+          className={`absolute top-4 left-1/2 w-[90%] md:w-[50%] max-w-6xl transition-all duration-300 pointer-events-auto ${
             show
               ? 'opacity-100 -translate-x-1/2'
               : 'opacity-0 translate-x-[50vw] pointer-events-none'
           }`}
         >
-          <div className="bg-card/95 backdrop-blur-md border border-border shadow-2xl rounded-full px-6 py-3 flex justify-between items-center">
-            <div className="flex items-center gap-6">
+          <div className="bg-card/95 backdrop-blur-md border border-border shadow-2xl rounded-2xl md:rounded-full px-6 py-3 flex flex-col md:flex-row justify-between items-center gap-3 md:gap-0">
+            <div className="flex items-center justify-between w-full md:w-auto gap-6">
               <Link href="/" className="text-xl font-bold text-primary">
                 VirtuEx
               </Link>
@@ -64,7 +64,7 @@ export default function FloatingNavbar({
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 w-full md:w-auto justify-end">
               <button
                 onClick={toggleTheme}
                 className="p-2 rounded-full hover:bg-muted transition-colors"

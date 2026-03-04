@@ -66,9 +66,12 @@ export default function SideNav({
 
   return (
     <div
-      className={`absolute left-[56px] top-[56px] bottom-0 w-96 bg-background transition-transform duration-300 z-30 ${
-        showAssetNav ? 'translate-x-0' : '-translate-x-full'
-      }`}
+      className={`
+        absolute bottom-0 bg-background transition-transform duration-300 z-30
+        left-0 top-0 w-full
+        md:left-[56px] md:top-[56px] md:w-96
+        ${showAssetNav ? 'translate-x-0' : '-translate-x-full'}
+      `}
     >
       <div className="relative h-full">
         <div className="absolute top-4 right-4 z-100 flex gap-2">
