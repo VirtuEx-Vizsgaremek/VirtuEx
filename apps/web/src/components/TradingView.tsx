@@ -708,6 +708,12 @@ export default function TradingView({
   //       approaches were tried and did not produce the expected UX. A manual
   //       touchmove → setCrosshairPosition approach was also attempted but broke
   //       the pan/scroll interaction. Needs a proper solution before shipping mobile.
+  //
+  // TODO: Fix logo placemint in navbar.
+  //
+  // TODO: Fix theme change in navbar.
+  //
+  // TODO: Fix asset's icon in toolbar.
 
   // ========== SSR Prevention ==========
   // ========== Component Render ==========
