@@ -93,7 +93,7 @@ export default function Navbar() {
             alt="Logo"
             width={32}
             height={32}
-            className="w-auto md:absolute md:left-1/2 md:-translate-x-1/2"
+            className="h-8 w-auto md:absolute md:left-1/2 md:-translate-x-1/2"
           />
 
           {/* Desktop: action buttons */}
@@ -304,7 +304,7 @@ export default function Navbar() {
             alt="Logo"
             width={40}
             height={40}
-            className="w-auto"
+            className="h-10 md:h-13 w-auto"
           />
 
           {/* Desktop: action buttons */}

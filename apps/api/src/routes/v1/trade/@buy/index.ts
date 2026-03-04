@@ -119,13 +119,13 @@ export const post = async (
     { orderBy: { timestamp: 'DESC' } }
   );
 
-  if (!latestHistory || latestHistory.price <= 0n)
+  if (!latestHistory || latestHistory.close <= 0n)
     return res.error(
       Status.ServiceUnavailable,
       'Price data unavailable for the target currency.'
     );
 
-  const pricePerUnit = latestHistory.price; // e.g. 17500n = $175.00
+  const pricePerUnit = latestHistory.close; // e.g. 17500n = $175.00
 
   // ── 4. Calculate units received ───────────────────────────────────────────
   // units = (spendAmount × 10^precision) / pricePerUnit

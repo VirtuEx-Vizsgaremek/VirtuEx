@@ -16,9 +16,17 @@ export class CurrencyHistory {
   @PrimaryKey()
   timestamp!: Date;
 
-  // Price to USD.
   @Property()
-  price: bigint = BigInt(0) as bigint;
+  open: bigint = BigInt(0) as bigint;
+
+  @Property()
+  high: bigint = BigInt(0) as bigint;
+
+  @Property()
+  low: bigint = BigInt(0) as bigint;
+
+  @Property()
+  close: bigint = BigInt(0) as bigint;
 
   [PrimaryKeyProp]?: ['currency', 'timestamp'];
 }

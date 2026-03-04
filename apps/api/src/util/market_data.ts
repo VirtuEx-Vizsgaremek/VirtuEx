@@ -33,16 +33,28 @@ class MarketData {
         if (!shouldUpdate) return;
 
         const current = await this.yahooFinance.quote(c.symbol);
-        db.create(CurrencyHistory, {
-          currency: c,
-          timestamp: new Date(),
-          price: BigInt(
-            (
-              parseFloat((current.regularMarketPrice as number).toFixed(2)) *
-              100
-            ).toFixed(0)
-          ) as bigint
-        });
+        try {
+          db.create(CurrencyHistory, {
+            currency: c,
+            timestamp: new Date(),
+            open: BigInt(
+              (parseFloat((current.open as number).toFixed(2)) * 100).toFixed(0)
+            ) as bigint,
+            high: BigInt(
+              (parseFloat((current.high as number).toFixed(2)) * 100).toFixed(0)
+            ) as bigint,
+            low: BigInt(
+              (parseFloat((current.low as number).toFixed(2)) * 100).toFixed(0)
+            ) as bigint,
+            close: BigInt(
+              (parseFloat((current.close as number).toFixed(2)) * 100).toFixed(
+                0
+              )
+            ) as bigint
+          });
+        } catch (e: unknown) {
+          console.error('failed to update market data for', c.symbol, e);
+        }
       })
     );
 
