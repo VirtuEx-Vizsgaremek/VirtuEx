@@ -17,8 +17,8 @@
 
 'use client';
 
-import { useTheme } from '@/contexts/ThemeContext';
 import tickerToDomain, { tickerToName } from '@/lib/stocks';
+import { X } from 'lucide-react';
 import StockLogo from './StockLogo';
 import { Card } from './ui/card';
 
@@ -29,6 +29,8 @@ import { Card } from './ui/card';
 interface SidenavProps {
   selectedSymbol: string; // Current stock symbol being displayed in chart
   onSelectSymbol: (symbol: string) => void; // Function to call when user clicks a stock
+  showAssetNav: boolean;
+  onClose: () => void;
 }
 
 /**
@@ -40,10 +42,10 @@ interface SidenavProps {
  */
 export default function SideNav({
   selectedSymbol,
-  onSelectSymbol
+  onSelectSymbol,
+  showAssetNav,
+  onClose
 }: SidenavProps) {
-  const { theme } = useTheme();
-
   /**
    * Convert stock ticker object to array format for easier rendering
    *
@@ -60,125 +62,92 @@ export default function SideNav({
   }));
 
   return (
-    <Card className="w-full h-full flex flex-col">
-      {/* Fixed Header Section */}
-      {/*
-        - p-4: Padding 16px all around
-        - border-b: Bottom border for visual separation
-        - This section stays at top while list below scrolls
-      */}
-      <div className="p-4 border-b">
-        <h2 className="text-xs font-bold text-muted-foreground uppercase">
-          Select Asset
-        </h2>
+    <div
+      className={`
+        absolute bottom-0 bg-background transition-transform duration-300 z-30
+        left-0 top-0 w-full
+        md:left-14 md:top-14 md:w-96
+        ${showAssetNav ? 'translate-x-0' : '-translate-x-full'}
+      `}
+    >
+      <div className="relative h-full">
+        <div className="absolute top-4 right-4 z-100 flex gap-2">
+          <button
+            onClick={onClose}
+            className="p-2 bg-card hover:bg-muted rounded-full border border-border transition-colors"
+            title="Close"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        <Card className="w-full h-full flex flex-col rounded-none! rounded-r-2xl!">
+          <div className="p-4 border-b">
+            <h2 className="text-xs font-bold text-muted-foreground uppercase">
+              Select Asset
+            </h2>
+          </div>
+
+          <div
+            className="flex-1 overflow-y-auto p-2"
+            style={{
+              scrollbarWidth: 'thin',
+              scrollbarColor: 'var(--primary) var(--muted)'
+            }}
+          >
+            <style jsx>{`
+              div::-webkit-scrollbar {
+                width: 8px;
+              }
+              div::-webkit-scrollbar-track {
+                background: var(--muted);
+                border-radius: 10px;
+              }
+              div::-webkit-scrollbar-thumb {
+                background: var(--primary);
+                border-radius: 10px;
+                transition: background 0.2s;
+              }
+              div::-webkit-scrollbar-thumb:hover {
+                background: var(--primary);
+                opacity: 0.8;
+              }
+            `}</style>
+            <ul className="space-y-1">
+              {stocks.map((stock) => {
+                const isSelected = selectedSymbol === stock.symbol;
+
+                return (
+                  <li key={stock.symbol}>
+                    <button
+                      onClick={() => onSelectSymbol(stock.symbol)}
+                      className={`w-full text-left px-3 py-2 rounded-lg transition-all flex items-center gap-3 ${
+                        isSelected
+                          ? 'bg-primary/10 text-primary font-semibold'
+                          : 'hover:bg-muted text-foreground'
+                      }`}
+                    >
+                      <StockLogo ticker={stock.symbol} />
+
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium">{stock.symbol}</div>
+
+                        <div className="text-xs text-muted-foreground truncate">
+                          {stock.name}
+                        </div>
+                      </div>
+
+                      {isSelected && (
+                        <div className="w-2 h-2 bg-primary rounded-full" />
+                      )}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </Card>
       </div>
-
-      {/* Scrollable Stock List Container */}
-      {/*
-        - flex-1: Takes all remaining vertical space in parent
-        - overflow-y-auto: Enables vertical scrolling when content overflows
-        - p-2: Small padding (8px) around the list
-        - Combined with parent's flex-col, this creates scrollable area
-      */}
-      <div
-        className="flex-1 overflow-y-auto p-2"
-        style={{
-          scrollbarWidth: 'thin',
-          scrollbarColor: 'var(--primary) var(--muted)'
-        }}
-      >
-        <style jsx>{`
-          div::-webkit-scrollbar {
-            width: 8px;
-          }
-          div::-webkit-scrollbar-track {
-            background: var(--muted);
-            border-radius: 10px;
-          }
-          div::-webkit-scrollbar-thumb {
-            background: var(--primary);
-            border-radius: 10px;
-            transition: background 0.2s;
-          }
-          div::-webkit-scrollbar-thumb:hover {
-            background: var(--primary);
-            opacity: 0.8;
-          }
-        `}</style>
-        <ul className="space-y-1">
-          {/* Map over stocks array to render each stock as a button */}
-          {stocks.map((stock) => {
-            // Check if this stock is currently selected (for styling)
-            const isSelected = selectedSymbol === stock.symbol;
-
-            return (
-              <li key={stock.symbol}>
-                {/*
-                  Stock Selection Button
-                  
-                  onClick={() => onSelectSymbol(stock.symbol)}:
-                  - Arrow function delays execution until user clicks
-                  - Without arrow function, onSelectSymbol would execute immediately on render
-                  - Arrow function creates: function() { onSelectSymbol('AAPL') }
-                  - When clicked, calls parent's callback with this stock's symbol
-                  
-                  className breakdown:
-                  - w-full: Full width of parent container
-                  - text-left: Align text to left (buttons default to center)
-                  - px-3 py-2: Padding 12px horizontal, 8px vertical
-                  - rounded-lg: Rounded corners (8px radius)
-                  - transition-all: Smooth animation on all property changes (150ms)
-                  - flex items-center gap-3: Flexbox with items vertically centered, 12px gap
-                  - Conditional classes based on isSelected:
-                    * If selected: Blue background, blue text, bold font
-                    * If not: Gray text, gray background on hover
-                */}
-                <button
-                  onClick={() => onSelectSymbol(stock.symbol)}
-                  className={`w-full text-left px-3 py-2 rounded-lg transition-all flex items-center gap-3 ${
-                    isSelected
-                      ? 'bg-primary/10 text-primary font-semibold'
-                      : 'hover:bg-muted text-foreground'
-                  }`}
-                >
-                  {/* Trending Up Icon - Changes color based on selection state */}
-                  <StockLogo ticker={stock.symbol} />
-
-                  {/* Stock Information Container */}
-                  {/*
-                    - flex-1: Takes up remaining horizontal space
-                    - min-w-0: Allows text truncation (without this, text won't ellipsis)
-                  */}
-                  <div className="flex-1 min-w-0">
-                    {/* Stock Symbol (e.g., "AAPL") */}
-                    <div className="font-medium">{stock.symbol}</div>
-
-                    {/* Full Company/Asset Name */}
-                    {/*
-                      - text-xs: Extra small text (12px)
-                      - text-muted-foreground: Theme-aware muted text color
-                      - truncate: Cuts off long text with ellipsis (...)
-                    */}
-                    <div className="text-xs text-muted-foreground truncate">
-                      {stock.name}
-                    </div>
-                  </div>
-
-                  {/* Selection Indicator Dot - Only shows when selected */}
-                  {/*
-                    Conditional rendering: {condition && <element>}
-                    - Only renders if isSelected is true
-                    - Creates primary-colored circular dot as visual indicator
-                  */}
-                  {isSelected && (
-                    <div className="w-2 h-2 bg-primary rounded-full" />
-                  )}
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      </div>
-    </Card>
+    </div>
   );
 }
