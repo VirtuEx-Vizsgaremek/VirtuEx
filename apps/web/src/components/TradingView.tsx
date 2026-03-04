@@ -103,9 +103,23 @@ export default function TradingView({
   const { theme, colorTheme } = useTheme(); // Get current theme (dark/light) and color theme from context
 
   // TODO: Replace this with useAuth() from AuthContext once the login branch is merged.
-  const token =
-    typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-  const isLoggedIn = !!token;
+  // Client-side hydration: declare mounting flag and hydrate client-only values after mount
+  // to avoid SSR <-> CSR mismatches during React hydration.
+  const [isClient, setIsClient] = useState(false);
+  const [token, setToken] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Mark mounted and hydrate localStorage-backed values only on the client.
+    setIsClient(true);
+    try {
+      const t = localStorage.getItem('token');
+      setToken(t);
+    } catch {
+      setToken(null);
+    }
+  }, []);
+
+  const isLoggedIn = isClient && !!token;
 
   // Get active color scheme based on theme and selected color theme
   const colors =
@@ -120,8 +134,8 @@ export default function TradingView({
 
   // ========== State Management ==========
 
-  // Client-side rendering flag (prevents hydration errors in Next.js)
-  const [isClient, setIsClient] = useState(false);
+  // Client-side rendering flag moved above; preserved here as a note to keep hook order stable.
+  // (Initialisation happens earlier to avoid reordering hooks.)
 
   // Animation state for progressive rendering
   const [isAnimating, setIsAnimating] = useState(false);
@@ -158,13 +172,17 @@ export default function TradingView({
   const [symbolCurrencyId, setSymbolCurrencyId] = useState<string | null>(null);
 
   // Candlestick color scheme preference (theme colors vs standard red/green)
-  const [useThemeColors, setUseThemeColors] = useState<boolean>(() => {
-    if (typeof window !== 'undefined') {
+  // Candlestick color preference. Use a deterministic default for SSR, then hydrate
+  // the user's saved preference from localStorage after mount to avoid hydration mismatch.
+  const [useThemeColors, setUseThemeColors] = useState<boolean>(true);
+  useEffect(() => {
+    try {
       const saved = localStorage.getItem('useThemeColors');
-      return saved !== null ? saved === 'true' : true;
+      if (saved !== null) setUseThemeColors(saved === 'true');
+    } catch {
+      // ignore localStorage errors
     }
-    return true;
-  });
+  }, []);
 
   // Get candlestick colors based on user preference
   const candleColors = useThemeColors
@@ -578,15 +596,13 @@ export default function TradingView({
         <div className="flex items-center gap-4 px-3 py-2 text-sm bg-card border border-border rounded-lg">
           <div className="flex items-center gap-1.5">
             <div
-              className="w-3 h-3 rounded-sm"
-              style={{ backgroundColor: candleColors.up }}
+              className={`w-3 h-3 rounded-sm ${useThemeColors ? 'bg-[rgb(var(--color-success)/1)]' : 'bg-[#22c55e]'}`}
             ></div>
             <span className="text-muted-foreground">Bullish</span>
           </div>
           <div className="flex items-center gap-1.5">
             <div
-              className="w-3 h-3 rounded-sm"
-              style={{ backgroundColor: candleColors.down }}
+              className={`w-3 h-3 rounded-sm ${useThemeColors ? 'bg-[rgb(var(--color-danger)/1)]' : 'bg-[#ef4444]'}`}
             ></div>
             <span className="text-muted-foreground">Bearish</span>
           </div>
@@ -597,20 +613,17 @@ export default function TradingView({
           <span className="text-xs text-muted-foreground">Standard</span>
           <button
             onClick={() => setUseThemeColors(!useThemeColors)}
-            className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50"
-            style={{
-              backgroundColor: useThemeColors ? candleColors.up : '#94a3b8'
-            }}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50 ${useThemeColors ? 'bg-[rgb(var(--color-success)/1)]' : 'bg-[#94a3b8]'}`}
             title={
-              useThemeColors
-                ? 'Using theme colors - Click for standard'
-                : 'Using standard colors - Click for theme'
+              isClient
+                ? useThemeColors
+                  ? 'Using theme colors - Click for standard'
+                  : 'Using standard colors - Click for theme'
+                : 'Toggle colors'
             }
           >
             <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                useThemeColors ? 'translate-x-6' : 'translate-x-1'
-              }`}
+              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${useThemeColors ? 'translate-x-6' : 'translate-x-1'}`}
             />
           </button>
           <span className="text-xs text-muted-foreground">Theme</span>
@@ -620,38 +633,48 @@ export default function TradingView({
           <button
             onClick={() => setTradeMode('buy')}
             disabled={
-              !symbol || dataSource !== 'realtime' || isLoading || !isLoggedIn
+              !isClient ||
+              !symbol ||
+              dataSource !== 'realtime' ||
+              isLoading ||
+              !isLoggedIn
             }
             title={
-              !isLoggedIn
-                ? 'Sign in to trade'
-                : !symbol
-                  ? 'Select an asset first'
-                  : dataSource !== 'realtime'
-                    ? 'Switch to real data first'
-                    : 'Buy this asset'
+              !isClient
+                ? 'Loading…'
+                : !isLoggedIn
+                  ? 'Sign in to trade'
+                  : !symbol
+                    ? 'Select an asset first'
+                    : dataSource !== 'realtime'
+                      ? 'Switch to real data first'
+                      : 'Buy this asset'
             }
-            className="px-4 py-2 text-sm rounded-lg text-white disabled:opacity-40 disabled:cursor-not-allowed transition-all
-              bg-[rgb(var(--color-success)/1)] hover:bg-[rgb(var(--color-success)/0.75)]"
+            className="px-4 py-2 text-sm rounded-lg text-white disabled:opacity-40 disabled:cursor-not-allowed transition-all bg-[rgb(var(--color-success)/1)] hover:bg-[rgb(var(--color-success)/0.75)]"
           >
             Buy
           </button>
           <button
             onClick={() => setTradeMode('sell')}
             disabled={
-              !symbol || dataSource !== 'realtime' || isLoading || !isLoggedIn
+              !isClient ||
+              !symbol ||
+              dataSource !== 'realtime' ||
+              isLoading ||
+              !isLoggedIn
             }
             title={
-              !isLoggedIn
-                ? 'Sign in to trade'
-                : !symbol
-                  ? 'Select an asset first'
-                  : dataSource !== 'realtime'
-                    ? 'Switch to real data first'
-                    : 'Sell this asset'
+              !isClient
+                ? 'Loading…'
+                : !isLoggedIn
+                  ? 'Sign in to trade'
+                  : !symbol
+                    ? 'Select an asset first'
+                    : dataSource !== 'realtime'
+                      ? 'Switch to real data first'
+                      : 'Sell this asset'
             }
-            className="px-4 py-2 text-sm rounded-lg text-white disabled:opacity-40 disabled:cursor-not-allowed transition-all
-              bg-[rgb(var(--color-danger)/1)] hover:bg-[rgb(var(--color-danger)/0.75)]"
+            className="px-4 py-2 text-sm rounded-lg text-white disabled:opacity-40 disabled:cursor-not-allowed transition-all bg-[rgb(var(--color-danger)/1)] hover:bg-[rgb(var(--color-danger)/0.75)]"
           >
             Sell
           </button>
