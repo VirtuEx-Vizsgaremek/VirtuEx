@@ -2,7 +2,7 @@
   "name": "@virutex/web",
   "version": "0.1.0",
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --hostname ${NEXT_DEV_HOSTNAME:-localhost}",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"
