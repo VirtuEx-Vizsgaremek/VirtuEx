@@ -13,7 +13,98 @@
       Foreground="{DynamicResource TextFillColorPrimaryBrush}"
       d:DesignHeight="450"
       d:DesignWidth="800">
-    <Grid>
-        <TextBlock>Currencies</TextBlock>
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Title -->
+        <TextBlock Grid.Row="0"
+                   Text="Currencies, Stocks &amp; ETFs"
+                   FontSize="24"
+                   FontWeight="SemiBold"
+                   Margin="0,0,0,16"/>
+
+        <!-- Filter bar -->
+        <Grid Grid.Row="1" Margin="0,0,0,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <ui:TextBox Grid.Column="0"
+                        PlaceholderText="Search by symbol or name..."
+                        Text="{Binding SearchText}"
+                        Margin="0,0,8,0"/>
+
+            <ComboBox Grid.Column="1"
+                      ItemsSource="{Binding TypeFilterOptions}"
+                      SelectedItem="{Binding TypeFilter}"
+                      MinWidth="120"
+                      Margin="0,0,8,0"/>
+
+            <ComboBox Grid.Column="2"
+                      ItemsSource="{Binding PageSizeOptions}"
+                      SelectedItem="{Binding PageSize}"
+                      MinWidth="80"
+                      Margin="0,0,8,0"/>
+
+            <ui:Button Grid.Column="3"
+                       Content="Clear"
+                       Command="{Binding ClearFiltersCommand}"/>
+        </Grid>
+
+        <!-- DataGrid -->
+        <ui:DataGrid Grid.Row="2"
+                     ItemsSource="{Binding PagedCurrencies}"
+                     SelectedItem="{Binding SelectedCurrency}"
+                     IsReadOnly="True">
+            <ui:DataGrid.InputBindings>
+                <MouseBinding MouseAction="LeftDoubleClick"
+                              Command="{Binding RowDoubleClickCommand}"
+                              CommandParameter="{Binding SelectedCurrency}"/>
+            </ui:DataGrid.InputBindings>
+        </ui:DataGrid>
+
+        <!-- Pagination controls -->
+        <Grid Grid.Row="3" Margin="0,12,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Grid.Column="0"
+                       VerticalAlignment="Center"
+                       Text="{Binding PaginationSummary}"/>
+
+            <StackPanel Grid.Column="1"
+                        Orientation="Horizontal"
+                        HorizontalAlignment="Right">
+                <ui:Button Content="«"
+                           Command="{Binding FirstPageCommand}"
+                           Margin="0,0,4,0"
+                           MinWidth="32"/>
+                <ui:Button Content="‹"
+                           Command="{Binding PrevPageCommand}"
+                           Margin="0,0,4,0"
+                           MinWidth="32"/>
+                <TextBlock VerticalAlignment="Center"
+                           Margin="8,0"
+                           Text="{Binding PageInfo}"/>
+                <ui:Button Content="›"
+                           Command="{Binding NextPageCommand}"
+                           Margin="4,0,4,0"
+                           MinWidth="32"/>
+                <ui:Button Content="»"
+                           Command="{Binding LastPageCommand}"
+                           Margin="4,0,0,0"
+                           MinWidth="32"/>
+            </StackPanel>
+        </Grid>
     </Grid>
 </Page>

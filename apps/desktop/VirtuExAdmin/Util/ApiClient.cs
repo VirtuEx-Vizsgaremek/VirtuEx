@@ -50,13 +50,50 @@ public class ApiClient : IDisposable {
     /// </summary>
     /// <returns></returns>
     public async Task<User> User() {
-        if (_token == null)
-            throw new InvalidOperationException("You must login dummy.");
-        
         var res = await _httpClient.GetAsync("/v1/user/@me");
         
         if (res.IsSuccessStatusCode)
             return JsonConvert.DeserializeObject<User>(await res.Content.ReadAsStringAsync())!;
+        
+        var err = JsonConvert.DeserializeObject<ErrorResponse>(await res.Content.ReadAsStringAsync())!;
+        throw new ResponseException(err);
+    }
+    
+    public async Task<User[]> Users() {
+        var res = await _httpClient.GetAsync("/v1/user");
+        
+        if (res.IsSuccessStatusCode)
+            return JsonConvert.DeserializeObject<User[]>(await res.Content.ReadAsStringAsync())!;
+        
+        var err = JsonConvert.DeserializeObject<ErrorResponse>(await res.Content.ReadAsStringAsync())!;
+        throw new ResponseException(err);
+    }
+    
+    public async Task<Currency> Currency(ulong id) {
+        var res = await _httpClient.GetAsync($"/v1/currency/{id}");
+        
+        if (res.IsSuccessStatusCode)
+            return JsonConvert.DeserializeObject<Currency>(await res.Content.ReadAsStringAsync())!;
+        
+        var err = JsonConvert.DeserializeObject<ErrorResponse>(await res.Content.ReadAsStringAsync())!;
+        throw new ResponseException(err);
+    }
+    
+    public async Task<Currency> Currency(string symbol) {
+        var res = await _httpClient.GetAsync($"/v1/currency/{symbol}");
+        
+        if (res.IsSuccessStatusCode)
+            return JsonConvert.DeserializeObject<Currency>(await res.Content.ReadAsStringAsync())!;
+        
+        var err = JsonConvert.DeserializeObject<ErrorResponse>(await res.Content.ReadAsStringAsync())!;
+        throw new ResponseException(err);
+    }
+
+    public async Task<Currency[]> Currencies() {
+        var res = await _httpClient.GetAsync("/v1/currency");
+        
+        if (res.IsSuccessStatusCode)
+            return JsonConvert.DeserializeObject<Currency[]>(await res.Content.ReadAsStringAsync())!;
         
         var err = JsonConvert.DeserializeObject<ErrorResponse>(await res.Content.ReadAsStringAsync())!;
         throw new ResponseException(err);

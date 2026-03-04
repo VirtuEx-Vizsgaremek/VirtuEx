@@ -26,7 +26,9 @@ public partial class App : Application {
         
         // ViewModels
         collection.AddTransient<AuthViewModel>();
+        
         collection.AddTransient<AccountPageViewModel>();
+        collection.AddTransient<CurrenciesPageViewModel>();
         
         // Windows
         collection.AddSingleton<AuthWindow>();

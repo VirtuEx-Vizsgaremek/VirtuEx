@@ -21,7 +21,7 @@
             <ui:TextBox Text="{Binding FullName}"/>
             <ui:TextBox Text="{Binding Username}" />
             <ui:TextBox Text="{Binding Email}" />
-            <ui:TextBox Text="{Binding Bio}" />
+            <ui:TextBox Text="{Binding Bio}" TextWrapping="Wrap" AcceptsReturn="True" Height="200" />
         </StackPanel>
     </Grid>
 </Page>

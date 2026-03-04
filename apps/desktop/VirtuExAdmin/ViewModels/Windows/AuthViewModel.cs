@@ -37,10 +37,12 @@ public partial class AuthViewModel : ObservableObject {
                 LoginSuccess?.Invoke();
             else
                 NotAdmin?.Invoke();
-        }
-        catch (ResponseException err)
-        {
-            MessageBox.Show(err.Message, err.StatusCode.ToString(), MessageBoxButton.OK, MessageBoxImage.Error);
+        } catch (ResponseException err) {
+            var msgBox = new Wpf.Ui.Controls.MessageBox {
+                Title   = err.StatusCode.ToString(),
+                Content = err.Message,
+            };
+            _ = msgBox.ShowDialogAsync();
         }
     }
 }
