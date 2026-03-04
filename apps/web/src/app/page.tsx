@@ -34,21 +34,35 @@ export default function Home() {
   return (
     <div className="min-h-screen">
       {/* Hero Section - Main landing page headline */}
-      <main className="container mx-auto px-6 py-16 text-center">
-        <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
+      <main className="container mx-auto px-6 py-16 text-center max-w-5xl">
+        <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold mb-6 leading-tight">
           Master the Markets <br />
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent">
             Without the Risk.
           </span>
         </h1>
-        <p className="text-muted-foreground text-lg md:text-xl mb-8 max-w-2xl mx-auto">
+        <p className="text-muted-foreground text-base md:text-xl mb-8 max-w-2xl mx-auto">
           Trade with live market data in a safe sandbox environment
         </p>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
+          <a
+            href="/market"
+            className="w-full sm:w-auto px-8 py-3 rounded-full bg-primary text-primary-foreground font-semibold text-sm hover:bg-primary/90 transition-all shadow-lg"
+          >
+            Start Trading
+          </a>
+          <a
+            href="#features"
+            className="w-full sm:w-auto px-8 py-3 rounded-full border border-border text-foreground font-semibold text-sm hover:bg-muted transition-all"
+          >
+            Learn More
+          </a>
+        </div>
       </main>
 
       {/* Features Section - Showcase key platform features */}
-      <section id="features" className="py-24 bg-muted/30">
-        <div className="container mx-auto px-6">
+      <section id="features" className="py-16 md:py-24 bg-muted/30">
+        <div className="container mx-auto px-6 max-w-6xl">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold mb-4 text-foreground">
               Professional Grade Tools
@@ -58,7 +72,7 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
             <Card className="p-8 bg-card border border-border hover:border-primary transition-colors duration-300 group">
               <div className="w-14 h-14 bg-primary/10 rounded-lg flex items-center justify-center mb-6 text-primary group-hover:scale-110 transition">
                 <TrendingUp className="w-6 h-6" />
@@ -108,8 +122,8 @@ export default function Home() {
       </section>
 
       {/* Pricing Section - Display subscription plans */}
-      <section id="pricing" className="py-24 relative">
-        <div className="container mx-auto px-6">
+      <section id="pricing" className="py-16 md:py-24 relative">
+        <div className="container mx-auto px-6 max-w-6xl">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold mb-4 text-foreground">
               Choose Your Plan
@@ -119,7 +133,7 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 max-w-6xl mx-auto">
             {/* Free Starter Plan */}
             <Card className="p-8 bg-card border border-border flex flex-col">
               <div className="mb-4">

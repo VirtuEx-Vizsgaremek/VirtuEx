@@ -43,6 +43,9 @@ export default function Navbar() {
   const isDark = theme === 'dark';
   const [showThemeMenu, setShowThemeMenu] = useState(false);
 
+  // Mobile hamburger drawer state
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+
   // State for floating navbar visibility on scroll
   const [showFloatingNav, setShowFloatingNav] = useState(false);
 
@@ -58,16 +61,17 @@ export default function Navbar() {
 
   return (
     <>
-      {/* Floating Navbar - Appears on scroll with rounded pill design */}
+      {/* ── Floating Navbar — appears on scroll ───────────────────────────── */}
       <nav
-        className={`fixed w-[70%] top-4 left-1/2 -translate-x-1/2 z-[60] transition-all duration-300 ${
+        className={`fixed w-[92%] md:w-[70%] top-4 left-1/2 -translate-x-1/2 z-[60] transition-all duration-300 ${
           showFloatingNav
             ? 'opacity-100 translate-y-0'
             : 'opacity-0 -translate-y-4 pointer-events-none'
         }`}
       >
-        <div className="bg-card/95 backdrop-blur-md border border-border shadow-lg rounded-full px-6 py-3 flex justify-between items-center">
-          <div className="flex items-center gap-4">
+        <div className="bg-card/95 backdrop-blur-md border border-border shadow-lg rounded-2xl md:rounded-full px-4 md:px-6 py-3 flex justify-between items-center">
+          {/* Desktop: nav links */}
+          <div className="hidden md:flex items-center gap-4">
             <Link
               href=""
               className="text-foreground hover:text-primary transition-colors text-sm font-medium"
@@ -82,21 +86,21 @@ export default function Navbar() {
             </Link>
           </div>
 
+          {/* Logo — centered on desktop, left on mobile */}
           <img
             src="VirtuEx_logo_pfp-bg-gl-cr.svg"
             alt="Logo"
-            className="h-10 w-fit absolute left-1/2 -translate-x-1/2"
+            className="h-8 w-fit md:absolute md:left-1/2 md:-translate-x-1/2"
           />
 
-          <div className="flex gap-2">
+          {/* Desktop: action buttons */}
+          <div className="hidden md:flex gap-2">
             <Button variant="outline" size="sm" className="rounded-full">
               Sign Up
             </Button>
             <Button size="sm" className="rounded-full">
               Log In
             </Button>
-
-            {/* Color Theme Selector */}
             <div className="relative">
               <Button
                 size="icon"
@@ -118,11 +122,7 @@ export default function Navbar() {
                             setColorTheme(themeKey);
                             setShowThemeMenu(false);
                           }}
-                          className={`w-full px-4 py-2 text-left text-sm hover:bg-muted transition-colors ${
-                            colorTheme === themeKey
-                              ? 'bg-primary/10 text-primary font-semibold'
-                              : 'text-foreground'
-                          }`}
+                          className={`w-full px-4 py-2 text-left text-sm hover:bg-muted transition-colors ${colorTheme === themeKey ? 'bg-primary/10 text-primary font-semibold' : 'text-foreground'}`}
                         >
                           {THEME_NAMES[themeKey]}
                         </button>
@@ -132,7 +132,6 @@ export default function Navbar() {
                 </div>
               )}
             </div>
-
             <Button
               size="icon"
               variant="ghost"
@@ -146,13 +145,97 @@ export default function Navbar() {
               )}
             </Button>
           </div>
+
+          {/* Mobile: theme + hamburger */}
+          <div className="flex md:hidden items-center gap-1">
+            <Button
+              size="icon"
+              variant="ghost"
+              className="rounded-full"
+              onClick={toggleTheme}
+            >
+              {isDark ? (
+                <Sun className="w-4 h-4" />
+              ) : (
+                <Moon className="w-4 h-4" />
+              )}
+            </Button>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="rounded-full"
+              onClick={() => setShowMobileMenu((v) => !v)}
+            >
+              {showMobileMenu ? (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              ) : (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <line x1="3" y1="6" x2="21" y2="6" />
+                  <line x1="3" y1="12" x2="21" y2="12" />
+                  <line x1="3" y1="18" x2="21" y2="18" />
+                </svg>
+              )}
+            </Button>
+          </div>
         </div>
+
+        {/* Mobile dropdown drawer */}
+        {showMobileMenu && (
+          <div className="md:hidden mt-2 bg-card/95 backdrop-blur-md border border-border rounded-2xl shadow-lg px-4 py-4 flex flex-col gap-3">
+            <Link
+              href=""
+              className="text-foreground hover:text-primary transition-colors text-sm font-medium py-1"
+              onClick={() => setShowMobileMenu(false)}
+            >
+              Premium
+            </Link>
+            <Link
+              href=""
+              className="text-foreground hover:text-primary transition-colors text-sm font-medium py-1"
+              onClick={() => setShowMobileMenu(false)}
+            >
+              About Us
+            </Link>
+            <div className="border-t border-border pt-3 flex flex-col gap-2">
+              <Button variant="outline" size="sm" className="w-full">
+                Sign Up
+              </Button>
+              <Button size="sm" className="w-full">
+                Log In
+              </Button>
+            </div>
+          </div>
+        )}
       </nav>
 
-      {/* Main Navbar - Static top navigation bar */}
+      {/* ── Main Navbar — static top bar ─────────────────────────────────── */}
       <nav className="bg-card border-b border-border shadow-sm">
-        <div className="flex justify-between gap-4 m-auto max-w-[85%] px-1 py-3 items-center ">
-          <NavigationMenu>
+        <div className="flex justify-between gap-4 m-auto max-w-[95%] md:max-w-[85%] px-2 md:px-1 py-3 items-center">
+          {/* Desktop: nav links */}
+          <NavigationMenu className="hidden md:flex">
             <NavigationMenuList className="gap-6">
               <NavigationMenuItem>
                 <NavigationMenuLink
@@ -173,19 +256,58 @@ export default function Navbar() {
             </NavigationMenuList>
           </NavigationMenu>
 
+          {/* Mobile: hamburger button */}
+          <button
+            className="md:hidden p-2 rounded-lg hover:bg-muted transition-colors"
+            onClick={() => setShowMobileMenu((v) => !v)}
+            aria-label="Toggle menu"
+          >
+            {showMobileMenu ? (
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            ) : (
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <line x1="3" y1="12" x2="21" y2="12" />
+                <line x1="3" y1="18" x2="21" y2="18" />
+              </svg>
+            )}
+          </button>
+
           <img
             src="VirtuEx_logo_pfp-bg-gl-cr.svg"
             alt="Logo"
-            className="h-13 w-fit"
+            className="h-10 md:h-13 w-fit"
           />
 
-          <div className="flex gap-3">
+          {/* Desktop: action buttons */}
+          <div className="hidden md:flex gap-3">
             <Button variant="outline" className="text-md">
               Sign Up
             </Button>
             <Button className="text-md">Log In</Button>
-
-            {/* Color Theme Selector */}
             <div className="relative">
               <Button
                 size="icon"
@@ -206,11 +328,7 @@ export default function Navbar() {
                             setColorTheme(themeKey);
                             setShowThemeMenu(false);
                           }}
-                          className={`w-full px-4 py-2 text-left text-sm hover:bg-muted transition-colors ${
-                            colorTheme === themeKey
-                              ? 'bg-primary/10 text-primary font-semibold'
-                              : 'text-foreground'
-                          }`}
+                          className={`w-full px-4 py-2 text-left text-sm hover:bg-muted transition-colors ${colorTheme === themeKey ? 'bg-primary/10 text-primary font-semibold' : 'text-foreground'}`}
                         >
                           {THEME_NAMES[themeKey]}
                         </button>
@@ -220,13 +338,76 @@ export default function Navbar() {
                 </div>
               )}
             </div>
-
-            {/* Light/Dark Mode Toggle */}
             <Button size="icon" variant="ghost" onClick={toggleTheme}>
               {isDark ? <Sun /> : <Moon />}
             </Button>
           </div>
+
+          {/* Mobile: theme toggle only */}
+          <div className="flex md:hidden items-center gap-1">
+            <Button size="icon" variant="ghost" onClick={toggleTheme}>
+              {isDark ? (
+                <Sun className="w-4 h-4" />
+              ) : (
+                <Moon className="w-4 h-4" />
+              )}
+            </Button>
+          </div>
         </div>
+
+        {/* Mobile drawer — drops below the navbar */}
+        {showMobileMenu && (
+          <div className="md:hidden border-t border-border bg-card px-4 py-4 flex flex-col gap-3">
+            <Link
+              href=""
+              className="text-foreground hover:text-primary transition-colors text-sm font-medium py-1"
+              onClick={() => setShowMobileMenu(false)}
+            >
+              Premium
+            </Link>
+            <Link
+              href=""
+              className="text-foreground hover:text-primary transition-colors text-sm font-medium py-1"
+              onClick={() => setShowMobileMenu(false)}
+            >
+              About Us
+            </Link>
+            <Link
+              href="/market"
+              className="text-foreground hover:text-primary transition-colors text-sm font-medium py-1"
+              onClick={() => setShowMobileMenu(false)}
+            >
+              Market
+            </Link>
+            <div className="border-t border-border pt-3 flex flex-col gap-2">
+              <Button variant="outline" size="sm" className="w-full">
+                Sign Up
+              </Button>
+              <Button size="sm" className="w-full">
+                Log In
+              </Button>
+            </div>
+            <div className="border-t border-border pt-3">
+              <p className="text-xs text-muted-foreground mb-2">Color Theme</p>
+              <div className="flex flex-wrap gap-2">
+                {(Object.keys(THEME_NAMES) as ChartColorTheme[]).map(
+                  (themeKey) => (
+                    <button
+                      key={themeKey}
+                      onClick={() => {
+                        setColorTheme(themeKey);
+                        setShowMobileMenu(false);
+                      }}
+                      className={`px-3 py-1.5 rounded-full text-xs transition-colors ${colorTheme === themeKey ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground hover:bg-muted/80'}`}
+                    >
+                      {THEME_NAMES[themeKey]}
+                    </button>
+                  )
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </nav>
     </>
   );
