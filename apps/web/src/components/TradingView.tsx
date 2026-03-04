@@ -40,7 +40,7 @@ import {
   ColorType,
   createChart
 } from 'lightweight-charts';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import ChartOverlay from './ChartOverlay';
 import TradeModal from './TradeModal';
 
@@ -78,6 +78,39 @@ type AreaData = {
 interface TradingViewProps {
   symbol: string; // Stock symbol passed from parent (e.g., "AAPL")
   onClearSelection?: () => void; // Optional callback to clear selection when switching to generated data
+}
+
+/**
+ * Returns the number of days to display on the time axis based on the container
+ * width in pixels.  Wider viewports (ultrawide) show a full year; narrower ones
+ * (tablet / phone) show progressively shorter windows so the chart always looks
+ * dense and readable without wasted space.
+ *
+ * Breakpoints (approximate):
+ *   ≥ 1800 px  → 365 days  (ultrawide / 21:9)
+ *   ≥ 1200 px  → 180 days  (16:9 desktop)
+ *   ≥  768 px  → 90 days   (tablet)
+ *           <  → 30 days   (phone)
+ */
+function getVisibleDaysForWidth(widthPx: number): number {
+  if (widthPx >= 1800) return 365;
+  if (widthPx >= 1200) return 180;
+  if (widthPx >= 768) return 90;
+  return 30;
+}
+
+/**
+ * Given the last data point's date string ("YYYY-MM-DD") and a number of days,
+ * returns a lightweight-charts TimeRange ({ from, to }) expressed as UTC
+ * timestamp seconds so the chart shows exactly that window ending at `toDate`.
+ */
+function buildVisibleRange(
+  toDateStr: string,
+  days: number
+): { from: number; to: number } {
+  const to = new Date(toDateStr).getTime() / 1000;
+  const from = to - days * 24 * 60 * 60;
+  return { from, to };
 }
 
 const formatChartTime = (
@@ -131,6 +164,41 @@ export default function TradingView({
   const chartContainerRef = useRef<HTMLDivElement>(null); // Container DOM element
   const chartRef = useRef<any>(null); // Chart instance
   const seriesRef = useRef<any>(null); // Current series (area or candlestick)
+  // Always holds the latest rendered dataset so resize / range helpers can
+  // access it without going stale inside closures.
+  const activeDataRef = useRef<any[]>([]);
+
+  /**
+   * Applies a responsive visible time range to the chart based on the current
+   * container width. Called after animation completes and after every resize.
+   * Falls back to fitContent() when no data is available yet.
+   * Defined at component scope so both the chart-init and series-update
+   * useEffects can reference it without closure staleness.
+   */
+  const applyResponsiveRange = useCallback(
+    (data?: any[]) => {
+      if (!chartContainerRef.current || !chartRef.current) return;
+      const width = chartContainerRef.current.clientWidth;
+      const days = getVisibleDaysForWidth(width);
+
+      // Prefer the explicitly passed data, then the always-current ref, then empty.
+      const dataset = data ?? activeDataRef.current ?? [];
+      const lastPoint = dataset[dataset.length - 1];
+
+      if (lastPoint?.time) {
+        const toStr =
+          typeof lastPoint.time === 'string'
+            ? lastPoint.time
+            : `${lastPoint.time.year}-${String(lastPoint.time.month).padStart(2, '0')}-${String(lastPoint.time.day).padStart(2, '0')}`;
+        chartRef.current
+          .timeScale()
+          .setVisibleRange(buildVisibleRange(toStr, days));
+      } else {
+        chartRef.current.timeScale().fitContent();
+      }
+    },
+    [] // refs are stable — no deps needed
+  );
 
   // ========== State Management ==========
 
@@ -348,6 +416,7 @@ export default function TradingView({
         chartRef.current.applyOptions({
           width: chartContainerRef.current.clientWidth
         });
+        applyResponsiveRange();
       }
     };
 
@@ -363,6 +432,7 @@ export default function TradingView({
           width: chartContainerRef.current.clientWidth,
           height: chartContainerRef.current.clientHeight
         });
+        applyResponsiveRange();
       }
     });
 
@@ -380,7 +450,7 @@ export default function TradingView({
         seriesRef.current = null;
       }
     };
-  }, [isClient, theme]);
+  }, [isClient, theme, applyResponsiveRange]);
 
   // Active dataset for current chart type
   const activeData = chartType === 'area' ? areaData : candleData;
@@ -401,13 +471,14 @@ export default function TradingView({
     }
 
     const animateChartData = (data: any[], series: any) => {
+      // Keep the ref up-to-date so resize observers can access current data.
+      activeDataRef.current = data;
       setIsAnimating(true);
       const duration = 1500; // Animation duration in ms
       const startTime = Date.now();
       const totalPoints = data.length;
 
       const animate = () => {
-        chartRef.current?.timeScale().fitContent();
         const elapsed = Date.now() - startTime;
         const progress = Math.min(elapsed / duration, 1);
 
@@ -420,12 +491,17 @@ export default function TradingView({
 
         series.setData(visibleData);
 
+        // During animation keep the full range visible so the chart fills from
+        // the left as data is drawn in.
+        chartRef.current?.timeScale().fitContent();
+
         if (progress < 1) {
           requestAnimationFrame(animate);
         } else {
           setIsAnimating(false);
-          // Fit all data points on screen after animation completes
-          chartRef.current?.timeScale().fitContent();
+          // Animation complete — apply responsive visible range based on current
+          // container width instead of showing all data at once.
+          applyResponsiveRange(data);
         }
       };
 
