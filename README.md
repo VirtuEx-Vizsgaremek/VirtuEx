@@ -93,7 +93,7 @@ The system is built on three layers: front-end (web React), backend (Node.js RES
   - We have learnt it in the school
   - Widely supported
   - Industry standard
-- Node.js
+- Node.js (20.9 or later)
   - We have learnt it in the school
   - Widely supported
   - Industry standard
@@ -104,7 +104,7 @@ The system is built on three layers: front-end (web React), backend (Node.js RES
   - We have learnt it in the school
   - Widely supported
   - Industry standard
-- WPF .NET Core
+- WPF .NET Core (8.0 or later)
   - More responsive than WinForms App
   - Easier to version control
   - Multiple application layers for cleaner code
