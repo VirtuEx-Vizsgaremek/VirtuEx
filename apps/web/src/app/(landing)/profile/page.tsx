@@ -1,7 +1,7 @@
 import Image from 'next/image';
 import { redirect } from 'next/navigation';
 import SideNav from '@/components/sidenav';
-import { getMe } from '@/lib/actions';
+import { getMe, getMySubscription } from '@/lib/actions';
 import ProfileForm from '@/components/profile-form';
 
 export const dynamic = 'force-dynamic';
@@ -24,8 +24,12 @@ export default async function ProfilePage() {
     redirect('/auth/login');
   }
 
-  const planName = userData.subscription_plan ?? 'Free';
-  const isPremium = Boolean(userData.subscription) && planName !== 'Free';
+  const subData = await getMySubscription().catch(() => null);
+
+  const planName = subData?.plan_name ?? userData.subscription_plan ?? 'Free';
+  const isPremium = planName !== 'Free';
+  const credits = subData?.monthly_ai_credits ?? 0;
+  const expiresAt: string | null = subData?.expires_at ?? null;
 
   const user = [
     {
@@ -35,39 +39,40 @@ export default async function ProfilePage() {
       email: userData.email,
       registrationDate: new Date().toISOString(),
       premium: isPremium,
-      expire: '2025-12-31',
+      expire: expiresAt
+        ? new Date(expiresAt).toLocaleDateString('hu-HU')
+        : null,
       plan: planName,
-      credits: 100,
+      credits,
       password: 'hashed_password_here'
     }
   ];
 
   function isPremiumUser(user: any) {
-    if (user.premium) {
-      return (
-        <div className="userStat">
-          <div className="grid grid-col-2">
-            <span className="text-sm md:text-base font-semibold text-green-500">
-              Premium User
-            </span>
-            <span className="text-xs md:text-sm font-semibold text-muted-foreground">
-              Plan: {user.plan}
-            </span>
-            <span className="text-xs text-muted-foreground">
-              Credits: {user.credits}
-            </span>
-          </div>
-        </div>
-      );
-    } else {
-      return (
-        <div className="userStat">
-          <span className="text-sm md:text-base font-semibold text-muted-foreground">
-            Free User
+    return (
+      <div className="userStat">
+        <div className="grid grid-col-2 text-center md:text-right">
+          <span
+            className={`text-sm md:text-base font-semibold ${
+              user.premium ? 'text-green-500' : 'text-muted-foreground'
+            }`}
+          >
+            {user.premium ? 'Premium' : 'Free'} User
           </span>
+          <span className="text-xs md:text-sm font-semibold text-muted-foreground">
+            Plan: {user.plan}
+          </span>
+          <span className="text-xs text-muted-foreground">
+            Credits: {user.credits}/hó
+          </span>
+          {user.expire && (
+            <span className="text-xs text-muted-foreground">
+              Lejár: {user.expire}
+            </span>
+          )}
         </div>
-      );
-    }
+      </div>
+    );
   }
 
   return (
