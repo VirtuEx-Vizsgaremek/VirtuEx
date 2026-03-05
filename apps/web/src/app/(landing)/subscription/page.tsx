@@ -35,7 +35,7 @@ export default function Subscription() {
 
   return (
     <div className="w-full min-h-screen bg-background">
-      <div className="max-w-full md:max-w-[85vw] mx-auto px-4 sm:px-6 py-8 md:py-12">
+      <div className="max-w-full md:max-w-[80vw] mx-auto px-4 sm:px-6 py-8 md:py-12">
         {/* Header with optional sidebar toggle for mobile */}
         <div className="grid grid-cols-1 md:grid-cols-[250px_1fr] gap-6 md:gap-8">
           {/* Sidebar */}
@@ -293,7 +293,8 @@ export default function Subscription() {
             <ModifyPlanModal
               isOpen={isModalOpen}
               onClose={setIsModalOpen}
-              currentPlan={selectedPlanData.plan}
+              currentPlan={userPlan || 'Free'}
+              selectedPlan={selectedPlanData.plan}
               currentCredits={selectedPlanData.credits}
             />
           </main>
