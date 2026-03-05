@@ -1,13 +1,14 @@
 'use client';
 
 import { useActionState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { FieldDescription } from '@/components/ui/field';
 import { CardFooter } from '@/components/ui/card';
-import { updateMe } from '@/lib/actions';
+import { updateMe, deleteMe } from '@/lib/actions';
 
 interface ProfileFormProps {
   user: {
@@ -24,6 +25,23 @@ const initialState = {
 
 export default function ProfileForm({ user }: ProfileFormProps) {
   const [state, formAction, pending] = useActionState(updateMe, initialState);
+  const router = useRouter();
+
+  const handleDeleteAccount = async () => {
+    const confirmed = window.confirm(
+      'Are you sure you want to delete your account? This action cannot be undone.'
+    );
+
+    if (confirmed) {
+      const result = await deleteMe();
+      if (result?.error) {
+        alert(`Failed to delete account: ${result.error}`);
+      } else if (result?.success) {
+        // Successfully deleted - redirect to homepage
+        router.push('/');
+      }
+    }
+  };
 
   return (
     <form action={formAction} className="flex flex-col flex-grow">
@@ -136,6 +154,7 @@ export default function ProfileForm({ user }: ProfileFormProps) {
       <CardFooter className="flex flex-col sm:flex-row justify-center gap-3 md:gap-4 pt-4 md:pt-6 border-t border-border px-0">
         <Button
           type="button"
+          onClick={handleDeleteAccount}
           className="bg-red-50 hover:bg-red-100 text-red-600 border border-transparent hover:border-red-200 px-4 md:px-6 transition-colors order-2 sm:order-1 text-sm md:text-base"
         >
           Delete Account

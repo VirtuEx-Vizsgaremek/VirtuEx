@@ -108,18 +108,33 @@ export class Request {
   public async getUser(mfa?: boolean | undefined): Promise<User> {
     const db = (await orm).em.fork();
 
-    const token = this.getHeader('authorization')?.split(' ')[1];
-    if (!token) throw new Error('Unauthorized');
+    const authHeader = this.getHeader('authorization');
+    console.log('[getUser] Auth header:', authHeader ? 'exists' : 'missing');
+
+    const token = authHeader?.split(' ')[1];
+    if (!token) {
+      console.log('[getUser] No token found');
+      throw new Error('Unauthorized');
+    }
 
     try {
       const td = verify(token, process.env.JWT_SECRET!) as TokenData;
+      console.log('[getUser] Token verified, user ID:', td.id);
 
       const user = await db.findOne(User, { id: td.id });
-      if (mfa && !td.mfa) throw new Error('Unauthorized');
-      if (!user) throw new Error('Unauthorized');
+      if (mfa && !td.mfa) {
+        console.log('[getUser] MFA required but not provided');
+        throw new Error('Unauthorized');
+      }
+      if (!user) {
+        console.log('[getUser] User not found in database');
+        throw new Error('Unauthorized');
+      }
 
+      console.log('[getUser] User found:', user.username);
       return user;
-    } catch {
+    } catch (err) {
+      console.log('[getUser] Error:', err);
       throw new Error('Unauthorized');
     }
   }

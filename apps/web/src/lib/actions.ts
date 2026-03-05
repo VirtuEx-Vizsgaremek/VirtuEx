@@ -37,6 +37,7 @@ export const register = async (initialState: any, formData: FormData) => {
 
   if (validatedFields.success) {
     const { full_name, username, email, password } = validatedFields.data;
+    console.log('[REGISTER] Attempting with:', { full_name, username, email });
     let data: any;
 
     try {
@@ -52,6 +53,7 @@ export const register = async (initialState: any, formData: FormData) => {
         const error = await response
           .json()
           .catch(() => ({ message: 'Unknown Error' }));
+        console.error('[REGISTER] API error:', response.status, error);
 
         return {
           error: {},
@@ -60,6 +62,7 @@ export const register = async (initialState: any, formData: FormData) => {
       }
 
       data = await response.json();
+      console.log('[REGISTER] Success! Token received, setting cookie...');
     } catch (e: unknown) {
       console.error('[REGISTER] Catch error:', e);
       return {
@@ -77,11 +80,14 @@ export const register = async (initialState: any, formData: FormData) => {
       expires: new Date(data.expires),
       path: '/'
     });
+    console.log('[REGISTER] Cookie set, redirecting...');
 
     if (data.mfa) {
+      console.log('[REGISTER] MFA required, redirecting to 2FA');
       redirect('/auth/2fa');
     }
 
+    console.log('[REGISTER] Redirecting to profile');
     redirect('/profile');
 
     return {
@@ -236,6 +242,48 @@ export const updateMe = async (
     return { success: true };
   } catch (error) {
     console.error('[PROFILE] Update request failed:', error);
+    return { error: 'Failed to connect to server' };
+  }
+};
+
+export const deleteMe = async (): Promise<{
+  success?: boolean;
+  error?: string;
+}> => {
+  const cookieStore = await cookies();
+  const token = cookieStore.get('vtx_token')?.value;
+
+  console.log('[DELETE] Token exists:', !!token, 'API_URL:', API_URL);
+
+  if (!token) {
+    return { error: 'Not authenticated' };
+  }
+
+  try {
+    const response = await fetch(`${API_URL}/v1/user/@me`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    console.log('[DELETE] Response status:', response.status);
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => null);
+      console.error('[PROFILE] Delete failed:', response.status, err);
+      return { error: err?.message || 'Failed to delete account' };
+    }
+
+    console.log('[PROFILE] Account deleted successfully');
+
+    // Delete the auth cookie after successful deletion
+    cookieStore.delete('vtx_token');
+
+    return { success: true };
+  } catch (error) {
+    console.error('[PROFILE] Delete request failed:', error);
     return { error: 'Failed to connect to server' };
   }
 };
