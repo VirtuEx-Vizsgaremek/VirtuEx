@@ -7,8 +7,9 @@ import { orm } from '@/util/orm';
 import { Wallet } from '@/entities/wallet.entity';
 import { Asset } from '@/entities/asset.entity';
 
-import { z } from 'zod';
 import { CurrencyType } from '@/enum/currency_type';
+
+import { z } from 'zod';
 
 export const schemas = {
   get: {

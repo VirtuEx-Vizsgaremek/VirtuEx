@@ -41,7 +41,11 @@ export const get = async (
   const { id } = req.params;
 
   const db = (await orm).em.fork();
-  const user = await db.findOne(User, { id });
+  const user = await db.findOne(
+    User,
+    { id: BigInt(id) },
+    { populate: ['wallet', 'subscription'] }
+  );
 
   if (!user)
     return res.error(Status.NotFound, 'User with this id is not found.');
