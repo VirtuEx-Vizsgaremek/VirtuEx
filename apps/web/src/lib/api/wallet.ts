@@ -5,7 +5,8 @@ function getApiBaseUrl(): string {
   if (!API_BASE_URL) {
     throw new Error('Missing NEXT_PUBLIC_API_BASE_URL');
   }
-  return API_BASE_URL;
+  // Remove any trailing slashes to avoid accidental double-slash when concatenating paths
+  return API_BASE_URL.replace(/\/+$/, '');
 }
 
 export type WalletBalanceResponse = {

@@ -98,8 +98,13 @@ export default function Navbar() {
 
           {/* Desktop: action buttons */}
           <div className="hidden md:flex gap-2">
-            <Button variant="outline" size="sm" className="rounded-full">
-              Sign Up
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-full"
+              asChild
+            >
+              <Link href="/auth/register">Sign Up</Link>
             </Button>
             <Button size="sm" className="rounded-full" asChild>
               <Link href="/auth/login">Log In</Link>
@@ -223,11 +228,11 @@ export default function Navbar() {
               About Us
             </Link>
             <div className="border-t border-border pt-3 flex flex-col gap-2">
-              <Button variant="outline" size="sm" className="w-full">
-                Sign Up
+              <Button variant="outline" size="sm" className="w-full" asChild>
+                <Link href="/auth/register">Sign Up</Link>
               </Button>
-              <Button size="sm" className="w-full">
-                Log In
+              <Button size="sm" className="w-full" asChild>
+                <Link href="/auth/login">Log In</Link>
               </Button>
             </div>
           </div>
@@ -309,10 +314,12 @@ export default function Navbar() {
 
           {/* Desktop: action buttons */}
           <div className="hidden md:flex gap-3">
-            <Button variant="outline" className="text-md">
-              Sign Up
+            <Button variant="outline" className="text-md" asChild>
+              <Link href="/auth/register">Sign Up</Link>
             </Button>
-            <Button className="text-md">Log In</Button>
+            <Button className="text-md" asChild>
+              <Link href="/auth/login">Log In</Link>
+            </Button>
             <div className="relative">
               <Button
                 size="icon"
@@ -385,11 +392,11 @@ export default function Navbar() {
               Market
             </Link>
             <div className="border-t border-border pt-3 flex flex-col gap-2">
-              <Button variant="outline" size="sm" className="w-full">
-                Sign Up
+              <Button variant="outline" size="sm" className="w-full" asChild>
+                <Link href="/auth/register">Sign Up</Link>
               </Button>
-              <Button size="sm" className="w-full">
-                Log In
+              <Button size="sm" className="w-full" asChild>
+                <Link href="/auth/login">Log In</Link>
               </Button>
             </div>
             <div className="border-t border-border pt-3">
