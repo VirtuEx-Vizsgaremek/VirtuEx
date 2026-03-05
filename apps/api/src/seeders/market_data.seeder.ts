@@ -114,9 +114,9 @@ export class MarketDataSeeder extends Seeder {
       { symbol: 'LIN', type: CurrencyType.Stock },
       { symbol: 'APD', type: CurrencyType.Stock },
       // ETFs
-      { symbol: 'VOO', type: CurrencyType.Stock },
-      { symbol: 'QQQ', type: CurrencyType.Stock },
-      { symbol: 'SPY', type: CurrencyType.Stock },
+      { symbol: 'VOO', type: CurrencyType.ETF },
+      { symbol: 'QQQ', type: CurrencyType.ETF },
+      { symbol: 'SPY', type: CurrencyType.ETF },
       // Crypto
       { symbol: 'BTC-USD', type: CurrencyType.Crypto },
       { symbol: 'ETH-USD', type: CurrencyType.Crypto }
