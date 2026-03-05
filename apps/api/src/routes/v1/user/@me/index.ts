@@ -4,7 +4,6 @@ import { Request, Response } from '@/util/handler';
 import { orm } from '@/util/orm';
 import { UniqueConstraintViolationException } from '@mikro-orm/core';
 import z from 'zod';
-import { UniqueConstraintViolationException } from '@mikro-orm/core';
 
 export const schemas = {
   get: {
