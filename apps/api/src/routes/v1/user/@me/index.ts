@@ -16,8 +16,8 @@ export const schemas = {
       avatar: z.string().nullable().optional(),
       wallet: z.bigint(),
       permissions: z.number(),
-      subscription: z.bigint(),
-      subscription_plan: z.string(),
+      subscription: z.bigint().nullable(),
+      subscription_plan: z.string().nullable(),
       activated: z.boolean()
     })
   },
@@ -49,8 +49,8 @@ export const get = async (
     avatar: user.avatar,
     wallet: user.wallet.id,
     permissions: user.permissions,
-    subscription: user.subscription.id,
-    subscription_plan: user.subscription.plan.name,
+    subscription: user.subscription?.id ?? null,
+    subscription_plan: user.subscription?.plan?.name ?? null,
     activated: user.activated
   });
 };

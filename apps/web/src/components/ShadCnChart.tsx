@@ -306,7 +306,7 @@ export default function AssetChart() {
               stroke={currentAsset.color}
               strokeWidth={2}
             />
-            <ChartLegend content={<ChartLegendContent />} />
+            <ChartLegend />
           </AreaChart>
         </ChartContainer>
       </CardContent>

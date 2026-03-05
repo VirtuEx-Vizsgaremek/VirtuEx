@@ -1,15 +1,13 @@
-('use client');
+'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogFooter
 } from '@/components/ui/dialog';
 
@@ -21,28 +19,45 @@ const PRICES = {
 
 export function ModifyPlanModal({
   currentCredits,
-  currentPlan
+  currentPlan,
+  selectedPlan: initialPlan,
+  isOpen,
+  onClose
 }: {
   currentCredits: number;
   currentPlan: string;
+  selectedPlan?: string;
+  isOpen?: boolean;
+  onClose?: (open: boolean) => void;
 }) {
-  const [open, setOpen] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState(currentPlan);
+  const [open, setOpen] = useState(isOpen ?? false);
+  const [selectedPlan, setSelectedPlan] = useState(initialPlan ?? currentPlan);
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>(
     'monthly'
   );
+
+  useEffect(() => {
+    if (isOpen !== undefined) {
+      setOpen(isOpen);
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (initialPlan) {
+      setSelectedPlan(initialPlan);
+    }
+  }, [initialPlan]);
+
+  const handleOpenChange = (newOpen: boolean) => {
+    setOpen(newOpen);
+    onClose?.(newOpen);
+  };
 
   const currentPrice =
     PRICES[selectedPlan as keyof typeof PRICES][billingCycle];
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button className="w-full sm:w-auto bg-gray-900 hover:bg-black text-white px-10 py-6 text-lg font-semibold transition-all shadow-md">
-          Modify
-        </Button>
-      </DialogTrigger>
-
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[500px] p-6">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold">
@@ -115,7 +130,7 @@ export function ModifyPlanModal({
         </div>
 
         <DialogFooter className="gap-2 sm:gap-0">
-          <Button variant="outline" onClick={() => setOpen(false)}>
+          <Button variant="outline" onClick={() => handleOpenChange(false)}>
             Cancel
           </Button>
           <Button className="bg-blue-600 hover:bg-blue-700 text-white ml-3">
