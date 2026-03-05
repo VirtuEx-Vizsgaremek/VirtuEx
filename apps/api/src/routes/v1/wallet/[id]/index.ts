@@ -33,6 +33,7 @@ export const get = async (
   res: Response<z.infer<typeof schemas.get.res>>
 ) => {
   try {
+    const user = await req.getUser();
     const db = (await orm).em.fork();
     const { id } = req.params;
 
@@ -46,6 +47,10 @@ export const get = async (
 
     if (!wallet) {
       return res.error(Status.NotFound, 'Wallet not found');
+    }
+
+    if (wallet.user.id !== user.id) {
+      return res.error(Status.Forbidden, 'Access denied');
     }
 
     const assets = await db.find(Asset, { wallet }, { populate: ['currency'] });

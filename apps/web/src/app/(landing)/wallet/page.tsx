@@ -20,21 +20,30 @@ import {
   ItemTitle
 } from '@/components/ui/item';
 import SideNav from '@/components/sidenav';
-import { fetchWalletData } from '@/lib/api/wallet';
+import { useRouter } from 'next/navigation';
+import { getMyWallet, getMyWalletHistory } from '@/lib/actions';
 
 export default function WalletPage() {
   const [walletData, setWalletData] = useState<any>(null);
   const [transactionsData, setTransactionsData] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     async function loadWallet() {
       try {
-        const { wallet, transactions } = await fetchWalletData();
+        const [wallet, transactions] = await Promise.all([
+          getMyWallet(),
+          getMyWalletHistory()
+        ]);
         setWalletData(wallet);
         setTransactionsData(transactions);
       } catch (err: any) {
+        if (err.message === 'Not authenticated') {
+          router.push('/auth/login');
+          return;
+        }
         setError(err.message);
       } finally {
         setLoading(false);
@@ -42,7 +51,7 @@ export default function WalletPage() {
     }
 
     loadWallet();
-  }, []);
+  }, [router]);
 
   if (loading) {
     return (
