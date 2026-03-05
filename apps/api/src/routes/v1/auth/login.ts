@@ -1,3 +1,4 @@
+/* eslint-disable no-useless-catch */
 import Status from '@/enum/status';
 
 import { Request, Response } from '@/util/handler';

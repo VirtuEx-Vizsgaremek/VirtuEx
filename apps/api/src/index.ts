@@ -3,6 +3,7 @@ import cors from 'cors';
 import multer from 'multer';
 import chalk from 'chalk';
 import expressWs from 'express-ws';
+import cron from 'node-cron';
 
 import path from 'node:path';
 
@@ -15,6 +16,10 @@ import version from '@/util/version';
 import { orm } from '@/util/orm';
 
 import Method from '@/enum/method';
+import MarketData from '@/util/market_data';
+
+import { MarketDataSeeder } from '@/seeders/market_data.seeder';
+import { UsersSeeder } from '@/seeders/users.seeder';
 
 const app = expressWs(express()).app;
 
@@ -35,7 +40,10 @@ app.use(async (req, res, next) => {
 
 app.use(
   cors({
-    maxAge: 86400
+    origin: true,
+    maxAge: 86400,
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true
   })
 );
 
@@ -51,9 +59,18 @@ app.use(multer().any());
   const { ok } = await db.checkConnection();
   if (!ok) throw new Error();
 
-  console.log(await db.schema.getCreateSchemaSQL());
-
-  if (process.env.NODE_ENV !== 'production') await db.schema.refreshDatabase();
+  // updateSchema() may throw 42710 (duplicate_object) when PostgreSQL enum
+  // types were already created by init.sql. This is safe to ignore – the
+  // rest of the schema diff is still applied correctly.
+  // MikroORM may wrap the error in an AggregateError (e.errors[]), so we
+  // inspect both the top-level code and every nested error.
+  try {
+    await db.schema.updateSchema();
+  } catch (e: any) {
+    const isDuplicateEnum = (err: any) => err?.code === '42710';
+    const errors: any[] = e?.errors ?? [e];
+    if (!errors.every(isDuplicateEnum)) throw e;
+  }
 
   const routes: string[] = await getRoutes(path.join(__dirname, 'routes'));
 

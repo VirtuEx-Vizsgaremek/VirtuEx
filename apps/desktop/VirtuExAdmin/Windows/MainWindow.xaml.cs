@@ -8,14 +8,20 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using Wpf.Ui.Appearance;
+using Wpf.Ui.Controls;
 
-namespace VirtuExAdmin;
+namespace VirtuExAdmin.Windows;
 
 /// <summary>
 /// Interaction logic for MainWindow.xaml
 /// </summary>
-public partial class MainWindow : Window {
+public partial class MainWindow : FluentWindow {
     public MainWindow() {
+        SystemThemeWatcher.Watch(this);
+        
+        DataContext = this;
+        
         InitializeComponent();
     }
 }

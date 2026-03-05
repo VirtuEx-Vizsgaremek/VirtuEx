@@ -6,6 +6,7 @@ import {
   LogContext
 } from '@mikro-orm/postgresql';
 import { SqlHighlighter } from '@mikro-orm/sql-highlighter';
+import { SeedManager } from '@mikro-orm/seeder';
 
 import Logger from '@/util/logger';
 
@@ -39,7 +40,12 @@ const config: Options = {
   entitiesTs: ['src/**/*.entity.ts'],
   debug: process.env.NODE_ENV !== 'production',
   loggerFactory: (options) => new CustomLogger(options),
-  highlighter: new SqlHighlighter()
+  highlighter: new SqlHighlighter(),
+  extensions: [SeedManager],
+  seeder: {
+    path: 'build/seeders',
+    pathTs: 'src/seeders'
+  }
 };
 
 export default config;

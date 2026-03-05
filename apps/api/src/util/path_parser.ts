@@ -10,7 +10,7 @@ export default function pathParser(path: string): string {
     pathStriped = pathStriped.replace('index', '');
 
   // Get all params in the path.
-  const paramNames = pathStriped.match(/(\[[a-zA-Z0-9]+\])/g);
+  const paramNames = pathStriped.match(/(\[[a-zA-Z0-9_]+\])/g);
 
   // If there are params in the path, replace them with `:paramName`.
   if (paramNames) {
