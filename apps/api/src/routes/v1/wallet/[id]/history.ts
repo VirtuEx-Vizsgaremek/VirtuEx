@@ -37,7 +37,9 @@ export const get = async (
     const db = (await orm).em.fork();
     const { id } = req.params;
 
-    const wallet = await db.findOne(Wallet, { id });
+    // Convert string ID to BigInt for database query
+    const walletId = BigInt(id);
+    const wallet = await db.findOne(Wallet, { id: walletId });
 
     if (!wallet) {
       return res.error(Status.NotFound, 'Wallet not found');

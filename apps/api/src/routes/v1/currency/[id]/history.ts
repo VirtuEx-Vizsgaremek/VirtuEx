@@ -14,7 +14,7 @@ export const get = async (req: Request, res: Response<CurrencyHistory[]>) => {
     currency = await db.findOne(Currency, {
       symbol: (id as string).toUpperCase()
     });
-  else currency = await db.findOne(Currency, { id });
+  else currency = await db.findOne(Currency, { id: BigInt(id) });
   if (!currency)
     return res.error(
       Status.NotFound,

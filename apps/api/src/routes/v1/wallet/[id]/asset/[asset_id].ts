@@ -32,7 +32,14 @@ export const get = async (
   const { id, asset_id } = req.params;
 
   const db = (await orm).em.fork();
-  const wallet = await db.findOne(Wallet, { id }, { populate: ['user'] });
+  // Convert string IDs to BigInt for database queries
+  const walletId = BigInt(id);
+  const assetId = BigInt(asset_id);
+  const wallet = await db.findOne(
+    Wallet,
+    { id: walletId },
+    { populate: ['user'] }
+  );
 
   if (!wallet) return res.error(Status.NotFound, 'Wallet not found.');
 
@@ -42,7 +49,7 @@ export const get = async (
 
   const asset = await db.findOne(
     Asset,
-    { id: asset_id, wallet },
+    { id: assetId, wallet },
     { populate: ['currency'] }
   );
 

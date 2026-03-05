@@ -313,7 +313,7 @@ async function seed() {
         const entry = new CurrencyHistory();
         entry.currency = currency;
         entry.timestamp = new Date(now - daysAgo * 24 * 60 * 60 * 1000);
-        entry.price = price;
+        entry.close = price;
         return entry;
       });
 
