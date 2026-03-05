@@ -8,6 +8,7 @@ import { Wallet } from '@/entities/wallet.entity';
 import { Asset } from '@/entities/asset.entity';
 
 import { z } from 'zod';
+import { CurrencyType } from '@/enum/currency_type';
 
 export const schemas = {
   get: {
@@ -16,7 +17,7 @@ export const schemas = {
       currency: z.string(),
       symbol: z.string(),
       amount: z.string(),
-      type: z.enum(['fiat', 'crypto']),
+      type: z.enum(CurrencyType),
       precision: z.number()
     })
   }

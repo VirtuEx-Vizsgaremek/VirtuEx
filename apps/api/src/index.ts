@@ -40,10 +40,7 @@ app.use(async (req, res, next) => {
 
 app.use(
   cors({
-    origin: true,
-    maxAge: 86400,
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true
+    maxAge: 86400
   })
 );
 
@@ -59,18 +56,17 @@ app.use(multer().any());
   const { ok } = await db.checkConnection();
   if (!ok) throw new Error();
 
-  // updateSchema() may throw 42710 (duplicate_object) when PostgreSQL enum
-  // types were already created by init.sql. This is safe to ignore – the
-  // rest of the schema diff is still applied correctly.
-  // MikroORM may wrap the error in an AggregateError (e.errors[]), so we
-  // inspect both the top-level code and every nested error.
-  try {
-    await db.schema.updateSchema();
-  } catch (e: any) {
-    const isDuplicateEnum = (err: any) => err?.code === '42710';
-    const errors: any[] = e?.errors ?? [e];
-    if (!errors.every(isDuplicateEnum)) throw e;
+  if (process.env.NODE_ENV !== 'production') {
+    await db.schema.refreshDatabase();
+    await db.seeder.seed(MarketDataSeeder, UsersSeeder);
   }
+
+  // Marked Data Updater
+  await MarketData.updateData();
+  cron.schedule('* * * * *', async () => {
+    logger.info('Updating market data...');
+    await MarketData.updateData();
+  });
 
   const routes: string[] = await getRoutes(path.join(__dirname, 'routes'));
 
