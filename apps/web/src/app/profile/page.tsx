@@ -21,10 +21,37 @@ import {
 } from '@/components/ui/card';
 
 import { Button } from '@/components/ui/button';
-import { Field } from '@/components/ui/field';
-import { Input } from '@/components/ui/input';
+
+import {
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+  FieldLegend,
+  FieldSeparator,
+  FieldSet,
+  FieldTitle
+} from '@/components/ui/field';
+
 import { Label } from '@/components/ui/label';
-import { FieldDescription } from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
+import { ModifyPlanModal } from '@/components/planmod';
+
+//Example profile data!
+const user = [
+  {
+    name: 'John Doe',
+    id: 12,
+    email: 'ex@exa.com',
+    password: '3:45',
+    premium: true,
+    expire: '2024-12-31',
+    plan: 'Pro',
+    credits: 1500
+  }
+];
 
 export default function ProfilePage() {
   // Mock user data - in the future this will be fetched via API (e.g., getUser())
@@ -208,16 +235,20 @@ export default function ProfilePage() {
                     </div>
                   </div>
 
-                  <CardFooter className="flex flex-col sm:flex-row justify-center gap-4 pt-6 border-t border-gray-100 px-0">
-                    <Button className="bg-red-50 hover:bg-red-100 text-red-600 border border-transparent hover:border-red-200 px-6 transition-colors order-2 sm:order-1">
-                      Delete Account
-                    </Button>
-                    <Button
-                      type="submit"
-                      className="bg-blue-600 hover:bg-blue-700 text-white px-8 transition-colors order-1 sm:order-2"
-                    >
-                      Save Changes
-                    </Button>
+                  <div className="space-y-1">
+                    <p className="text-sm font-semibold text-gray-600 uppercase tracking-wider">
+                      Available Credits
+                    </p>
+                    <p className="text-3xl font-bold text-blue-600">
+                      {user[0].credits}
+                    </p>
+                  </div>
+
+                  <CardFooter className="flex justify-center mt-auto pt-8 px-0">
+                    <ModifyPlanModal
+                      currentCredits={user[0].credits}
+                      currentPlan={user[0].plan}
+                    />
                   </CardFooter>
                 </form>
               </CardContent>

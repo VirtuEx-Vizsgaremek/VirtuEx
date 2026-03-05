@@ -4,6 +4,7 @@ import { Request, Response } from '@/util/handler';
 import { orm } from '@/util/orm';
 import { UniqueConstraintViolationException } from '@mikro-orm/core';
 import z from 'zod';
+import { UniqueConstraintViolationException } from '@mikro-orm/core';
 
 export const schemas = {
   get: {
@@ -17,6 +18,7 @@ export const schemas = {
       wallet: z.bigint(),
       permissions: z.number(),
       subscription: z.bigint(),
+      subscription_plan: z.string(),
       activated: z.boolean()
     })
   },
@@ -35,6 +37,9 @@ export const get = async (
   res: Response<z.infer<typeof schemas.get.res>>
 ) => {
   const user = await req.getUser();
+  const db = (await orm).em.fork();
+
+  await db.populate(user, ['subscription.plan']);
 
   res.status(Status.Ok).json({
     id: user.id,
@@ -45,9 +50,8 @@ export const get = async (
     avatar: user.avatar,
     wallet: user.wallet.id,
     permissions: user.permissions,
-    subscription: user.subscription
-      ? user.subscription.id
-      : (BigInt(0) as bigint),
+    subscription: user.subscription.id,
+    subscription_plan: user.subscription.plan.name,
     activated: user.activated
   });
 };

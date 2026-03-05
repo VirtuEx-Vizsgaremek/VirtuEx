@@ -59,7 +59,7 @@ export const get = async (
     avatar: user.avatar,
     wallet: user.wallet.id,
     permissions: user.permissions,
-    subscription: user.subscription.id,
+    subscription: user.subscription.id.toString(),
     activated: user.activated
   });
 };
