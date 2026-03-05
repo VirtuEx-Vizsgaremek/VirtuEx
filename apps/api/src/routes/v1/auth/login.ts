@@ -1,4 +1,3 @@
-/* eslint-disable no-useless-catch */
 import Status from '@/enum/status';
 
 import { Request, Response } from '@/util/handler';
@@ -20,7 +19,7 @@ export const schemas = {
     }),
     req: z.object({
       email: z.email(),
-      password: z.string()
+      password: z.string().min(8).max(128)
     })
   }
 };

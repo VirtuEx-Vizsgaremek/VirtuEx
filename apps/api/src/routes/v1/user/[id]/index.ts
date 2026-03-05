@@ -19,7 +19,7 @@ export const schemas = {
       avatar: z.string().nullable().optional(),
       wallet: z.bigint(),
       permissions: z.number(),
-      subscription: z.bigint(),
+      subscription: z.bigint().optional(),
       activated: z.boolean()
     })
   },
