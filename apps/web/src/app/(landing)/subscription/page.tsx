@@ -1,14 +1,17 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Check, X } from 'lucide-react';
 import { ModifyPlanModal } from '@/components/planmod';
-import { fetchCurrentPlan, type PlanKey } from '@/lib/subscriptionApi';
+import { normalisePlanName, type PlanKey } from '@/lib/subscriptionApi';
+import { getMySubscription, changeMySubscription } from '@/lib/actions';
 import SideNav from '@/components/sidenav';
 
 export default function Subscription() {
+  const router = useRouter();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedPlanData, setSelectedPlanData] = useState({
     plan: 'Standard',
@@ -17,8 +20,19 @@ export default function Subscription() {
   const [userPlan, setUserPlan] = useState<PlanKey | null>(null);
 
   useEffect(() => {
-    fetchCurrentPlan().then(setUserPlan);
-  }, []);
+    getMySubscription()
+      .then((sub) => setUserPlan(normalisePlanName(sub.plan_name)))
+      .catch((err) => {
+        if (err.message === 'Not authenticated') {
+          router.push('/auth/login');
+        }
+      });
+  }, [router]);
+
+  const handleConfirmPlan = async (planName: string) => {
+    await changeMySubscription(planName);
+    setUserPlan(normalisePlanName(planName));
+  };
 
   const handleSelectPlan = (planName: string) => {
     const creditMap: Record<string, number> = {
@@ -296,6 +310,7 @@ export default function Subscription() {
               currentPlan={userPlan || 'Free'}
               selectedPlan={selectedPlanData.plan}
               currentCredits={selectedPlanData.credits}
+              onConfirm={handleConfirmPlan}
             />
           </main>
         </div>

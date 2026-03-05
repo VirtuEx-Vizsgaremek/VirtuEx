@@ -2,6 +2,8 @@ import { User } from '@/entities/user.entity';
 import { Wallet } from '@/entities/wallet.entity';
 import { Asset } from '@/entities/asset.entity';
 import { Currency } from '@/entities/currency.entity';
+import { Subscription } from '@/entities/subscription.entity';
+import { SubscriptionPlan } from '@/entities/subscription_plan.entity';
 import { EntityManager } from '@mikro-orm/core';
 import { Seeder } from '@mikro-orm/seeder';
 
@@ -66,6 +68,67 @@ export class UsersSeeder extends Seeder {
 
     em.persist(regularUser);
     em.persist(adminUser);
+    await em.flush();
+
+    // ── Subscription Plans ───────────────────────────────────────────────────
+    const planConfigs = [
+      {
+        name: 'Free',
+        monthlyAiCredits: 5,
+        assetsMax: 10,
+        stopLoss: false,
+        realTime: false,
+        displayFeatures: { version: 1 as const, tradingView: false },
+        price: 0
+      },
+      {
+        name: 'Standard',
+        monthlyAiCredits: 30,
+        assetsMax: 50,
+        stopLoss: false,
+        realTime: true,
+        displayFeatures: { version: 1 as const, tradingView: false },
+        price: 35
+      },
+      {
+        name: 'Pro',
+        monthlyAiCredits: 100,
+        assetsMax: 0,
+        stopLoss: true,
+        realTime: true,
+        displayFeatures: { version: 1 as const, tradingView: true },
+        price: 49
+      }
+    ];
+
+    const plans: Record<string, SubscriptionPlan> = {};
+    for (const cfg of planConfigs) {
+      let plan = await em.findOne(SubscriptionPlan, { name: cfg.name });
+      if (!plan) {
+        plan = new SubscriptionPlan();
+        plan.name = cfg.name;
+        plan.monthlyAiCredits = cfg.monthlyAiCredits;
+        plan.assetsMax = cfg.assetsMax;
+        plan.stopLoss = cfg.stopLoss;
+        plan.realTime = cfg.realTime;
+        plan.displayFeatures = cfg.displayFeatures;
+        plan.price = cfg.price;
+        em.persist(plan);
+      }
+      plans[cfg.name] = plan;
+    }
+    await em.flush();
+
+    // ── Assign Free plan to seeded users if they have no subscription ────────
+    for (const user of [regularUser, adminUser]) {
+      const existingSub = await em.findOne(Subscription, { user });
+      if (!existingSub) {
+        const sub = new Subscription();
+        sub.user = user;
+        sub.plan = plans['Free'];
+        em.persist(sub);
+      }
+    }
     await em.flush();
 
     // Add assets to the dev wallet

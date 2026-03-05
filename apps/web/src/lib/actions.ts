@@ -337,3 +337,36 @@ export const getMyWalletHistory = async () => {
 
   return response.json();
 };
+
+export const getMySubscription = async () => {
+  const cookieStore = await cookies();
+  const token = cookieStore.get('vtx_token')?.value;
+  if (!token) throw new Error('Not authenticated');
+
+  const response = await fetch(`${API_URL}/v1/user/@me/subscription`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  if (response.status === 401) throw new Error('Not authenticated');
+  if (!response.ok) throw new Error('Failed to fetch subscription');
+
+  return response.json();
+};
+
+export const changeMySubscription = async (planName: string) => {
+  const cookieStore = await cookies();
+  const token = cookieStore.get('vtx_token')?.value;
+  if (!token) throw new Error('Not authenticated');
+
+  const response = await fetch(`${API_URL}/v1/user/@me/subscription`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ plan_name: planName })
+  });
+  if (response.status === 401) throw new Error('Not authenticated');
+  if (!response.ok) throw new Error('Failed to update subscription');
+
+  return response.json();
+};

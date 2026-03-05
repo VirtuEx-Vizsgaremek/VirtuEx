@@ -22,19 +22,22 @@ export function ModifyPlanModal({
   currentPlan,
   selectedPlan: initialPlan,
   isOpen,
-  onClose
+  onClose,
+  onConfirm
 }: {
   currentCredits: number;
   currentPlan: string;
   selectedPlan?: string;
   isOpen?: boolean;
   onClose?: (open: boolean) => void;
+  onConfirm?: (planName: string) => Promise<void>;
 }) {
   const [open, setOpen] = useState(isOpen ?? false);
   const [selectedPlan, setSelectedPlan] = useState(initialPlan ?? currentPlan);
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>(
     'monthly'
   );
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (isOpen !== undefined) {
@@ -133,8 +136,21 @@ export function ModifyPlanModal({
           <Button variant="outline" onClick={() => handleOpenChange(false)}>
             Cancel
           </Button>
-          <Button className="bg-blue-600 hover:bg-blue-700 text-white ml-3">
-            Update Subscription
+          <Button
+            className="bg-blue-600 hover:bg-blue-700 text-white ml-3"
+            disabled={loading}
+            onClick={async () => {
+              if (!onConfirm) return;
+              setLoading(true);
+              try {
+                await onConfirm(selectedPlan);
+              } finally {
+                setLoading(false);
+                handleOpenChange(false);
+              }
+            }}
+          >
+            {loading ? 'Updating...' : 'Update Subscription'}
           </Button>
         </DialogFooter>
       </DialogContent>
