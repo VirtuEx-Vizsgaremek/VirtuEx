@@ -2,6 +2,7 @@
 
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { revalidatePath } from 'next/cache';
 
 import { z } from 'zod';
 
@@ -36,6 +37,8 @@ export const register = async (initialState: any, formData: FormData) => {
 
   if (validatedFields.success) {
     const { full_name, username, email, password } = validatedFields.data;
+    console.log('[REGISTER] Attempting with:', { full_name, username, email });
+    let data: any;
 
     try {
       const response = await fetch(`${API_URL}/v1/auth/register`, {
@@ -50,6 +53,7 @@ export const register = async (initialState: any, formData: FormData) => {
         const error = await response
           .json()
           .catch(() => ({ message: 'Unknown Error' }));
+        console.error('[REGISTER] API error:', response.status, error);
 
         return {
           error: {},
@@ -57,27 +61,34 @@ export const register = async (initialState: any, formData: FormData) => {
         };
       }
 
-      const data = await response.json();
-
-      // Set JWT token as httpOnly cookie
-      const cookieStore = await cookies();
-      cookieStore.set('vtx_token', data.jwt, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        expires: new Date(data.expires),
-        path: '/'
-      });
-
-      if (data.mfa) {
-        redirect('/auth/2fa');
-      }
-
-      redirect('/profile');
+      data = await response.json();
+      console.log('[REGISTER] Success! Token received, setting cookie...');
     } catch (e: unknown) {
-      console.error('Register error:', e);
-      throw e;
+      console.error('[REGISTER] Catch error:', e);
+      return {
+        error: {},
+        serverError: 'Failed to connect to the server. Please try again.'
+      };
     }
+
+    // Set JWT token as httpOnly cookie
+    const cookieStore = await cookies();
+    cookieStore.set('vtx_token', data.jwt, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      expires: new Date(data.expires),
+      path: '/'
+    });
+    console.log('[REGISTER] Cookie set, redirecting...');
+
+    if (data.mfa) {
+      console.log('[REGISTER] MFA required, redirecting to 2FA');
+      redirect('/auth/2fa');
+    }
+
+    console.log('[REGISTER] Redirecting to profile');
+    redirect('/profile');
 
     return {
       error: {},
@@ -99,6 +110,8 @@ export const login = async (initialState: any, formData: FormData) => {
 
   if (validatedFields.success) {
     const { email, password } = validatedFields.data;
+    console.log('[LOGIN] Attempting with email:', email, 'API_URL:', API_URL);
+    let data: any;
 
     try {
       const response = await fetch(`${API_URL}/v1/auth/login`, {
@@ -113,6 +126,7 @@ export const login = async (initialState: any, formData: FormData) => {
         const error = await response
           .json()
           .catch(() => ({ message: 'Unknown Error' }));
+        console.error('[LOGIN] API error:', response.status, error);
 
         return {
           error: {},
@@ -120,27 +134,31 @@ export const login = async (initialState: any, formData: FormData) => {
         };
       }
 
-      const data = await response.json();
-
-      // Set JWT token as httpOnly cookie
-      const cookieStore = await cookies();
-      cookieStore.set('vtx_token', data.jwt, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        expires: new Date(data.expires),
-        path: '/'
-      });
-
-      if (data.mfa) {
-        redirect('/auth/2fa');
-      }
-
-      redirect('/profile');
+      data = await response.json();
+      console.log('[LOGIN] Token received, setting cookie and redirecting');
     } catch (e: unknown) {
-      console.error('Login error:', e);
-      throw e;
+      console.error('[LOGIN] Network or parsing error:', e);
+      return {
+        error: {},
+        serverError: 'Failed to connect to the server. Please try again.'
+      };
     }
+
+    // Set JWT token as httpOnly cookie
+    const cookieStore = await cookies();
+    cookieStore.set('vtx_token', data.jwt, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      expires: new Date(data.expires),
+      path: '/'
+    });
+
+    // Redirect after successful login
+    if (data.mfa) {
+      redirect('/auth/2fa');
+    }
+    redirect('/profile');
 
     return {
       error: {},
@@ -154,6 +172,122 @@ export const login = async (initialState: any, formData: FormData) => {
   }
 };
 
-export const reset = async (initialState: any, formData: FormData) => {
-  console.log(formData);
+export const getMe = async () => {
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get('vtx_token')?.value;
+
+    if (!token) {
+      return null;
+    }
+
+    const response = await fetch(`${API_URL}/v1/user/@me`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Failed to fetch user data:', error);
+    return null;
+  }
 };
+
+export const updateMe = async (
+  prevState: any,
+  formData: FormData
+): Promise<{ success?: boolean; error?: string }> => {
+  const fullName = String(formData.get('name') ?? '').trim();
+  const email = String(formData.get('email') ?? '').trim();
+
+  const cookieStore = await cookies();
+  const token = cookieStore.get('vtx_token')?.value;
+
+  if (!token) {
+    redirect('/auth/login');
+  }
+
+  const payload: { full_name?: string; email?: string } = {};
+  if (fullName) payload.full_name = fullName;
+  if (email) payload.email = email;
+
+  if (Object.keys(payload).length === 0) {
+    return { error: 'No fields to update' };
+  }
+
+  try {
+    const response = await fetch(`${API_URL}/v1/user/@me`, {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => null);
+      console.error('[PROFILE] Update failed:', response.status, err);
+      return { error: err?.message || 'Failed to update profile' };
+    }
+
+    revalidatePath('/profile');
+    return { success: true };
+  } catch (error) {
+    console.error('[PROFILE] Update request failed:', error);
+    return { error: 'Failed to connect to server' };
+  }
+};
+
+export const deleteMe = async (): Promise<{
+  success?: boolean;
+  error?: string;
+}> => {
+  const cookieStore = await cookies();
+  const token = cookieStore.get('vtx_token')?.value;
+
+  console.log('[DELETE] Token exists:', !!token, 'API_URL:', API_URL);
+
+  if (!token) {
+    return { error: 'Not authenticated' };
+  }
+
+  try {
+    const response = await fetch(`${API_URL}/v1/user/@me`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    console.log('[DELETE] Response status:', response.status);
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => null);
+      console.error('[PROFILE] Delete failed:', response.status, err);
+      return { error: err?.message || 'Failed to delete account' };
+    }
+
+    console.log('[PROFILE] Account deleted successfully');
+
+    // Delete the auth cookie after successful deletion
+    cookieStore.delete('vtx_token');
+
+    return { success: true };
+  } catch (error) {
+    console.error('[PROFILE] Delete request failed:', error);
+    return { error: 'Failed to connect to server' };
+  }
+};
+
+export async function reset(formData: FormData): Promise<void> {
+  console.log(formData);
+}

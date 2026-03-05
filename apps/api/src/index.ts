@@ -57,15 +57,21 @@ app.use(multer().any());
   if (!ok) throw new Error();
 
   if (process.env.NODE_ENV !== 'production') {
-    await db.schema.refreshDatabase();
-    await db.seeder.seed(MarketDataSeeder, UsersSeeder);
+    // TEMPORARILY DISABLED FOR FASTER STARTUP
+    // await db.schema.refreshDatabase();
+    // await db.seeder.seed(MarketDataSeeder, UsersSeeder);
+
+    // Just ensure the schema exists without dropping everything
+    await db.schema.ensureDatabase();
+    await db.schema.updateSchema();
   }
 
   // Marked Data Updater
   // Fire and forget - don't await, let it run in the background
-  MarketData.updateData().catch((err) =>
-    logger.error('Market data update failed:', err)
-  );
+  // TEMPORARILY DISABLED - can be re-enabled after startup
+  // MarketData.updateData().catch((err) =>
+  //   logger.error('Market data update failed:', err)
+  // );
   cron.schedule('* * * * *', async () => {
     logger.info('Updating market data...');
     await MarketData.updateData();

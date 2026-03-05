@@ -1,5 +1,10 @@
 import Image from 'next/image';
+import { redirect } from 'next/navigation';
 import SideNav from '@/components/sidenav';
+import { getMe } from '@/lib/actions';
+import ProfileForm from '@/components/profile-form';
+
+export const dynamic = 'force-dynamic';
 
 import {
   Item,
@@ -10,35 +15,29 @@ import {
   ItemTitle
 } from '@/components/ui/item';
 
-import {
-  Card,
-  CardAction,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle
-} from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
-import { Button } from '@/components/ui/button';
-import { Field } from '@/components/ui/field';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { FieldDescription } from '@/components/ui/field';
+export default async function ProfilePage() {
+  const userData = await getMe();
 
-export default function ProfilePage() {
-  // Mock user data - in the future this will be fetched via API (e.g., getUser())
+  if (!userData) {
+    redirect('/auth/login');
+  }
+
+  const planName = userData.subscription_plan ?? 'Free';
+  const isPremium = Boolean(userData.subscription) && planName !== 'Free';
+
   const user = [
     {
-      id: 1,
-      name: 'John Doe',
-      username: 'johndoe',
-      email: 'john.doe@example.com',
-      registrationDate: '2024-01-15T10:30:00Z',
-      premium: true,
+      id: userData.id,
+      name: userData.full_name,
+      username: userData.username,
+      email: userData.email,
+      registrationDate: new Date().toISOString(),
+      premium: isPremium,
       expire: '2025-12-31',
-      plan: 'Pro',
-      credits: 1500,
+      plan: planName,
+      credits: 100,
       password: 'hashed_password_here'
     }
   ];
@@ -52,10 +51,10 @@ export default function ProfilePage() {
               Premium User
             </span>
             <span className="text-xs md:text-sm font-semibold text-muted-foreground">
-              Credits: {user.credits}
+              Plan: {user.plan}
             </span>
             <span className="text-xs text-muted-foreground">
-              Expires on: {new Date(user.expire).toLocaleDateString('hu-HU')}
+              Credits: {user.credits}
             </span>
           </div>
         </div>
@@ -121,111 +120,7 @@ export default function ProfilePage() {
               </CardHeader>
 
               <CardContent className="flex flex-col pt-4 md:pt-6 px-4 md:px-6">
-                <form action="" className="flex flex-col flex-grow">
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 mb-6 md:mb-8">
-                    <div className="space-y-4 md:space-y-6">
-                      <h3 className="text-base md:text-lg font-semibold text-foreground">
-                        Personal Information
-                      </h3>
-
-                      <Field className="space-y-2">
-                        <Label className="text-xs md:text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                          Name
-                        </Label>
-                        <Input
-                          type="text"
-                          name="name"
-                          defaultValue={user?.[0]?.name}
-                          placeholder="Your Full Name"
-                          className="w-full px-3 md:px-4 py-2 text-sm md:text-base"
-                          required
-                        />
-                      </Field>
-
-                      <Field className="space-y-2">
-                        <Label className="text-xs md:text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                          Email Address
-                        </Label>
-                        <Input
-                          type="email"
-                          name="email"
-                          defaultValue={user?.[0]?.email}
-                          placeholder="email@example.com"
-                          className="w-full px-3 md:px-4 py-2 text-sm md:text-base"
-                          required
-                        />
-                      </Field>
-
-                      <Field className="pt-2 md:pt-4 flex items-center justify-between">
-                        <Label className="text-xs md:text-sm font-medium text-foreground">
-                          Registration Date
-                        </Label>
-                        <span className="font-mono text-xs md:text-sm text-muted-foreground bg-muted px-2 py-1 rounded">
-                          {new Date(
-                            user?.[0]?.registrationDate || Date.now()
-                          ).toLocaleDateString('hu-HU')}
-                        </span>
-                      </Field>
-                    </div>
-
-                    <div className="space-y-4 md:space-y-6 lg:border-l lg:border-border lg:pl-8 pt-6 lg:pt-0">
-                      <h3 className="text-base md:text-lg font-semibold text-foreground">
-                        Security Settings
-                      </h3>
-
-                      <div className="flex flex-col gap-4">
-                        <div className="p-3 md:p-4 bg-muted rounded-lg border border-border">
-                          <p className="text-xs md:text-sm text-muted-foreground mb-3">
-                            Update your password to keep your account secure.
-                          </p>
-                          <Button className="w-full bg-card border border-border text-foreground hover:bg-muted text-sm md:text-base">
-                            Change Password
-                          </Button>
-                        </div>
-
-                        <div className="space-y-3">
-                          <p className="text-xs md:text-sm font-medium text-foreground">
-                            Two-Factor Authentication
-                          </p>
-                          <div className="flex flex-col sm:flex-row gap-3">
-                            <Button
-                              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white transition-colors text-sm md:text-base"
-                              type="button"
-                            >
-                              Backup Code
-                            </Button>
-                            <Button
-                              className="flex-1 bg-white border border-red-200 text-red-600 hover:bg-red-50 transition-colors text-sm md:text-base"
-                              type="button"
-                            >
-                              Remove 2FA
-                            </Button>
-                          </div>
-                          <FieldDescription>
-                            <p className="text-xs md:text-sm">
-                              Configuring an authenticator app is a good way to
-                              add an extra layer of security to your Discord
-                              account to make sure that only you have the
-                              ability to log in.
-                            </p>
-                          </FieldDescription>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <CardFooter className="flex flex-col sm:flex-row justify-center gap-3 md:gap-4 pt-4 md:pt-6 border-t border-border px-0">
-                    <Button className="bg-red-50 hover:bg-red-100 text-red-600 border border-transparent hover:border-red-200 px-4 md:px-6 transition-colors order-2 sm:order-1 text-sm md:text-base">
-                      Delete Account
-                    </Button>
-                    <Button
-                      type="submit"
-                      className="bg-blue-600 hover:bg-blue-700 text-white px-6 md:px-8 transition-colors order-1 sm:order-2 text-sm md:text-base"
-                    >
-                      Save Changes
-                    </Button>
-                  </CardFooter>
-                </form>
+                <ProfileForm user={user[0]} />
               </CardContent>
             </Card>
           </main>
