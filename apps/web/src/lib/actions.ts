@@ -157,3 +157,49 @@ export const login = async (initialState: any, formData: FormData) => {
 export const reset = async (initialState: any, formData: FormData) => {
   console.log(formData);
 };
+
+export const getMyWallet = async () => {
+  const cookieStore = await cookies();
+  const token = cookieStore.get('vtx_token')?.value;
+  if (!token) throw new Error('Not authenticated');
+
+  const meResponse = await fetch(`${API_URL}/v1/user/@me`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  if (meResponse.status === 401) throw new Error('Not authenticated');
+  if (!meResponse.ok) throw new Error('Failed to fetch user');
+
+  const me = await meResponse.json();
+  const walletId = me.wallet.toString();
+
+  const response = await fetch(`${API_URL}/v1/wallet/${walletId}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  if (response.status === 401) throw new Error('Not authenticated');
+  if (!response.ok) throw new Error('Failed to fetch wallet');
+
+  return response.json();
+};
+
+export const getMyWalletHistory = async () => {
+  const cookieStore = await cookies();
+  const token = cookieStore.get('vtx_token')?.value;
+  if (!token) throw new Error('Not authenticated');
+
+  const meResponse = await fetch(`${API_URL}/v1/user/@me`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  if (meResponse.status === 401) throw new Error('Not authenticated');
+  if (!meResponse.ok) throw new Error('Failed to fetch user');
+
+  const me = await meResponse.json();
+  const walletId = me.wallet.toString();
+
+  const response = await fetch(`${API_URL}/v1/wallet/${walletId}/history`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  if (response.status === 401) throw new Error('Not authenticated');
+  if (!response.ok) throw new Error('Failed to fetch wallet history');
+
+  return response.json();
+};

@@ -34,15 +34,24 @@ export const get = async (
   res: Response<z.infer<typeof schemas.get.res>>
 ) => {
   try {
+    const user = await req.getUser();
     const db = (await orm).em.fork();
     const { id } = req.params;
 
     // Convert string ID to BigInt for database query
     const walletId = BigInt(id);
-    const wallet = await db.findOne(Wallet, { id: walletId });
+    const wallet = await db.findOne(
+      Wallet,
+      { id: walletId },
+      { populate: ['user'] }
+    );
 
     if (!wallet) {
       return res.error(Status.NotFound, 'Wallet not found');
+    }
+
+    if (wallet.user.id !== user.id) {
+      return res.error(Status.Forbidden, 'Access denied');
     }
 
     const transactions = await db.find(
@@ -73,6 +82,10 @@ export const get = async (
     });
   } catch (error) {
     console.error('Error fetching wallet transactions:', error);
+
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return res.error(Status.Unauthorized, 'Invalid or missing token');
+    }
 
     return res.error(
       Status.InternalServerError,
