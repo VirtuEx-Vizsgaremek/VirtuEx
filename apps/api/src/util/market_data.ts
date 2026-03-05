@@ -38,18 +38,24 @@ class MarketData {
             currency: c,
             timestamp: new Date(),
             open: BigInt(
-              (parseFloat((current.open as number).toFixed(2)) * 100).toFixed(0)
+              (
+                parseFloat(((current.open ?? 0) as number).toFixed(2)) * 100
+              ).toFixed(0)
             ) as bigint,
             high: BigInt(
-              (parseFloat((current.high as number).toFixed(2)) * 100).toFixed(0)
+              (
+                parseFloat(((current.high ?? 0) as number).toFixed(2)) * 100
+              ).toFixed(0)
             ) as bigint,
             low: BigInt(
-              (parseFloat((current.low as number).toFixed(2)) * 100).toFixed(0)
+              (
+                parseFloat(((current.low ?? 0) as number).toFixed(2)) * 100
+              ).toFixed(0)
             ) as bigint,
             close: BigInt(
-              (parseFloat((current.close as number).toFixed(2)) * 100).toFixed(
-                0
-              )
+              (
+                parseFloat(((current.close ?? 0) as number).toFixed(2)) * 100
+              ).toFixed(0)
             ) as bigint
           });
         } catch (e: unknown) {

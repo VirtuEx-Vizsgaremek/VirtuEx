@@ -101,8 +101,8 @@ export default function Navbar() {
             <Button variant="outline" size="sm" className="rounded-full">
               Sign Up
             </Button>
-            <Button size="sm" className="rounded-full">
-              Log In
+            <Button size="sm" className="rounded-full" asChild>
+              <Link href="/auth/login">Log In</Link>
             </Button>
             <div className="relative">
               <Button

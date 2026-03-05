@@ -24,7 +24,7 @@ export const schemas = {
       full_name: z.string(),
       username: z.string().min(3).max(32),
       email: z.email(),
-      password: z.string()
+      password: z.string().min(8).max(128)
     })
   }
 };
