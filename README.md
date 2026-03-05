@@ -50,35 +50,9 @@ The system is built on three layers: front-end (web React), backend (Node.js RES
 | Stop‑loss                                         |  ❌  |    ❌    | ✅  |
 | TradingView chart                                 |  ❌  |    ❌    | ✅  |
 | Subscription fee                                  | FREE |   $35    | $49 |
-| Features                                          | Free | Standard | Pro |
-| :------------------------------------------------ | :--: | :------: | :-: |
-| Chart view (candle/line)                          |  ✅  |    ✅    | ✅  |
-| Wallet (Stripe test API)                          |  ✅  |    ✅    | ✅  |
-| Balance + transactions display                    |  ✅  |    ✅    | ✅  |
-| Asset (coin) listing                              |  ✅  |    ✅    | ✅  |
-| Swap crypto <-> crypto                            |  ✅  |    ✅    | ✅  |
-| User data editing                                 |  ✅  |    ✅    | ✅  |
-| Buy/Sell (Spot[^1])                               |  ✅  |    ✅    | ✅  |
-| Margin[^3] trading                                |  ✅  |    ✅    | ✅  |
-| Limit[^2] trading                                 |  ✅  |    ✅    | ✅  |
-| AI (simulated) trading                            |  ✅  |    ✅    | ✅  |
-| AI chatbot credits                                |  5   |    30    | 100 |
-| 2FA + profile + social accounts + payment + OAuth |  ❌  |    ✅    | ✅  |
-| Real-time trading                                 |  ❌  |    ✅    | ✅  |
-| Unlimited portfolio size                          |  ❌  |    ❌    | ✅  |
-| Stop‑loss                                         |  ❌  |    ❌    | ✅  |
-| TradingView chart                                 |  ❌  |    ❌    | ✅  |
-| Subscription fee                                  | FREE |   $35    | $49 |
 
 ### Desktop Application Features
 
-| Features                                                | Admin |
-| :------------------------------------------------------ | :---: |
-| Display and edit user data                              |  ✅   |
-| Punishment for rule violations (Wash trading, spoofing) |  ✅   |
-| Display transaction details                             |  ✅   |
-| Full user account management                            |  ✅   |
-| Create account (with web + desktop permissions)         |  ✅   |
 | Features                                                | Admin |
 | :------------------------------------------------------ | :---: |
 | Display and edit user data                              |  ✅   |
@@ -189,34 +163,9 @@ The system is built on three layers: front-end (web React), backend (Node.js RES
 | F-13 | User Profile Customization    | Profile picture, social accounts, payment methods, OAuth setup.                             | Uploaded data                           | Updated profile information                |
 | F-14 | User Portfolio                | Unlimited coin management for Pro users. Restricted in smaller packages, max 10 currencies. | User ID                                 | Storage of portfolio data                  |
 | F-15 | Transaction Log               | The system logs trading events and transactions.                                            | Transaction data                        | Log entry in the database                  |
-| ID   | Function Name                 | Description                                                                                 | Input                                   | Output / Result                            |
-| :--- | :---------------------------- | :------------------------------------------------------------------------------------------ | :-------------------------------------- | :----------------------------------------- |
-| F-01 | Chart View                    | The user can view cryptocurrency exchange rates on a chart.                                 | Selected asset (coin), view type        | Displayed TradingView chart                |
-| F-02 | AI / Real time data selection | The user can choose between AI-simulated data and real-time data.                           | Mode selection                          | Display of selected data source            |
-| F-03 | Account Management            | User account creation and management (according to GitHub layout).                          | Name, email, password, profile picture  | Active user profile                        |
-| F-04 | Wallet Integration            | The user can manage their wallet using Stripe API.                                          | Deposit and withdrawal data             | Balance update based on transaction        |
-| F-05 | Balance Display               | The system displays the user's balance.                                                     | User ID                                 | Currency, amount                           |
-| F-06 | Deposit and Withdrawal        | Deposit and withdrawal of fiat and crypto assets.                                           | Amount, type, target                    | Transaction created and logged             |
-| F-07 | Asset List                    | The system displays the coins owned by the user.                                            | User ID                                 | Own coin list                              |
-| F-08 | Swapping                      | Exchange between two assets at a given rate.                                                | Source coin, target coin, amount        | Post-swap balance, exchange executed       |
-| F-09 | Subscription Management       | The user can choose "Free", "Standard", or "Pro" subscription with monthly/yearly fee.      | Package selection                       | Subscription activation, credit allocation |
-| F-10 | AI Chatbot Usage              | The user can use credits for AI-based analysis.                                             | Query, credit amount                    | Analysis response, credit deduction        |
-| F-11 | Trading Functions             | Buying and selling based on exchange rates, in multiple modes.                              | Asset, amount, type (spot/limit/margin) | Transaction executed                       |
-| F-12 | Stop-loss[^4] Setting         | Premium function: setting automatic selling based on exchange rate.                         | Asset, exchange rate                    | Automatic sale at given condition          |
-| F-13 | User Profile Customization    | Profile picture, social accounts, payment methods, OAuth setup.                             | Uploaded data                           | Updated profile information                |
-| F-14 | User Portfolio                | Unlimited coin management for Pro users. Restricted in smaller packages, max 10 currencies. | User ID                                 | Storage of portfolio data                  |
-| F-15 | Transaction Log               | The system logs trading events and transactions.                                            | Transaction data                        | Log entry in the database                  |
 
 ### Desktop Application
 
-| ID   | Function Name             | Description                                                                     | Input                          | Output / Result                 |
-| ---- | ------------------------- | ------------------------------------------------------------------------------- | ------------------------------ | ------------------------------- |
-| F-16 | Display Users             | The admin can see all users in the system.                                      | -                              | User list                       |
-| F-17 | Edit User Data            | The admin can modify user data.                                                 | Selected user, new data        | Updated data saved              |
-| F-18 | Handle Violations         | The admin can impose punishment for rule violations (locking, deduction).       | Wash trading[^5], spoofing[^6] | Account locked, balance reduced |
-| F-19 | Transaction Details       | View transaction data.                                                          | Transaction ID                 | Detailed data view              |
-| F-20 | Create Account from Admin | The admin can create a new account with full permissions.                       | User data                      | New active account              |
-| F-21 | Provide Full Access       | The admin has access to all web functions as well as administrative operations. | -                              | Admin functions available       |
 | ID   | Function Name             | Description                                                                     | Input                          | Output / Result                 |
 | ---- | ------------------------- | ------------------------------------------------------------------------------- | ------------------------------ | ------------------------------- |
 | F-16 | Display Users             | The admin can see all users in the system.                                      | -                              | User list                       |
@@ -292,17 +241,8 @@ The user interface in both the web and desktop applications shows a clean appear
 | price_history | symbol, open, high, low, close, volume, timestamp |
 | users         | id, ai_credits, subscription_level                |
 | subscriptions | -                                                 |
-| Table         | Fields                                            |
-| ------------- | ------------------------------------------------- |
-| price_history | symbol, open, high, low, close, volume, timestamp |
-| users         | id, ai_credits, subscription_level                |
-| subscriptions | -                                                 |
 
 **Operations:**
-
-- `SELECT`: Fetch chart data (filtered by date and resolution based on subscription_level)
-- `SELECT`: Check user AI credits and subscription
-- `UPDATE`: Reduce ai_credits when AI is used
 
 - `SELECT`: Fetch chart data (filtered by date and resolution based on subscription_level)
 - `SELECT`: Check user AI credits and subscription
@@ -326,7 +266,6 @@ It also provides access to features beyond the basic plan.
 <br>
 
 **Database connection:** User database
-**Database connection:** User database
 
 **Tables:**
 
@@ -339,16 +278,8 @@ It also provides access to features beyond the basic plan.
 | ------------- | ------------------------------------------------------------- |
 | users         | id, username, email, password_hash, profile_image, created_at |
 | subscriptions | user_id, plan_type, expiry_date, credits                      |
-| Table         | Fields                                                        |
-| ------------- | ------------------------------------------------------------- |
-| users         | id, username, email, password_hash, profile_image, created_at |
-| subscriptions | user_id, plan_type, expiry_date, credits                      |
 
 **Operations:**
-
-- `SELECT`: Load profile data and subscription status
-- `UPDATE`: Modify profile data (e.g., password, image)
-- `UPDATE`: Upgrade subscription (modify plan_type)
 
 - `SELECT`: Load profile data and subscription status
 - `UPDATE`: Modify profile data (e.g., password, image)
@@ -370,7 +301,6 @@ It also provides access to features beyond the basic plan.
 <br>
 
 **Database connection:** Transaction database
-**Database connection:** Transaction database
 
 **Tables:**
 
@@ -386,16 +316,8 @@ It also provides access to features beyond the basic plan.
 | assets       | wallet_id, currency_id, amount                                                |
 | transactions | id, sender_wallet_id, receiver_wallet_id, amount, currency, timestamp, status |
 | wallets      | user_id, total_estimated_value                                                |
-| Table        | Fields                                                                        |
-| ------------ | ----------------------------------------------------------------------------- |
-| assets       | wallet_id, currency_id, amount                                                |
-| transactions | id, sender_wallet_id, receiver_wallet_id, amount, currency, timestamp, status |
-| wallets      | user_id, total_estimated_value                                                |
 
 **Operations:**
-
-- `SELECT`: Get current balance (assets) by user_id
-- `SELECT`: Retrieve transaction list related to the user
 
 - `SELECT`: Get current balance (assets) by user_id
 - `SELECT`: Retrieve transaction list related to the user
@@ -418,7 +340,6 @@ It also provides access to features beyond the basic plan.
 <br>
 
 **Database connection:** Trading Engine
-**Database connection:** Trading Engine
 
 **Tables:**
 
@@ -432,16 +353,8 @@ It also provides access to features beyond the basic plan.
 | ------ | ----------------------------------------------------------------------------- |
 | orders | id, user_id, pair (e.g., BTC/USD), type (limit/market), amount, price, status |
 | assets | amount (for collateral check)                                                 |
-| Table  | Fields                                                                        |
-| ------ | ----------------------------------------------------------------------------- |
-| orders | id, user_id, pair (e.g., BTC/USD), type (limit/market), amount, price, status |
-| assets | amount (for collateral check)                                                 |
 
 **Operations:**
-
-- `SELECT`: Check available balance
-- `INSERT`: Create a new order
-- `UPDATE`: Lock/reduce user's free balance
 
 - `SELECT`: Check available balance
 - `INSERT`: Create a new order
@@ -460,7 +373,6 @@ It also provides access to features beyond the basic plan.
 <p>
 
 **Database connection:** Transaction database
-**Database connection:** Transaction database
 
 **Tables:**
 
@@ -474,10 +386,6 @@ It also provides access to features beyond the basic plan.
 | -------------- | ------------------- |
 | assets         | currency_id, amount |
 | exchange_rates | pair, rate          |
-| Table          | Fields              |
-| -------------- | ------------------- |
-| assets         | currency_id, amount |
-| exchange_rates | pair, rate          |
 
 **Operations:**
 
@@ -486,10 +394,6 @@ It also provides access to features beyond the basic plan.
 - `UPDATE`: Increase target currency balance
 - `INSERT`: Log swap transaction
 
-- `SELECT`: Get exchange rate
-- `UPDATE`: Decrease source currency balance
-- `UPDATE`: Increase target currency balance
-- `INSERT`: Log swap transaction
 </p>
 <br clear="right"/><br>
 
@@ -507,12 +411,8 @@ Upon opening, the application defaults to the **profiles view**.
 **Database connection:** Admin database  
 **Tables:** `users`  
 **Fields:** `id, username, full_name, status (active/banned)`
-**Fields:** `id, username, full_name, status (active/banned)`
 
 **Operations:**
-
-- `SELECT`: List all registered users
-  <br clear="left"/><br>
 
 - `SELECT`: List all registered users
   <br clear="left"/><br>
@@ -545,13 +445,7 @@ Upon opening, the application defaults to the **profiles view**.
 - `assets`: currency, amount
 - `transactions`: timestamp, type, amount, status
 
-- `users`: username
-- `assets`: currency, amount
-- `transactions`: timestamp, type, amount, status
-
 **Operations:**
-
-- `SELECT`: Fetch specific user's balance and transaction history in admin view
 
 - `SELECT`: Fetch specific user's balance and transaction history in admin view
 
@@ -571,12 +465,9 @@ The "Punishment" button is used to sanction illegal trading behavior.
 
 **Database connection:** Admin database  
 **Tables:** `punishments, users`
-**Tables:** `punishments, users`
 
 **Fields:**
 
-| Table       | Fields                                                     |
-| ----------- | ---------------------------------------------------------- |
 | Table       | Fields                                                     |
 | ----------- | ---------------------------------------------------------- |
 | punishments | id, user_id, reason, punishment_type, created_at, admin_id |
@@ -584,9 +475,6 @@ The "Punishment" button is used to sanction illegal trading behavior.
 | users       | status                                                     |
 
 **Operations:**
-
-- `INSERT`: Add a new punishment
-- `UPDATE`: Change user status (e.g., suspended, banned)
 
 - `INSERT`: Add a new punishment
 - `UPDATE`: Change user status (e.g., suspended, banned)
@@ -609,14 +497,9 @@ In the menu, the "Transactions" section allows monitoring all money movements.
 
 **Database connection:** Transaction database (Audit log)  
 **Tables:** `transactions, users`
-**Tables:** `transactions, users`
 
 **Fields:**
 
-| Table        | Fields                                                  |
-| ------------ | ------------------------------------------------------- |
-| transactions | id, sender_id, receiver_id, amount, currency, timestamp |
-| users        | username (to resolve sender and receiver IDs)           |
 | Table        | Fields                                                  |
 | ------------ | ------------------------------------------------------- |
 | transactions | id, sender_id, receiver_id, amount, currency, timestamp |
