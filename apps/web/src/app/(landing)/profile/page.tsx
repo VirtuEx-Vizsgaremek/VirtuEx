@@ -51,10 +51,10 @@ export default function ProfilePage() {
             <span className="text-sm md:text-base font-semibold text-green-500">
               Premium User
             </span>
-            <span className="text-xs md:text-sm font-semibold text-gray-500">
+            <span className="text-xs md:text-sm font-semibold text-muted-foreground">
               Credits: {user.credits}
             </span>
-            <span className="text-xs text-gray-500">
+            <span className="text-xs text-muted-foreground">
               Expires on: {new Date(user.expire).toLocaleDateString('hu-HU')}
             </span>
           </div>
@@ -63,7 +63,7 @@ export default function ProfilePage() {
     } else {
       return (
         <div className="userStat">
-          <span className="text-sm md:text-base font-semibold text-gray-600">
+          <span className="text-sm md:text-base font-semibold text-muted-foreground">
             Free User
           </span>
         </div>
@@ -80,12 +80,12 @@ export default function ProfilePage() {
           </div>
 
           <main className="grid grid-cols-1 grid-rows-[auto_1fr] text-base md:text-lg">
-            <Card className="w-full col-span-2 shadow-lg border-gray-200 overflow-hidden">
+            <Card className="w-full col-span-2 shadow-lg border-border bg-card overflow-hidden">
               <ItemGroup className="px-4 md:px-6">
                 {user.map((u) => (
                   <Item key={u.id} asChild role="listitem">
                     <div className="flex flex-col md:flex-row items-center md:items-center gap-4 md:gap-8 py-2 md:py-0">
-                      <ItemMedia className="w-[80px] h-[80px] md:w-[100px] md:h-[100px] rounded-full overflow-hidden border-4 border-gray-50 shadow-sm flex-shrink-0">
+                      <ItemMedia className="w-[80px] h-[80px] md:w-[100px] md:h-[100px] rounded-full overflow-hidden border-4 border-muted shadow-sm flex-shrink-0">
                         <Image
                           src={`https://avatar.vercel.sh/${u.id}`}
                           alt={u.name}
@@ -95,11 +95,11 @@ export default function ProfilePage() {
                         />
                       </ItemMedia>
                       <ItemContent className="space-y-1 text-center md:text-left">
-                        <ItemTitle className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-gray-900 tracking-tight">
+                        <ItemTitle className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-foreground tracking-tight">
                           {u.name}
                         </ItemTitle>
                         <div className="flex items-center justify-center md:justify-start gap-2">
-                          <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+                          <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
                             {u.username}
                           </span>
                         </div>
@@ -113,9 +113,9 @@ export default function ProfilePage() {
               </ItemGroup>
             </Card>
 
-            <Card className="flex flex-col shadow-lg border-gray-200 mt-6 md:mt-10 w-full mx-auto">
-              <CardHeader className="text-left pb-2 border-b border-gray-100 px-4 md:px-6">
-                <CardTitle className="text-xl md:text-2xl font-bold text-gray-800">
+            <Card className="flex flex-col shadow-lg border-border bg-card mt-6 md:mt-10 w-full mx-auto">
+              <CardHeader className="text-left pb-2 border-b border-border px-4 md:px-6">
+                <CardTitle className="text-xl md:text-2xl font-bold text-foreground">
                   Account Details
                 </CardTitle>
               </CardHeader>
@@ -124,12 +124,12 @@ export default function ProfilePage() {
                 <form action="" className="flex flex-col flex-grow">
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 mb-6 md:mb-8">
                     <div className="space-y-4 md:space-y-6">
-                      <h3 className="text-base md:text-lg font-semibold text-gray-700">
+                      <h3 className="text-base md:text-lg font-semibold text-foreground">
                         Personal Information
                       </h3>
 
                       <Field className="space-y-2">
-                        <Label className="text-xs md:text-sm font-semibold text-gray-600 uppercase tracking-wider">
+                        <Label className="text-xs md:text-sm font-semibold text-muted-foreground uppercase tracking-wider">
                           Name
                         </Label>
                         <Input
@@ -143,7 +143,7 @@ export default function ProfilePage() {
                       </Field>
 
                       <Field className="space-y-2">
-                        <Label className="text-xs md:text-sm font-semibold text-gray-600 uppercase tracking-wider">
+                        <Label className="text-xs md:text-sm font-semibold text-muted-foreground uppercase tracking-wider">
                           Email Address
                         </Label>
                         <Input
@@ -157,10 +157,10 @@ export default function ProfilePage() {
                       </Field>
 
                       <Field className="pt-2 md:pt-4 flex items-center justify-between">
-                        <Label className="text-xs md:text-sm font-medium text-gray-700">
+                        <Label className="text-xs md:text-sm font-medium text-foreground">
                           Registration Date
                         </Label>
-                        <span className="font-mono text-xs md:text-sm text-gray-600 bg-gray-50 px-2 py-1 rounded">
+                        <span className="font-mono text-xs md:text-sm text-muted-foreground bg-muted px-2 py-1 rounded">
                           {new Date(
                             user?.[0]?.registrationDate || Date.now()
                           ).toLocaleDateString('hu-HU')}
@@ -168,23 +168,23 @@ export default function ProfilePage() {
                       </Field>
                     </div>
 
-                    <div className="space-y-4 md:space-y-6 lg:border-l lg:border-gray-100 lg:pl-8 pt-6 lg:pt-0">
-                      <h3 className="text-base md:text-lg font-semibold text-gray-700">
+                    <div className="space-y-4 md:space-y-6 lg:border-l lg:border-border lg:pl-8 pt-6 lg:pt-0">
+                      <h3 className="text-base md:text-lg font-semibold text-foreground">
                         Security Settings
                       </h3>
 
                       <div className="flex flex-col gap-4">
-                        <div className="p-3 md:p-4 bg-gray-50 rounded-lg border border-gray-100">
-                          <p className="text-xs md:text-sm text-gray-500 mb-3">
+                        <div className="p-3 md:p-4 bg-muted rounded-lg border border-border">
+                          <p className="text-xs md:text-sm text-muted-foreground mb-3">
                             Update your password to keep your account secure.
                           </p>
-                          <Button className="w-full bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 text-sm md:text-base">
+                          <Button className="w-full bg-card border border-border text-foreground hover:bg-muted text-sm md:text-base">
                             Change Password
                           </Button>
                         </div>
 
                         <div className="space-y-3">
-                          <p className="text-xs md:text-sm font-medium text-gray-700">
+                          <p className="text-xs md:text-sm font-medium text-foreground">
                             Two-Factor Authentication
                           </p>
                           <div className="flex flex-col sm:flex-row gap-3">
@@ -214,7 +214,7 @@ export default function ProfilePage() {
                     </div>
                   </div>
 
-                  <CardFooter className="flex flex-col sm:flex-row justify-center gap-3 md:gap-4 pt-4 md:pt-6 border-t border-gray-100 px-0">
+                  <CardFooter className="flex flex-col sm:flex-row justify-center gap-3 md:gap-4 pt-4 md:pt-6 border-t border-border px-0">
                     <Button className="bg-red-50 hover:bg-red-100 text-red-600 border border-transparent hover:border-red-200 px-4 md:px-6 transition-colors order-2 sm:order-1 text-sm md:text-base">
                       Delete Account
                     </Button>

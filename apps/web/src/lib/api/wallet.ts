@@ -1,5 +1,6 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 const DEV_WALLET_ID = process.env.NEXT_PUBLIC_DEV_WALLET_ID;
+let cachedWalletId: string | null = null;
 
 function getApiBaseUrl(): string {
   if (!API_BASE_URL) {
@@ -38,6 +39,31 @@ export type WalletTransactionsResponse = {
   }>;
 };
 
+type DefaultWalletResponse = {
+  wallet_id: string;
+};
+
+async function resolveWalletId(): Promise<string> {
+  if (cachedWalletId) return cachedWalletId;
+
+  if (DEV_WALLET_ID) {
+    cachedWalletId = DEV_WALLET_ID;
+    return cachedWalletId;
+  }
+
+  const response = await fetch(`${getApiBaseUrl()}/v1/wallet/default`, {
+    method: 'GET'
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to resolve wallet id: ${response.status}`);
+  }
+
+  const data = (await response.json()) as DefaultWalletResponse;
+  cachedWalletId = data.wallet_id;
+  return cachedWalletId;
+}
+
 export async function fetchWalletBalance(
   walletId: string
 ): Promise<WalletBalanceResponse> {
@@ -70,13 +96,11 @@ export async function fetchWalletTransactions(
 }
 
 export async function fetchWalletData() {
-  if (!DEV_WALLET_ID) {
-    throw new Error('Missing NEXT_PUBLIC_DEV_WALLET_ID');
-  }
+  const walletId = await resolveWalletId();
 
   const [wallet, transactions] = await Promise.all([
-    fetchWalletBalance(DEV_WALLET_ID),
-    fetchWalletTransactions(DEV_WALLET_ID)
+    fetchWalletBalance(walletId),
+    fetchWalletTransactions(walletId)
   ]);
 
   return { wallet, transactions };
