@@ -837,6 +837,16 @@ Handling financial operations, and internal balance movement (F-04, F-05, F-06, 
 | GET    | `/v1/currency/{id\|symbol}`         | Get a currency/stock/etf.           | User        |
 | GET    | `/v1/currency/{id\|symbol}/history` | Get a currency/stock/etf's history. | User        |
 
+#### 6. Subscription Management
+
+These endpoints are responsible for managing user subscriptions (F-09).
+
+| Method | Endpoint | Description | Permission |
+| :----- | :------- | :---------- | :--------- |
+| GET | `/v1/user/@me/subscription` | Get current user's subscription details. | User |
+| GET | `/v1/user/{id}/subscription` | Get a specific user's subscription details. | Admin |
+| POST | `/v1/user/@me/subscription` | Create new subscription or upgrade/downgrade (Free → Standard/Pro). | User |
+
 ## System Requirements
 
 ### Development Environment
