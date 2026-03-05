@@ -1,18 +1,34 @@
+'use client';
+
 import { Button } from '@/components/ui/button';
 import {
   FieldGroup,
   Field,
   FieldLabel,
-  FieldSeparator,
-  FieldDescription
+  FieldDescription,
+  FieldError
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { login } from '@/lib/actions';
 import Link from 'next/link';
+import { useActionState } from 'react';
+import { ZodError } from 'zod';
+
+const initialState = {
+  error: {} as any,
+  serverError: ''
+};
+
+// Helper to transform error strings to FieldError format
+const transformErrors = (errors?: string[]) => {
+  return errors?.map((error) => ({ message: error }));
+};
 
 export default function Login() {
+  const [state, formAction, pending] = useActionState(login, initialState);
+
   return (
-    <form className="flex flex-col gap-6" action={login}>
+    <form className="flex flex-col gap-6" action={formAction}>
       <FieldGroup>
         <div className="flex flex-col items-center gap-1 text-center">
           <h1 className="text-2xl font-bold">Sign In</h1>
@@ -29,6 +45,13 @@ export default function Login() {
             placeholder="john@example.com"
             required
           />
+          <FieldError
+            errors={
+              state?.error && 'email' in state.error
+                ? transformErrors(state.error.email?.errors)
+                : undefined
+            }
+          />
         </Field>
         <Field>
           <div className="flex items-center">
@@ -41,9 +64,23 @@ export default function Login() {
             </Link>
           </div>
           <Input id="password" name="password" type="password" required />
+          <FieldError
+            errors={
+              state?.error && 'password' in state.error
+                ? transformErrors(state.error.password?.errors)
+                : undefined
+            }
+          />
         </Field>
+        <div className="flex flex-col items-center gap-1 text-center">
+          <p className="text-red-500 text-sm text-balance">
+            {state.serverError !== '' && state.serverError}
+          </p>
+        </div>
         <Field>
-          <Button type="submit">Login</Button>
+          <Button type="submit" disabled={pending}>
+            Login
+          </Button>
           <FieldDescription className="text-center">
             Don&apos;t have an account?{' '}
             <Link
