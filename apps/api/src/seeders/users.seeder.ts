@@ -1,5 +1,7 @@
 import { User } from '@/entities/user.entity';
 import { Wallet } from '@/entities/wallet.entity';
+import { Asset } from '@/entities/asset.entity';
+import { Currency } from '@/entities/currency.entity';
 import { EntityManager } from '@mikro-orm/core';
 import { Seeder } from '@mikro-orm/seeder';
 
@@ -65,5 +67,40 @@ export class UsersSeeder extends Seeder {
     em.persist(regularUser);
     em.persist(adminUser);
     await em.flush();
+
+    // Add assets to the dev wallet
+    const appl = await em.findOne(Currency, { symbol: 'AAPL' });
+    const msft = await em.findOne(Currency, { symbol: 'MSFT' });
+
+    if (appl && msft) {
+      // Check if assets already exist
+      const applAsset = await em.findOne(Asset, {
+        wallet: regularUser.wallet,
+        currency: appl
+      });
+
+      const msftAsset = await em.findOne(Asset, {
+        wallet: regularUser.wallet,
+        currency: msft
+      });
+
+      if (!applAsset) {
+        const newApplAsset = new Asset();
+        newApplAsset.wallet = regularUser.wallet;
+        newApplAsset.currency = appl;
+        newApplAsset.amount = BigInt(100);
+        em.persist(newApplAsset);
+      }
+
+      if (!msftAsset) {
+        const newMsftAsset = new Asset();
+        newMsftAsset.wallet = regularUser.wallet;
+        newMsftAsset.currency = msft;
+        newMsftAsset.amount = BigInt(50);
+        em.persist(newMsftAsset);
+      }
+
+      await em.flush();
+    }
   }
 }
