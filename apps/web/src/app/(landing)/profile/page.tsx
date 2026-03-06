@@ -63,11 +63,11 @@ export default async function ProfilePage() {
             Plan: {user.plan}
           </span>
           <span className="text-xs text-muted-foreground">
-            Credits: {user.credits}/hó
+            Credits: {user.credits}/mo
           </span>
           {user.expire && (
             <span className="text-xs text-muted-foreground">
-              Lejár: {user.expire}
+              Expires: {user.expire}
             </span>
           )}
         </div>

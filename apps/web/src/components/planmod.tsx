@@ -38,6 +38,7 @@ export function ModifyPlanModal({
     'monthly'
   );
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen !== undefined) {
@@ -53,6 +54,7 @@ export function ModifyPlanModal({
 
   const handleOpenChange = (newOpen: boolean) => {
     setOpen(newOpen);
+    if (!newOpen) setError(null);
     onClose?.(newOpen);
   };
 
@@ -133,6 +135,9 @@ export function ModifyPlanModal({
         </div>
 
         <DialogFooter className="gap-2 sm:gap-0">
+          {error && (
+            <p className="text-sm text-red-500 mr-auto self-center">{error}</p>
+          )}
           <Button variant="outline" onClick={() => handleOpenChange(false)}>
             Cancel
           </Button>
@@ -141,12 +146,19 @@ export function ModifyPlanModal({
             disabled={loading}
             onClick={async () => {
               if (!onConfirm) return;
+              setError(null);
               setLoading(true);
               try {
                 await onConfirm(selectedPlan);
+                handleOpenChange(false);
+              } catch (e: unknown) {
+                setError(
+                  e instanceof Error
+                    ? e.message
+                    : 'Failed to update subscription'
+                );
               } finally {
                 setLoading(false);
-                handleOpenChange(false);
               }
             }}
           >

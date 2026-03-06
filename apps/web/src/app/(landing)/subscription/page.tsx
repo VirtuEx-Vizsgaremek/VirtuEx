@@ -32,6 +32,7 @@ export default function Subscription() {
   const handleConfirmPlan = async (planName: string) => {
     await changeMySubscription(planName);
     setUserPlan(normalisePlanName(planName));
+    router.refresh();
   };
 
   const handleSelectPlan = (planName: string) => {

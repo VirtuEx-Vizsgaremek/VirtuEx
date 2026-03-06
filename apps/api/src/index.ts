@@ -59,11 +59,11 @@ app.use(multer().any());
   if (process.env.NODE_ENV !== 'production') {
     // TEMPORARILY DISABLED FOR FASTER STARTUP
     // await db.schema.refreshDatabase();
-    // await db.seeder.seed(MarketDataSeeder, UsersSeeder);
 
     // Just ensure the schema exists without dropping everything
     await db.schema.ensureDatabase();
     await db.schema.updateSchema();
+    await db.seeder.seed(MarketDataSeeder, UsersSeeder);
   }
 
   // Marked Data Updater

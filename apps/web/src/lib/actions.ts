@@ -186,7 +186,8 @@ export const getMe = async () => {
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json'
-      }
+      },
+      cache: 'no-store'
     });
 
     if (!response.ok) {
@@ -344,7 +345,8 @@ export const getMySubscription = async () => {
   if (!token) throw new Error('Not authenticated');
 
   const response = await fetch(`${API_URL}/v1/user/@me/subscription`, {
-    headers: { Authorization: `Bearer ${token}` }
+    headers: { Authorization: `Bearer ${token}` },
+    cache: 'no-store'
   });
   if (response.status === 401) throw new Error('Not authenticated');
   if (!response.ok) throw new Error('Failed to fetch subscription');
@@ -367,6 +369,9 @@ export const changeMySubscription = async (planName: string) => {
   });
   if (response.status === 401) throw new Error('Not authenticated');
   if (!response.ok) throw new Error('Failed to update subscription');
+
+  revalidatePath('/profile');
+  revalidatePath('/subscription');
 
   return response.json();
 };

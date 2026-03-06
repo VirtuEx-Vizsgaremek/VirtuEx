@@ -1,6 +1,7 @@
 import { Request, Response } from '@/util/handler';
 import { orm } from '@/util/orm';
 
+import { User } from '@/entities/user.entity';
 import { Subscription } from '@/entities/subscription.entity';
 import { SubscriptionPlan } from '@/entities/subscription_plan.entity';
 import Status from '@/enum/status';
@@ -64,7 +65,7 @@ export const post = async (
   res: Response<z.infer<typeof schemas.post.res>>
 ) => {
   try {
-    const user = await req.getUser();
+    const authUser = await req.getUser();
     const db = (await orm).em.fork();
 
     const { plan_name } = req.validateBody(schemas.post.req);
@@ -74,24 +75,39 @@ export const post = async (
       return res.error(Status.NotFound, `Plan '${plan_name}' not found`);
     }
 
-    let sub = await db.findOne(Subscription, { user }, { populate: ['plan'] });
+    // Re-fetch user within this fork to avoid cross-EM-fork contamination
+    const user = db.getReference(User, authUser.id);
+
+    let sub = await db.findOne(
+      Subscription,
+      { user: authUser.id as any },
+      { populate: ['plan'] }
+    );
 
     if (!sub) {
       sub = new Subscription();
       sub.user = user;
+      sub.plan = plan;
+      sub.startedAt = new Date();
+      sub.expiresAt =
+        plan.price > 0 ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) : null;
+      db.persist(sub);
+    } else {
+      sub.plan = plan;
+      sub.startedAt = new Date();
+      sub.expiresAt =
+        plan.price > 0 ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) : null;
     }
 
-    sub.plan = plan;
-    sub.startedAt = new Date();
-    sub.expiresAt =
-      plan.price > 0
-        ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-        : undefined;
+    await db.flush();
 
-    await db.persist(sub).flush();
+    console.log(
+      `[subscription] User ${authUser.username} switched to plan: ${plan_name}`
+    );
 
     return res.status(Status.Ok).json(formatSub(sub));
   } catch (error) {
+    console.error('[subscription POST] Error:', error);
     if (error instanceof Error && error.message === 'Unauthorized') {
       return res.error(Status.Unauthorized, 'Invalid or missing token');
     }
