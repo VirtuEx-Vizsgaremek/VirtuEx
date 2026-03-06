@@ -56,7 +56,8 @@ export const schemas = {
       status: z.string(),
       spent: z.string(),
       received: z.string(),
-      price_per_unit: z.string()
+      price_per_unit: z.string(),
+      received_exact: z.string()
     })
   }
 };
@@ -119,10 +120,16 @@ export const post = async (
     { orderBy: { timestamp: 'DESC' } }
   );
 
-  if (!latestHistory || latestHistory.close <= 0n)
+  if (!latestHistory)
     return res.error(
       Status.ServiceUnavailable,
-      'Price data unavailable for the target currency.'
+      `Price data unavailable: no historical price found for target currency ${toCurrency.symbol}.`
+    );
+
+  if (latestHistory.close <= 0n)
+    return res.error(
+      Status.ServiceUnavailable,
+      `Price data unavailable: latest close price is invalid (${latestHistory.close.toString()}) for target currency ${toCurrency.symbol}.`
     );
 
   const pricePerUnit = latestHistory.close; // e.g. 17500n = $175.00
@@ -133,10 +140,18 @@ export const post = async (
   const unitsReceived =
     (spendAmount * BigInt(10 ** toCurrency.precision)) / pricePerUnit;
 
+  // Minimum spend = pricePerUnit / 10^precision  (i.e. cost of one smallest unit)
+  const precisionFactor = BigInt(10 ** toCurrency.precision);
+  // Minimum spend in cents to receive at least 1 smallest unit
+  const minSpendCents =
+    pricePerUnit / precisionFactor +
+    (pricePerUnit % precisionFactor > 0n ? 1n : 0n);
+  const minSpendDollars = (Number(minSpendCents) / 100).toFixed(2);
+
   if (unitsReceived <= 0n)
     return res.error(
       Status.BadRequest,
-      'Amount too small to purchase any units at the current price.'
+      `Amount too small to buy any ${toCurrency.symbol}. Minimum spend: $${minSpendDollars} USD (price per unit: $${(Number(pricePerUnit) / 100).toFixed(2)} USD, precision: ${toCurrency.precision} decimals).`
     );
 
   // ── 5. Find or create the target Asset in the user's wallet ───────────────
@@ -186,11 +201,17 @@ export const post = async (
 
   await db.flush();
 
+  // received_exact: full precision decimal string, e.g. "0.10000000" for 8 decimals
+  const receivedExact = (
+    Number(unitsReceived) / Number(precisionFactor)
+  ).toFixed(toCurrency.precision);
+
   return res.status(Status.Created).json({
     order_id: order.id.toString(),
     status: order.status,
     spent: spendAmount.toString(),
     received: unitsReceived.toString(),
-    price_per_unit: pricePerUnit.toString()
+    price_per_unit: pricePerUnit.toString(),
+    received_exact: receivedExact
   });
 };

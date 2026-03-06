@@ -32,7 +32,12 @@ import {
   generateTradingViewChartData
 } from '@/lib/dataGenerator';
 import { fetchMarketData } from '@/lib/marketApi';
-import { BuyResult, fetchCurrencyId, SellResult } from '@/lib/tradeApi';
+import {
+  BuyResult,
+  fetchCurrencies,
+  fetchCurrencyId,
+  SellResult
+} from '@/lib/tradeApi';
 import { getToken } from '@/lib/actions';
 import { tickerToName } from '@/lib/stocks';
 import {
@@ -254,6 +259,8 @@ export default function TradingView({
   // Currency IDs for the trade modal — resolved dynamically from /v1/currency
   const [usdCurrencyId, setUsdCurrencyId] = useState<string | null>(null);
   const [symbolCurrencyId, setSymbolCurrencyId] = useState<string | null>(null);
+  // Precision of the asset being traded (decimal places), used by TradeModal
+  const [symbolPrecision, setSymbolPrecision] = useState<number>(8);
 
   // Candlestick color scheme preference (theme colors vs standard red/green)
   // Candlestick color preference. Use a deterministic default for SSR, then hydrate
@@ -681,19 +688,28 @@ export default function TradingView({
     });
   }, [isCrosshairVisible, isClient]);
 
-  // Resolve currency IDs whenever symbol changes
+  // Resolve currency IDs and precision whenever symbol changes
   useEffect(() => {
     if (!symbol) return;
 
     setUsdCurrencyId(null);
     setSymbolCurrencyId(null);
+    setSymbolPrecision(8);
 
     fetchCurrencyId('USD')
       .then(setUsdCurrencyId)
       .catch(() => setUsdCurrencyId(null));
 
-    fetchCurrencyId(symbol)
-      .then(setSymbolCurrencyId)
+    fetchCurrencies()
+      .then((currencies) => {
+        const match = currencies.find(
+          (c) => c.symbol.toUpperCase() === symbol.toUpperCase()
+        );
+        if (match) {
+          setSymbolCurrencyId(match.id.toString());
+          setSymbolPrecision(match.precision);
+        }
+      })
       .catch(() => setSymbolCurrencyId(null));
   }, [symbol]);
 
@@ -1066,8 +1082,26 @@ export default function TradingView({
         >
           <span>
             {tradeNotification.type === 'buy'
-              ? `✓ Bought ${symbol} — received ${'received' in tradeNotification.result ? tradeNotification.result.received : '?'} units`
-              : `✓ Sold ${symbol} — received ${'received' in tradeNotification.result ? (parseInt(tradeNotification.result.received) / 100).toFixed(2) : '?'} USD`}
+              ? (() => {
+                  const r = tradeNotification.result as BuyResult;
+                  const exact =
+                    'received_exact' in r && r.received_exact
+                      ? r.received_exact
+                      : (
+                          Number(r.received) / Math.pow(10, symbolPrecision)
+                        ).toFixed(symbolPrecision);
+                  return `✓ Bought ${symbol} — received ${exact} ${symbol}`;
+                })()
+              : (() => {
+                  const r = tradeNotification.result as SellResult;
+                  const dollars = (
+                    parseInt(r.received, 10) / 100
+                  ).toLocaleString('en-US', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                  });
+                  return `✓ Sold ${symbol} — received $${dollars} USD`;
+                })()}
           </span>
           <button
             onClick={() => setTradeNotification(null)}
@@ -1182,6 +1216,7 @@ export default function TradingView({
                 ? (candleData[candleData.length - 1] as { close: number }).close
                 : 0
           }
+          targetPrecision={symbolPrecision}
           token={token ?? ''}
           onClose={() => setTradeMode(null)}
           onSuccess={(result) => {

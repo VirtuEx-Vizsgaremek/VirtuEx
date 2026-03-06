@@ -24,7 +24,8 @@ export interface BuyResult {
   order_id: string;
   status: string;
   spent: string; // amount deducted from the source asset (cents string)
-  received: string; // units credited to the target asset
+  received: string; // units credited to the target asset (integer, precision-scaled)
+  received_exact: string; // full decimal string, e.g. "0.10000000" for 8 decimals
   price_per_unit: string; // execution price (cents string)
 }
 

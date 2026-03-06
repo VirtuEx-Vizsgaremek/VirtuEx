@@ -119,10 +119,16 @@ export const post = async (
     { orderBy: { timestamp: 'DESC' } }
   );
 
-  if (!latestHistory || latestHistory.close <= 0n)
+  if (!latestHistory)
     return res.error(
       Status.ServiceUnavailable,
-      'Price data unavailable for the source currency.'
+      `Price data unavailable: no historical price found for source currency ${fromCurrency.symbol}.`
+    );
+
+  if (latestHistory.close <= 0n)
+    return res.error(
+      Status.ServiceUnavailable,
+      `Price data unavailable: latest close price is invalid (${latestHistory.close.toString()}) for source currency ${fromCurrency.symbol}.`
     );
 
   const pricePerUnit = latestHistory.close; // e.g. 17500n = $175.00 per unit
@@ -136,7 +142,7 @@ export const post = async (
   if (proceeds <= 0n)
     return res.error(
       Status.BadRequest,
-      'Proceeds amount rounds down to zero — increase sell amount.'
+      `Proceeds round down to zero: selling ${sellAmount.toString()} units of ${fromCurrency.symbol} at price ${pricePerUnit.toString()} yields nothing. Increase sell amount.`
     );
 
   // ── 5. Find or create the target Asset in the user's wallet ───────────────

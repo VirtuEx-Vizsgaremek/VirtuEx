@@ -9,8 +9,9 @@
  *
  * Features:
  * - Buy and Sell modes with distinct theme colors (success / danger)
- * - Dollar amount input (buy) or unit amount input (sell)
+ * - Buy mode: toggle between "spend USD" and "buy by units"
  * - Live estimated outcome preview based on the last known price
+ * - Minimum spend hint shown below the input
  * - Loading state with spinner while the API request is in flight
  * - Inline error display for API and validation failures
  * - Keyboard-friendly: Enter to confirm, Escape to close
@@ -41,6 +42,11 @@ interface TradeModalProps {
    * this value is display-only and may differ slightly from the execution price.
    */
   currentPrice: number;
+  /**
+   * Precision (decimal places) of the target asset, e.g. 8 for BTC.
+   * Used to format the unit display and calculate minimum spend.
+   */
+  targetPrecision?: number;
   /** JWT access token for the authenticated user, forwarded to the API. */
   token: string;
   /** Called when the modal should be dismissed (cancel, backdrop click, Escape). */
@@ -51,11 +57,38 @@ interface TradeModalProps {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-/** Converts a cents integer string to a display dollar amount, e.g. "17500" → "$175.00". */
+/**
+ * Format a dollar amount properly.
+ * e.g. 1.5 → "$1.50 USD", 17500.00 → "$17,500.00 USD"
+ */
+function formatUSD(dollars: number): string {
+  return (
+    '$' +
+    dollars.toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }) +
+    ' USD'
+  );
+}
+
+/**
+ * Format a unit amount with full precision.
+ * e.g. 0.10000000 with precision 8 → "0.10000000"
+ */
+function formatUnits(units: number, precision: number): string {
+  return units.toFixed(precision);
+}
+
+/**
+ * Converts a cents integer string to a display dollar amount.
+ * e.g. "150" → "$1.50 USD"
+ */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function centsToDisplay(cents: string): string {
   const n = parseInt(cents, 10);
-  if (isNaN(n)) return '$0.00';
-  return `$${(n / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  if (isNaN(n)) return '$0.00 USD';
+  return formatUSD(n / 100);
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -66,6 +99,7 @@ export default function TradeModal({
   fromCurrencyId,
   toCurrencyId,
   currentPrice,
+  targetPrecision = 8,
   token,
   onClose,
   onSuccess
@@ -76,6 +110,12 @@ export default function TradeModal({
   const [amount, setAmount] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /**
+   * buyInputMode: only relevant when isBuy === true.
+   * 'usd'   — user enters how many USD to spend
+   * 'units' — user enters how many units to buy
+   */
+  const [buyInputMode, setBuyInputMode] = useState<'usd' | 'units'>('usd');
 
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -95,26 +135,45 @@ export default function TradeModal({
     return () => window.removeEventListener('keydown', handleKey);
   }, [onClose]);
 
-  // ── Live preview ──────────────────────────────────────────────────────────
+  // Reset amount when toggling buy input mode
+  useEffect(() => {
+    setAmount('');
+    setError(null);
+  }, [buyInputMode]);
+
+  // ── Derived values ────────────────────────────────────────────────────────
   const parsedAmount = parseFloat(amount);
   const validAmount = !isNaN(parsedAmount) && parsedAmount > 0;
 
   /**
-   * Estimate the expected outcome using the frontend-known price.
-   * The backend recalculates with its own latest CurrencyHistory entry,
-   * so the actual result may differ slightly from this preview.
+   * Minimum spend in USD to receive at least one smallest unit.
+   * minSpend = pricePerUnit / 10^precision
+   * e.g. AAPL @ $175.00, precision 2 → min $1.75
+   */
+  const minSpendUSD =
+    currentPrice > 0 ? currentPrice / Math.pow(10, targetPrecision) : null;
+
+  /**
+   * Live preview estimate using the frontend-known price.
+   * The backend recalculates; this is display only.
    */
   const previewLine = (() => {
     if (!validAmount || currentPrice <= 0) return null;
 
     if (isBuy) {
-      // How many units does the spend amount buy?
-      const units = parsedAmount / currentPrice;
-      return `≈ ${units.toLocaleString('en-US', { maximumFractionDigits: 6 })} ${symbol}`;
+      if (buyInputMode === 'usd') {
+        // spending USD → how many units?
+        const units = parsedAmount / currentPrice;
+        return `≈ ${formatUnits(units, targetPrecision)} ${symbol}`;
+      } else {
+        // buying N units → how much USD?
+        const cost = parsedAmount * currentPrice;
+        return `≈ ${formatUSD(cost)}`;
+      }
     } else {
-      // How many dollars do the sold units yield?
+      // selling units → how much USD?
       const proceeds = parsedAmount * currentPrice;
-      return `≈ $${proceeds.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD`;
+      return `≈ ${formatUSD(proceeds)}`;
     }
   })();
 
@@ -132,9 +191,29 @@ export default function TradeModal({
       return;
     }
 
-    // Convert the human-readable dollar (buy) or unit (sell) amount to an
-    // integer cents string — matches the backend BigInt convention (1 USD = 100).
-    const amountInCents = String(Math.round(parsedAmount * 100));
+    let amountInCents: string;
+
+    if (isBuy) {
+      if (buyInputMode === 'usd') {
+        // User entered USD → convert to cents
+        amountInCents = String(Math.round(parsedAmount * 100));
+      } else {
+        // User entered units → convert to USD spend, then to cents.
+        // We multiply units × currentPrice to get dollars, then × 100 for cents.
+        const spendDollars = parsedAmount * currentPrice;
+        amountInCents = String(Math.round(spendDollars * 100));
+      }
+    } else {
+      // Sell: user entered units. Backend expects integer units × 10^precision.
+      // e.g. 0.5 units with precision 8 → 50000000
+      const unitsInt = Math.round(parsedAmount * Math.pow(10, targetPrecision));
+      amountInCents = String(unitsInt);
+    }
+
+    if (amountInCents === '0' || parseInt(amountInCents, 10) <= 0) {
+      setError('Amount is too small. Please enter a larger value.');
+      return;
+    }
 
     setIsLoading(true);
     try {
@@ -158,13 +237,29 @@ export default function TradeModal({
     if (e.key === 'Enter') handleSubmit();
   };
 
+  // ── Input label / placeholder helpers ────────────────────────────────────
+  const inputLabel = (() => {
+    if (isBuy) {
+      return buyInputMode === 'usd'
+        ? 'Amount to spend (USD)'
+        : `Units of ${symbol} to buy`;
+    }
+    return `Units of ${symbol} to sell`;
+  })();
+
+  const inputPlaceholder = (() => {
+    if (isBuy && buyInputMode === 'usd') return '0.00';
+    return '0';
+  })();
+
+  const showDollarPrefix = isBuy && buyInputMode === 'usd';
+
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     /* Backdrop */
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
       onClick={(e) => {
-        // Close when clicking the backdrop (not the card itself)
         if (e.target === e.currentTarget) onClose();
       }}
     >
@@ -198,21 +293,43 @@ export default function TradeModal({
           <div className="flex items-center justify-between text-sm text-muted-foreground mb-4 px-3 py-2 rounded-lg bg-muted/40 border border-border">
             <span>Current price</span>
             <span className="text-foreground font-medium tabular-nums">
-              $
-              {currentPrice.toLocaleString('en-US', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2
-              })}
+              {formatUSD(currentPrice)}
             </span>
+          </div>
+        )}
+
+        {/* ── Buy mode toggle (USD vs Units) — only shown in buy mode ── */}
+        {isBuy && (
+          <div className="flex gap-1 mb-4 p-1 rounded-lg bg-muted border border-border">
+            <button
+              onClick={() => setBuyInputMode('usd')}
+              className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                buyInputMode === 'usd'
+                  ? 'bg-background text-foreground shadow-sm border border-border'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Spend USD
+            </button>
+            <button
+              onClick={() => setBuyInputMode('units')}
+              className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                buyInputMode === 'units'
+                  ? 'bg-background text-foreground shadow-sm border border-border'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Buy Units
+            </button>
           </div>
         )}
 
         {/* ── Amount input ── */}
         <label className="block text-sm font-medium text-muted-foreground mb-1.5">
-          {isBuy ? 'Amount to spend (USD)' : `Units of ${symbol} to sell`}
+          {inputLabel}
         </label>
         <div className="relative mb-1">
-          {isBuy && (
+          {showDollarPrefix && (
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm select-none">
               $
             </span>
@@ -221,17 +338,19 @@ export default function TradeModal({
             ref={inputRef}
             type="number"
             min="0"
-            step={isBuy ? '0.01' : '1'}
+            step={
+              showDollarPrefix ? '0.01' : `${Math.pow(10, -targetPrecision)}`
+            }
             value={amount}
             onChange={(e) => {
               setAmount(e.target.value);
               setError(null);
             }}
             onKeyDown={handleKeyDown}
-            placeholder={isBuy ? '0.00' : '0'}
+            placeholder={inputPlaceholder}
             className={`w-full px-3 py-2.5 rounded-lg border bg-background text-foreground text-sm
               focus:outline-none focus:ring-2 transition-all
-              ${isBuy ? 'pl-7' : ''}
+              ${showDollarPrefix ? 'pl-7' : ''}
               ${
                 error
                   ? 'border-[rgb(var(--color-danger)/0.8)] focus:ring-[rgb(var(--color-danger)/0.3)]'
@@ -239,6 +358,21 @@ export default function TradeModal({
               }`}
           />
         </div>
+
+        {/* ── Minimum spend hint ── */}
+        {isBuy && minSpendUSD !== null && minSpendUSD > 0 && (
+          <p className="text-xs text-muted-foreground mb-1">
+            Minimum:{' '}
+            <span className="text-foreground font-medium">
+              {buyInputMode === 'usd'
+                ? formatUSD(minSpendUSD)
+                : formatUnits(
+                    1 / Math.pow(10, targetPrecision),
+                    targetPrecision
+                  ) + ` ${symbol}`}
+            </span>
+          </p>
+        )}
 
         {/* ── Live preview ── */}
         <div className="h-5 mb-4">
@@ -279,13 +413,7 @@ export default function TradeModal({
             }}
             className={`flex-1 px-4 py-2.5 rounded-lg text-sm font-medium text-white
               disabled:opacity-40 disabled:cursor-not-allowed transition-all
-              ${
-                !isLoading && validAmount
-                  ? isBuy
-                    ? 'hover:opacity-90'
-                    : 'hover:opacity-90'
-                  : ''
-              }`}
+              ${!isLoading && validAmount ? 'hover:opacity-90' : ''}`}
           >
             {isLoading ? (
               <span className="flex items-center justify-center gap-2">
