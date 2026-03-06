@@ -21,7 +21,8 @@ export const schemas = {
           symbol: z.string(),
           amount: z.string(),
           type: z.enum(CurrencyType),
-          precision: z.number()
+          precision: z.number(),
+          price: z.number()
         })
       )
     })
@@ -55,14 +56,44 @@ export const get = async (
 
     const assets = await db.find(Asset, { wallet }, { populate: ['currency'] });
 
-    const formattedAssets = assets.map((asset) => ({
-      id: asset.id.toString(),
-      currency: asset.currency.name,
-      symbol: asset.currency.symbol,
-      amount: asset.amount.toString(),
-      type: asset.currency.type,
-      precision: asset.currency.precision
-    }));
+    // Batch-load the latest close price for all non-fiat currencies in one query
+    const nonFiatIds = assets
+      .filter((a) => a.currency.type !== CurrencyType.Fiat)
+      .map((a) => a.currency.id);
+
+    const priceMap = new Map<bigint, number>();
+    if (nonFiatIds.length > 0) {
+      const rows = await db
+        .getKnex()
+        .raw<{ rows: { currency_id: string; close: string }[] }>(
+          `SELECT DISTINCT ON (currency_id) currency_id, close
+         FROM currency_history
+         WHERE currency_id = ANY(?)
+           AND close > 0
+         ORDER BY currency_id, timestamp DESC`,
+          [nonFiatIds.map(String)]
+        );
+      for (const row of rows.rows) {
+        priceMap.set(BigInt(row.currency_id), Number(row.close) / 100);
+      }
+    }
+
+    const formattedAssets = assets.map((asset) => {
+      const price =
+        asset.currency.type === CurrencyType.Fiat
+          ? 1
+          : (priceMap.get(asset.currency.id) ?? 0);
+
+      return {
+        id: asset.id.toString(),
+        currency: asset.currency.name,
+        symbol: asset.currency.symbol,
+        amount: asset.amount.toString(),
+        type: asset.currency.type,
+        precision: asset.currency.precision,
+        price
+      };
+    });
 
     return res.status(Status.Ok).json({
       wallet_id: wallet.id.toString(),
