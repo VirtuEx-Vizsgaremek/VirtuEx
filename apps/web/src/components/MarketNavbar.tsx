@@ -6,17 +6,20 @@ import { type ChartColorTheme, THEME_NAMES } from '@/lib/chartThemes';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
+  LogIn,
   LogOut,
   Moon,
   Palette,
   Settings,
   Sun,
   TrendingUp,
+  UserPlus,
   Wallet
 } from 'lucide-react';
 import { useRef } from 'react';
+import { Button } from '@/components/ui/button';
 
-type FloatingNavbarProps = {
+type MarketNavbarProps = {
   show: boolean;
   onCloseAction: () => void;
   isPremium: boolean;
@@ -24,13 +27,13 @@ type FloatingNavbarProps = {
   isLoggedIn?: boolean;
 };
 
-export default function FloatingNavbar({
+export default function MarketNavbar({
   show,
   onCloseAction,
   isPremium,
   onTogglePremiumAction,
   isLoggedIn = false
-}: FloatingNavbarProps) {
+}: MarketNavbarProps) {
   const { theme, toggleTheme, colorTheme, setColorTheme } = useTheme();
   const isDark = theme === 'dark';
   const pathname = usePathname();
@@ -61,7 +64,7 @@ export default function FloatingNavbar({
 
       <div className="fixed top-0 left-0 right-0 h-6 z-1000 pointer-events-none">
         <nav
-          className={`absolute top-4 left-1/2 w-[90%] md:w-[55%] max-w-4xl transition-all duration-300 pointer-events-auto ${
+          className={`absolute top-4 left-1/2 w-[90%] md:w-[60%] max-w-4xl transition-all duration-300 pointer-events-auto ${
             show
               ? 'opacity-100 -translate-x-1/2'
               : 'opacity-0 translate-x-[50vw] pointer-events-none'
@@ -121,19 +124,6 @@ export default function FloatingNavbar({
                     </Link>
                   </>
                 )}
-
-                {/* Always visible: current page indicator (Market) */}
-                <Link
-                  href="/market"
-                  className="text-sm font-semibold text-foreground"
-                  title="Market — current page"
-                  onClick={onCloseAction}
-                >
-                  {/* Active dot indicator */}
-                  {isActive('/market') && (
-                    <span className="sr-only">Currently on Market</span>
-                  )}
-                </Link>
               </div>
             </div>
 
@@ -175,9 +165,9 @@ export default function FloatingNavbar({
                 </div>
               </div>
 
-              {/* Authenticated-only: Settings + Log Out */}
-              {isLoggedIn && (
+              {isLoggedIn ? (
                 <>
+                  {/* Settings */}
                   <Link href="/profile" onClick={onCloseAction}>
                     <button
                       className="p-2 rounded-full hover:bg-muted transition-colors"
@@ -186,6 +176,7 @@ export default function FloatingNavbar({
                       <Settings size={16} />
                     </button>
                   </Link>
+                  {/* Log Out */}
                   <form action={logout}>
                     <button
                       type="submit"
@@ -196,16 +187,46 @@ export default function FloatingNavbar({
                     </button>
                   </form>
                 </>
+              ) : (
+                <>
+                  {/* Sign Up */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="rounded-full gap-1.5"
+                    asChild
+                  >
+                    <Link
+                      href="/auth/register"
+                      title="Create an account"
+                      onClick={onCloseAction}
+                    >
+                      <UserPlus size={14} />
+                      Sign Up
+                    </Link>
+                  </Button>
+                  {/* Log In */}
+                  <Button size="sm" className="rounded-full gap-1.5" asChild>
+                    <Link
+                      href="/auth/login"
+                      title="Log in to your account"
+                      onClick={onCloseAction}
+                    >
+                      <LogIn size={14} />
+                      Log In
+                    </Link>
+                  </Button>
+                </>
               )}
 
-              {/* Premium / Free chart toggle */}
+              {/* Advanced / Simple chart toggle */}
               <button
                 onClick={onTogglePremiumAction}
                 className="px-4 py-1.5 text-xs bg-primary text-primary-foreground rounded-full hover:bg-primary/80 transition-all font-medium"
                 title={
                   isPremium
-                    ? 'Switch to Free (Simple) chart'
-                    : 'Switch to Premium (Advanced) chart'
+                    ? 'Switch to Simple chart'
+                    : 'Switch to Advanced chart'
                 }
               >
                 {isPremium ? 'Advanced' : 'Simple'}

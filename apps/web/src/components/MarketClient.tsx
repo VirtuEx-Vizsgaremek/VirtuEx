@@ -28,7 +28,7 @@
 import AssetNav from '@/components/AssetNav';
 import Chart from '@/components/ShadCnChart';
 import TradingView from '@/components/TradingView';
-import FloatingNavbar from '@/components/FloatingNavbar';
+import MarketNavbar from '@/components/MarketNavbar';
 import { BarChart2, PanelLeft, PanelTop } from 'lucide-react';
 import { useState } from 'react';
 
@@ -87,7 +87,7 @@ export default function MarketClient({ isLoggedIn }: Props) {
       </div>
 
       {/* ── Floating Navbar ───────────────────────────────────────────────── */}
-      <FloatingNavbar
+      <MarketNavbar
         show={showNavbar}
         onCloseAction={() => setShowNavbar(false)}
         isPremium={isPremium}

@@ -39,6 +39,16 @@ import {
   SellResult
 } from '@/lib/tradeApi';
 import { getToken } from '@/lib/actions';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 import { tickerToName } from '@/lib/stocks';
 import {
   AreaSeries,
@@ -251,6 +261,7 @@ export default function TradingView({
 
   // Trade modal state
   const [tradeMode, setTradeMode] = useState<'buy' | 'sell' | null>(null);
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [tradeNotification, setTradeNotification] = useState<{
     type: 'buy' | 'sell';
     result: BuyResult | SellResult;
@@ -1011,23 +1022,25 @@ export default function TradingView({
 
         <div className="ml-auto flex items-center gap-2">
           <button
-            onClick={() => setTradeMode('buy')}
+            onClick={() => {
+              if (!isLoggedIn) {
+                setShowAuthDialog(true);
+              } else {
+                setTradeMode('buy');
+              }
+            }}
             disabled={
-              !isClient ||
-              !symbol ||
-              dataSource !== 'realtime' ||
-              isLoading ||
-              !isLoggedIn
+              !isClient || !symbol || dataSource !== 'realtime' || isLoading
             }
             title={
               !isClient
                 ? 'Loading…'
-                : !isLoggedIn
-                  ? 'Sign in to trade'
-                  : !symbol
-                    ? 'Select an asset first'
-                    : dataSource !== 'realtime'
-                      ? 'Switch to real data first'
+                : !symbol
+                  ? 'Select an asset first'
+                  : dataSource !== 'realtime'
+                    ? 'Switch to real data first'
+                    : !isLoggedIn
+                      ? 'Sign in to buy'
                       : 'Buy this asset'
             }
             className="px-4 py-2 text-sm rounded-lg text-white disabled:opacity-40 disabled:cursor-not-allowed transition-all bg-[rgb(var(--color-success)/1)] hover:bg-[rgb(var(--color-success)/0.75)]"
@@ -1035,23 +1048,25 @@ export default function TradingView({
             Buy
           </button>
           <button
-            onClick={() => setTradeMode('sell')}
+            onClick={() => {
+              if (!isLoggedIn) {
+                setShowAuthDialog(true);
+              } else {
+                setTradeMode('sell');
+              }
+            }}
             disabled={
-              !isClient ||
-              !symbol ||
-              dataSource !== 'realtime' ||
-              isLoading ||
-              !isLoggedIn
+              !isClient || !symbol || dataSource !== 'realtime' || isLoading
             }
             title={
               !isClient
                 ? 'Loading…'
-                : !isLoggedIn
-                  ? 'Sign in to trade'
-                  : !symbol
-                    ? 'Select an asset first'
-                    : dataSource !== 'realtime'
-                      ? 'Switch to real data first'
+                : !symbol
+                  ? 'Select an asset first'
+                  : dataSource !== 'realtime'
+                    ? 'Switch to real data first'
+                    : !isLoggedIn
+                      ? 'Sign in to sell'
                       : 'Sell this asset'
             }
             className="px-4 py-2 text-sm rounded-lg text-white disabled:opacity-40 disabled:cursor-not-allowed transition-all bg-[rgb(var(--color-danger)/1)] hover:bg-[rgb(var(--color-danger)/0.75)]"
@@ -1059,6 +1074,37 @@ export default function TradingView({
             Sell
           </button>
         </div>
+
+        {/* ========== Auth Gate Dialog ========== */}
+        <Dialog open={showAuthDialog} onOpenChange={setShowAuthDialog}>
+          <DialogContent className="sm:max-w-sm">
+            <DialogHeader>
+              <DialogTitle className="text-xl">Sign in to trade</DialogTitle>
+              <DialogDescription>
+                You need an account to buy or sell assets. It&apos;s free to get
+                started.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="flex-col sm:flex-col gap-2 pt-2">
+              <Button className="w-full" asChild>
+                <Link
+                  href="/auth/login"
+                  onClick={() => setShowAuthDialog(false)}
+                >
+                  Log In
+                </Link>
+              </Button>
+              <Button variant="outline" className="w-full" asChild>
+                <Link
+                  href="/auth/register"
+                  onClick={() => setShowAuthDialog(false)}
+                >
+                  Create Account
+                </Link>
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* ========== Trade Success Notification ========== */}
