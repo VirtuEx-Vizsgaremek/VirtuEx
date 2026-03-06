@@ -111,6 +111,25 @@ pnpm install
 
 2. Web (frontend)
 
+Instead of the manual steps below, use the provided launcher scripts — they automatically detect your LAN IP, set up the database, write `apps/web/.env.local`, and launch the full turbo dev stack:
+
+**Windows — `dev.ps1`** (uses the native PostgreSQL Windows service):
+
+```powershell
+# Run once to allow script execution for the current session
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\dev.ps1
+```
+
+**Linux / macOS — `dev.sh`** (uses a Docker container for PostgreSQL):
+
+```sh
+chmod +x dev.sh
+./dev.sh
+```
+
+**Manual (cross-platform):**
+
 - Copy env and edit:
   ```VirtuEx/SETUP.md#L32-34
   cp apps/web/.env.example apps/web/.env
@@ -191,6 +210,16 @@ Common commands (summary)
 - Start everything with turborepo:
   ```VirtuEx/SETUP.md#L54-54
   pnpm dev
+  ```
+  On Windows, prefer the dedicated launcher script which also handles PostgreSQL and `.env.local`:
+  ```powershell
+  Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+  .\dev.ps1
+  ```
+  On Linux / macOS (requires Docker):
+  ```sh
+  chmod +x dev.sh
+  ./dev.sh
   ```
 - Build all:
   ```VirtuEx/SETUP.md#L55-55
