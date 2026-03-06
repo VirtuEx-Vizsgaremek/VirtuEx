@@ -1,14 +1,24 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Check, X } from 'lucide-react';
+import {
+  Check,
+  X,
+  Zap,
+  ShieldCheck,
+  RefreshCcw,
+  HeadphonesIcon
+} from 'lucide-react';
 import { ModifyPlanModal } from '@/components/planmod';
-import { fetchCurrentPlan, type PlanKey } from '@/lib/subscriptionApi';
+import { normalisePlanName, type PlanKey } from '@/lib/subscriptionApi';
+import { getMySubscription, changeMySubscription } from '@/lib/actions';
 import SideNav from '@/components/sidenav';
 
 export default function Subscription() {
+  const router = useRouter();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedPlanData, setSelectedPlanData] = useState({
     plan: 'Standard',
@@ -17,8 +27,20 @@ export default function Subscription() {
   const [userPlan, setUserPlan] = useState<PlanKey | null>(null);
 
   useEffect(() => {
-    fetchCurrentPlan().then(setUserPlan);
-  }, []);
+    getMySubscription()
+      .then((sub) => setUserPlan(normalisePlanName(sub.plan_name)))
+      .catch((err) => {
+        if (err.message === 'Not authenticated') {
+          router.push('/auth/login');
+        }
+      });
+  }, [router]);
+
+  const handleConfirmPlan = async (planName: string) => {
+    await changeMySubscription(planName);
+    setUserPlan(normalisePlanName(planName));
+    router.refresh();
+  };
 
   const handleSelectPlan = (planName: string) => {
     const creditMap: Record<string, number> = {
@@ -35,11 +57,11 @@ export default function Subscription() {
 
   return (
     <div className="w-full min-h-screen bg-background">
-      <div className="max-w-full md:max-w-[85vw] mx-auto px-4 sm:px-6 py-8 md:py-12">
+      <div className="max-w-full md:max-w-[80vw] mx-auto px-4 sm:px-6 py-8 md:py-12">
         {/* Header with optional sidebar toggle for mobile */}
-        <div className="grid grid-cols-1 md:grid-cols-[250px_1fr] gap-6 md:gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-[250px_1fr] gap-6 md:gap-8 items-stretch">
           {/* Sidebar */}
-          <div className="hidden md:block">
+          <div className="hidden md:block self-stretch">
             <SideNav />
           </div>
 
@@ -48,12 +70,15 @@ export default function Subscription() {
             <section id="pricing" className="relative">
               {/* Title Section */}
               <div className="text-center mb-10 md:mb-12 lt:mb-16">
+                <span className="inline-block text-xs font-semibold uppercase tracking-widest text-primary border border-primary/30 bg-primary/10 rounded-full px-4 py-1 mb-4">
+                  Pricing
+                </span>
                 <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3 md:mb-4 text-foreground">
                   Choose Your Plan
                 </h1>
                 <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto px-2">
-                  Start learning for free, or unlock professional trading
-                  features.
+                  Start trading for free, or unlock professional features when
+                  you&apos;re ready to grow.
                 </p>
               </div>
 
@@ -264,27 +289,71 @@ export default function Subscription() {
                 </Card>
               </div>
 
-              {/* FAQ or Additional Info Section */}
+              {/* Feature highlights */}
               <div className="mt-16 md:mt-20 pt-12 border-t border-border">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-                  <div>
-                    <h3 className="text-lg md:text-xl font-semibold text-foreground mb-2">
-                      Flexible Billing
-                    </h3>
-                    <p className="text-sm md:text-base text-muted-foreground">
-                      Switch plans anytime. No long-term contracts, cancel
-                      whenever you want.
-                    </p>
-                  </div>
-                  <div>
-                    <h3 className="text-lg md:text-xl font-semibold text-foreground mb-2">
-                      Money-Back Guarantee
-                    </h3>
-                    <p className="text-sm md:text-base text-muted-foreground">
-                      Not satisfied? Get a full refund within 30 days of your
-                      first purchase.
-                    </p>
-                  </div>
+                <p className="text-center text-xs uppercase tracking-widest text-muted-foreground font-semibold mb-8">
+                  Everything you need, nothing you don&apos;t
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <Card className="p-5 flex flex-col gap-3 border-border bg-card hover:border-primary/40 transition-colors duration-200">
+                    <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <RefreshCcw className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-foreground text-sm mb-1">
+                        Flexible Billing
+                      </h4>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        Switch or cancel anytime. No lock-in contracts, no
+                        hidden fees.
+                      </p>
+                    </div>
+                  </Card>
+
+                  <Card className="p-5 flex flex-col gap-3 border-border bg-card hover:border-primary/40 transition-colors duration-200">
+                    <div className="w-9 h-9 rounded-lg bg-green-500/10 flex items-center justify-center">
+                      <ShieldCheck className="w-5 h-5 text-green-500" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-foreground text-sm mb-1">
+                        30-Day Guarantee
+                      </h4>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        Not satisfied? Get a full refund within 30 days of your
+                        first payment.
+                      </p>
+                    </div>
+                  </Card>
+
+                  <Card className="p-5 flex flex-col gap-3 border-border bg-card hover:border-primary/40 transition-colors duration-200">
+                    <div className="w-9 h-9 rounded-lg bg-accent/10 flex items-center justify-center">
+                      <Zap className="w-5 h-5 text-accent" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-foreground text-sm mb-1">
+                        Instant Upgrade
+                      </h4>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        New features and credits activate immediately after
+                        switching plans.
+                      </p>
+                    </div>
+                  </Card>
+
+                  <Card className="p-5 flex flex-col gap-3 border-border bg-card hover:border-primary/40 transition-colors duration-200">
+                    <div className="w-9 h-9 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                      <HeadphonesIcon className="w-5 h-5 text-blue-500" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-foreground text-sm mb-1">
+                        Priority Support
+                      </h4>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        Pro subscribers get 24/7 dedicated support with faster
+                        response times.
+                      </p>
+                    </div>
+                  </Card>
                 </div>
               </div>
             </section>
@@ -293,8 +362,10 @@ export default function Subscription() {
             <ModifyPlanModal
               isOpen={isModalOpen}
               onClose={setIsModalOpen}
-              currentPlan={selectedPlanData.plan}
+              currentPlan={userPlan || 'Free'}
+              selectedPlan={selectedPlanData.plan}
               currentCredits={selectedPlanData.credits}
+              onConfirm={handleConfirmPlan}
             />
           </main>
         </div>

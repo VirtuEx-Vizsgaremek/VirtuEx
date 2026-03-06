@@ -23,8 +23,8 @@ export default function SideNav() {
   const pathname = usePathname();
 
   return (
-    <Card className="shadow-lg border-border bg-card overflow-hidden">
-      <nav className="min-h-[85vh] p-4 bg-card">
+    <Card className="shadow-lg border-border bg-card overflow-hidden h-full">
+      <nav className="h-full p-4 bg-card">
         <div className="mb-8 px-4 py-2">
           <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
             Account Menu
