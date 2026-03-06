@@ -1,10 +1,3 @@
-/**
- * Landing Layout
- *
- * Layout for landing/marketing pages.
- * Provides navbar, footer, and theme context.
- */
-
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
