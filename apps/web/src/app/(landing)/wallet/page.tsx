@@ -98,7 +98,7 @@ export default function WalletPage() {
     <div>
       <div className="max-w-[95vw] lg:max-w-[80vw] mx-auto my-4 md:my-10 px-2 md:px-4">
         <div className="grid grid-cols-1 lg:grid-cols-[250px_1fr] gap-4 lg:gap-6 items-stretch">
-          <div className="hidden lg:block self-stretch">
+          <div className="lg:self-stretch">
             <SideNav />
           </div>
 
