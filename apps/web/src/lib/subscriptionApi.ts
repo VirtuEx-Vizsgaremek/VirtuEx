@@ -1,3 +1,5 @@
+import { getToken } from '@/lib/actions';
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -43,14 +45,13 @@ export function normalisePlanName(raw: string): PlanKey | null {
 
 /**
  * Fetch the currently authenticated user's profile from `GET /v1/user/@me`.
- * Reads the JWT from `localStorage` under the key `"token"`.
+ * Reads the JWT from the httpOnly `vtx_token` cookie via the `getToken` server action.
  *
  * @returns The profile data, or `null` when the user is not logged in or the
  *          request fails.
  */
 export async function fetchMe(): Promise<MeResponse | null> {
-  const token =
-    typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+  const token = await getToken();
   if (!token) return null;
 
   try {

@@ -5,6 +5,39 @@ import { redirect } from 'next/navigation';
 
 import { z } from 'zod';
 
+/**
+ * Returns the raw JWT string stored in the `vtx_token` httpOnly cookie,
+ * or `null` if the user is not logged in.
+ *
+ * Use this in Server Components / Server Actions that need to forward the
+ * token to the backend API (e.g. trade endpoints).
+ */
+export const getToken = async (): Promise<string | null> => {
+  const cookieStore = await cookies();
+  return cookieStore.get('vtx_token')?.value ?? null;
+};
+
+/**
+ * Returns `true` when a `vtx_token` cookie is present.
+ * Does NOT validate the JWT signature — use this only for UI gating.
+ * The backend will reject an expired / tampered token on the actual request.
+ */
+export const getIsAuthenticated = async (): Promise<boolean> => {
+  const token = await getToken();
+  return token !== null;
+};
+
+/**
+ * Clears the `vtx_token` cookie, effectively logging the user out on the
+ * Next.js side. The backend token is stateless (JWT), so no server-side
+ * invalidation is needed.
+ */
+export const logout = async (): Promise<void> => {
+  const cookieStore = await cookies();
+  cookieStore.delete('vtx_token');
+  redirect('/');
+};
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 const loginSchema = z.object({

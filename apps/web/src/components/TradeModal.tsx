@@ -18,7 +18,7 @@
  *
  * Dependencies:
  * - tradeApi: buyAsset / sellAsset service functions
- * - AuthContext: TODO — replace direct localStorage read with useAuth() after login branch merge
+ * - token prop: JWT forwarded from TradingView, resolved via the `getToken` server action
  */
 
 import { buyAsset, BuyResult, sellAsset, SellResult } from '@/lib/tradeApi';

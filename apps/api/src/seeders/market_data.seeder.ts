@@ -7,6 +7,27 @@ import moment from 'moment';
 
 import YahooFinance from 'yahoo-finance2';
 
+const BATCH_SIZE = 10;
+const BATCH_DELAY_MS = 500;
+
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function batchedMap<T, R>(
+  items: T[],
+  fn: (item: T) => Promise<R>,
+  batchSize = BATCH_SIZE,
+  delayMs = BATCH_DELAY_MS
+): Promise<R[]> {
+  const results: R[] = [];
+  for (let i = 0; i < items.length; i += batchSize) {
+    const batch = items.slice(i, i + batchSize);
+    const batchResults = await Promise.all(batch.map(fn));
+    results.push(...batchResults);
+    if (i + batchSize < items.length) await delay(delayMs);
+  }
+  return results;
+}
+
 export class MarketDataSeeder extends Seeder {
   async run(em: EntityManager): Promise<void> {
     const yahoo = new YahooFinance();
@@ -133,61 +154,54 @@ export class MarketDataSeeder extends Seeder {
 
     const cc: Currency[] = [];
 
-    // currencies
-    await Promise.all(
-      tickers.map(async (t) => {
-        try {
-          const yahooData = await yahoo.quote(t.symbol);
-          const c = new Currency();
-          c.symbol = t.symbol;
-          c.name = (yahooData.longName ?? t.symbol) as string;
-          c.precision = yahooData.priceHint as number;
-          c.type = t.type;
-          if (t.type == CurrencyType.Crypto) c.updateFreqency = '1m';
-          em.persist(c);
+    // Fetch currency metadata in batches to avoid Yahoo Finance rate limits
+    await batchedMap(tickers, async (t) => {
+      try {
+        const yahooData = await yahoo.quote(t.symbol);
+        const c = new Currency();
+        c.symbol = t.symbol;
+        c.name = (yahooData.longName ?? t.symbol) as string;
+        c.precision = yahooData.priceHint as number;
+        c.type = t.type;
+        if (t.type === CurrencyType.Crypto) c.updateFreqency = '1m';
+        em.persist(c);
+        cc.push(c);
+      } catch (e: unknown) {
+        console.error('failed to fetch quote for', t.symbol, e);
+      }
+    });
 
-          cc.push(c);
-        } catch (e: unknown) {
-          console.error('failed:', t, e);
+    // Fetch 1-year price history in batches to avoid Yahoo Finance rate limits
+    await batchedMap(cc, async (c) => {
+      try {
+        const yahooData = await yahoo.chart(c.symbol, {
+          period1: moment().subtract(1, 'y').toDate(),
+          period2: new Date(),
+          interval: '1d'
+        });
+
+        for (const d of yahooData.quotes) {
+          const h = new CurrencyHistory();
+          h.currency = c;
+          h.timestamp = d.date;
+          h.open = BigInt(
+            (parseFloat((d.open as number).toFixed(2)) * 100).toFixed(0)
+          ) as bigint;
+          h.high = BigInt(
+            (parseFloat((d.high as number).toFixed(2)) * 100).toFixed(0)
+          ) as bigint;
+          h.low = BigInt(
+            (parseFloat((d.low as number).toFixed(2)) * 100).toFixed(0)
+          ) as bigint;
+          h.close = BigInt(
+            (parseFloat((d.close as number).toFixed(2)) * 100).toFixed(0)
+          ) as bigint;
+          em.persist(h);
         }
-      })
-    );
-
-    // initial history
-    await Promise.all(
-      cc.map(async (t) => {
-        try {
-          const yahooData = await yahoo.chart(t.symbol, {
-            period1: moment().subtract(1, 'y').toDate(),
-            period2: new Date(),
-            interval: '1d'
-          });
-
-          await Promise.all(
-            yahooData.quotes.map((d) => {
-              const h = new CurrencyHistory();
-              h.currency = t;
-              h.timestamp = d.date;
-              h.open = BigInt(
-                (parseFloat((d.open as number).toFixed(2)) * 100).toFixed(0)
-              ) as bigint;
-              h.high = BigInt(
-                (parseFloat((d.high as number).toFixed(2)) * 100).toFixed(0)
-              ) as bigint;
-              h.low = BigInt(
-                (parseFloat((d.low as number).toFixed(2)) * 100).toFixed(0)
-              ) as bigint;
-              h.close = BigInt(
-                (parseFloat((d.close as number).toFixed(2)) * 100).toFixed(0)
-              ) as bigint;
-              em.persist(h);
-            })
-          );
-        } catch (e: unknown) {
-          console.error('failed:', t, e);
-        }
-      })
-    );
+      } catch (e: unknown) {
+        console.error('failed to fetch history for', c.symbol, e);
+      }
+    });
 
     await em.flush();
   }

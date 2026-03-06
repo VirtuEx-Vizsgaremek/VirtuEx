@@ -69,8 +69,25 @@ export class UsersSeeder extends Seeder {
     await em.flush();
 
     // Add assets to the dev wallet
+    const usd = await em.findOne(Currency, { symbol: 'USD' });
     const appl = await em.findOne(Currency, { symbol: 'AAPL' });
     const msft = await em.findOne(Currency, { symbol: 'MSFT' });
+
+    // $100,000.00 USD — stored as cents (precision = 2), so × 100
+    if (usd) {
+      const usdAsset = await em.findOne(Asset, {
+        wallet: regularUser.wallet,
+        currency: usd
+      });
+
+      if (!usdAsset) {
+        const newUsdAsset = new Asset();
+        newUsdAsset.wallet = regularUser.wallet;
+        newUsdAsset.currency = usd;
+        newUsdAsset.amount = BigInt(100_000_00); // $100,000.00
+        em.persist(newUsdAsset);
+      }
+    }
 
     if (appl && msft) {
       // Check if assets already exist

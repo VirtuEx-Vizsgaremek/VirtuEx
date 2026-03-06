@@ -33,6 +33,7 @@ import {
 } from '@/lib/dataGenerator';
 import { fetchMarketData } from '@/lib/marketApi';
 import { BuyResult, fetchCurrencyId, SellResult } from '@/lib/tradeApi';
+import { getToken } from '@/lib/actions';
 import { tickerToName } from '@/lib/stocks';
 import {
   AreaSeries,
@@ -140,21 +141,17 @@ export default function TradingView({
   // ========== Context & Theme ==========
   const { theme, colorTheme } = useTheme(); // Get current theme (dark/light) and color theme from context
 
-  // TODO: Replace this with useAuth() from AuthContext once the login branch is merged.
-  // Client-side hydration: declare mounting flag and hydrate client-only values after mount
-  // to avoid SSR <-> CSR mismatches during React hydration.
+  // Auth: read the JWT from the httpOnly `vtx_token` cookie via a server action.
+  // We keep a mounting flag so SSR and the first client render agree on the
+  // default (null / not-logged-in), then hydrate asynchronously after mount.
   const [isClient, setIsClient] = useState(false);
   const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
-    // Mark mounted and hydrate localStorage-backed values only on the client.
     setIsClient(true);
-    try {
-      const t = localStorage.getItem('token');
-      setToken(t);
-    } catch {
-      setToken(null);
-    }
+    getToken()
+      .then(setToken)
+      .catch(() => setToken(null));
   }, []);
 
   const isLoggedIn = isClient && !!token;

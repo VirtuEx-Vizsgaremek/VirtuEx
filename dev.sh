@@ -12,6 +12,12 @@
 #   4. Launches the full Turbo dev stack with Next.js bound to 0.0.0.0
 #      so other devices on the same network can reach both the frontend and API
 #
+# Auth notes:
+#   - Authentication is handled via an httpOnly cookie (`vtx_token`) set by
+#     Next.js Server Actions on login/register — no manual token handling needed.
+#   - The JWT is forwarded to the backend by Server Actions / API routes;
+#     client-side JS never has direct access to it.
+#
 # Requirements:
 #   - Docker
 #   - pnpm
