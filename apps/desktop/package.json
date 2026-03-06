@@ -1,0 +1,8 @@
+{
+  "name": "@virtuex/desktop",
+  "scripts": {
+    "build": "dotnet build VirtuExAdmin.csproj -c Release",
+    "test": "dotnet test Api.csproj",
+    "clean": "dotnet clean"
+  }
+}

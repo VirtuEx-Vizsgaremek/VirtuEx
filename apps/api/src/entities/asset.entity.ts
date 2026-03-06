@@ -1,0 +1,19 @@
+import { Entity, ManyToOne, Property, Unique } from '@mikro-orm/core';
+
+import { BaseEntity } from '@/entities/base.entity';
+import { Wallet } from '@/entities/wallet.entity';
+import { Currency } from '@/entities/currency.entity';
+
+@Entity()
+@Unique({ properties: ['wallet', 'currency'] })
+export class Asset extends BaseEntity {
+  @ManyToOne(() => Wallet)
+  wallet!: Wallet;
+
+  @ManyToOne(() => Currency)
+  currency!: Currency;
+
+  // Dunno if this should be kept or if it should be calulated from the transactions.
+  @Property()
+  amount!: bigint;
+}
