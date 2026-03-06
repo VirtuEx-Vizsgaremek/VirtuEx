@@ -84,11 +84,12 @@ export default function WalletPage() {
     const rawAmount = BigInt(asset.amount);
     const divisor = Math.pow(10, asset.precision);
     const normalizedAmount = Number(rawAmount) / divisor;
-    return sum + normalizedAmount;
+    return sum + normalizedAmount * (asset.price ?? 0);
   }, 0);
 
   const formattedBalance = new Intl.NumberFormat('en-US', {
-    style: 'decimal',
+    style: 'currency',
+    currency: 'USD',
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
   }).format(totalBalance);
@@ -145,8 +146,7 @@ export default function WalletPage() {
                       const rawAmount = BigInt(asset.amount);
                       const divisor = Math.pow(10, asset.precision);
                       const realBalance = Number(rawAmount) / divisor;
-                      const currentPrice = 1; // TODO: Get real price data
-                      const change24h = 0; // TODO: Get real change data
+                      const currentPrice = asset.price ?? 0;
                       const totalValue = realBalance * currentPrice;
 
                       return (
@@ -171,26 +171,27 @@ export default function WalletPage() {
                               </div>
                             </div>
                             <div className="md:hidden text-right font-bold text-foreground">
-                              {new Intl.NumberFormat('en-US', {
-                                style: 'currency',
-                                currency: 'USD'
-                              }).format(totalValue)}
+                              {currentPrice > 0
+                                ? new Intl.NumberFormat('en-US', {
+                                    style: 'currency',
+                                    currency: 'USD'
+                                  }).format(totalValue)
+                                : '—'}
                             </div>
                           </div>
 
                           {/* Desktop price */}
                           <div className="hidden md:block text-right">
                             <div className="font-medium text-foreground text-sm">
-                              {new Intl.NumberFormat('en-US').format(
-                                currentPrice
-                              )}{' '}
-                              USD
-                            </div>
-                            <div
-                              className={`text-xs font-medium ${change24h >= 0 ? 'text-primary' : 'text-destructive'}`}
-                            >
-                              {change24h > 0 ? '+' : ''}
-                              {change24h.toFixed(2)}%
+                              {currentPrice > 0
+                                ? new Intl.NumberFormat('en-US', {
+                                    style: 'currency',
+                                    currency: 'USD',
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits:
+                                      currentPrice < 1 ? 6 : 2
+                                  }).format(currentPrice)
+                                : '—'}
                             </div>
                           </div>
 
@@ -200,19 +201,22 @@ export default function WalletPage() {
                               Balance:
                             </span>
                             <span>
-                              {realBalance.toLocaleString(undefined, {
+                              {new Intl.NumberFormat('en-US', {
+                                minimumFractionDigits: 0,
                                 maximumFractionDigits: asset.precision
-                              })}{' '}
+                              }).format(realBalance)}{' '}
                               {asset.symbol}
                             </span>
                           </div>
 
                           {/* Desktop value */}
                           <div className="hidden md:block text-right font-bold text-foreground">
-                            {new Intl.NumberFormat('en-US', {
-                              style: 'currency',
-                              currency: 'USD'
-                            }).format(totalValue)}
+                            {currentPrice > 0
+                              ? new Intl.NumberFormat('en-US', {
+                                  style: 'currency',
+                                  currency: 'USD'
+                                }).format(totalValue)
+                              : '—'}
                           </div>
                         </div>
                       );

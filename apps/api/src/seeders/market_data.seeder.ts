@@ -30,6 +30,15 @@ async function batchedMap<T, R>(
 
 export class MarketDataSeeder extends Seeder {
   async run(em: EntityManager): Promise<void> {
+    // Skip seeding if currencies already exist in the database
+    const existingCount = await em.count(Currency);
+    if (existingCount > 0) {
+      console.log(
+        `[MarketDataSeeder] ${existingCount} currencies already exist, skipping seed.`
+      );
+      return;
+    }
+
     const yahoo = new YahooFinance();
 
     const tickers: { symbol: string; type: CurrencyType }[] = [
@@ -181,6 +190,8 @@ export class MarketDataSeeder extends Seeder {
         });
 
         for (const d of yahooData.quotes) {
+          if (!d.close || d.close <= 0 || !d.open || !d.high || !d.low)
+            continue;
           const h = new CurrencyHistory();
           h.currency = c;
           h.timestamp = d.date;

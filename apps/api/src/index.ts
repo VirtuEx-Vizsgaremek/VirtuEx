@@ -68,10 +68,9 @@ app.use(multer().any());
 
   // Marked Data Updater
   // Fire and forget - don't await, let it run in the background
-  // TEMPORARILY DISABLED - can be re-enabled after startup
-  // MarketData.updateData().catch((err) =>
-  //   logger.error('Market data update failed:', err)
-  // );
+  MarketData.updateData().catch((err) =>
+    logger.error('Market data update failed:', err)
+  );
   cron.schedule('* * * * *', async () => {
     logger.info('Updating market data...');
     await MarketData.updateData();

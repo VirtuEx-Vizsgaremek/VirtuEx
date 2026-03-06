@@ -10,7 +10,17 @@ class MarketData {
   public static async updateData() {
     const db = (await orm).em.fork();
 
-    const currencies = await db.findAll(Currency);
+    // Deduplicate by symbol — the seeder may have created multiple rows for the
+    // same ticker; only process the lowest-id (original) entry per symbol.
+    const allCurrencies = await db.findAll(Currency);
+    const seen = new Set<string>();
+    const currencies = allCurrencies
+      .sort((a, b) => (a.id < b.id ? -1 : 1))
+      .filter((c) => {
+        if (seen.has(c.symbol)) return false;
+        seen.add(c.symbol);
+        return true;
+      });
 
     for (const c of currencies) {
       let shouldUpdate = false;
@@ -25,6 +35,7 @@ class MarketData {
         );
         const alreadyUpdatedToday =
           lastUpdate &&
+          Number(lastUpdate.close) > 0 &&
           new Date(lastUpdate.timestamp).toDateString() ===
             new Date().toDateString();
         shouldUpdate = !alreadyUpdatedToday;
