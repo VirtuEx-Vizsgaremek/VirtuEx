@@ -61,7 +61,7 @@ export default function Subscription() {
         {/* Header with optional sidebar toggle for mobile */}
         <div className="grid grid-cols-1 md:grid-cols-[250px_1fr] gap-6 md:gap-8 items-stretch">
           {/* Sidebar */}
-          <div className="hidden md:block self-stretch">
+          <div className="self-stretch">
             <SideNav />
           </div>
 
