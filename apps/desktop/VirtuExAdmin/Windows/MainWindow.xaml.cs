@@ -19,9 +19,9 @@ namespace VirtuExAdmin.Windows;
 public partial class MainWindow : FluentWindow {
     public MainWindow() {
         SystemThemeWatcher.Watch(this);
-        
+
         DataContext = this;
-        
+
         InitializeComponent();
     }
 }
