@@ -1,4 +1,4 @@
-using VirtuExAdmin.Enums;
+﻿using VirtuExAdmin.Enums;
 
 namespace VirtuExAdmin.Serializables;
 
@@ -13,4 +13,11 @@ public class User {
     public          Permission Permissions  { get; set; }
     public          ulong      Subscription { get; set; }
     public          bool       Activated    { get; set; }
+
+    // Added properties used in the UI
+    public string RegistrationDate { get; set; } = string.Empty;
+    public string Role             { get; set; } = "user";
+    public string Status           { get; set; } = "Active";
 }
+
+//ToDo: add subscription information
