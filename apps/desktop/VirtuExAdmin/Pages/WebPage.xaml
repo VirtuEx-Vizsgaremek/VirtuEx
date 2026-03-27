@@ -16,6 +16,6 @@
     <Grid>
         <wpf:WebView2
             x:Name="WebView"
-            Source="https://localhost:3000/"/>
+            Source="http://localhost:3000/"/>
     </Grid>
 </Page>

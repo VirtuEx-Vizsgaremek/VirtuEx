@@ -21,9 +21,11 @@
       <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
       <PackageReference Include="JetBrains.Annotations" Version="2025.2.4" />
       <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="11.0.0-preview.1.26104.118" />
+      <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.5" />
       <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.3800.47" />
       <PackageReference Include="Newtonsoft.Json" Version="13.0.5-beta1" />
       <PackageReference Include="WPF-UI" Version="4.2.0" />
+      <PackageReference Include="WPF-UI.DependencyInjection" Version="4.2.0" />
     </ItemGroup>
 
     <ItemGroup>

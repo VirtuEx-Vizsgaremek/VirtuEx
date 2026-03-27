@@ -10,7 +10,7 @@ public partial class AccountPage : Page {
     public AccountPage() {
         InitializeComponent();
 
-        var vm = App.Services.GetRequiredService<AccountPageViewModel>();
+        var vm = App.GetRequiredService<AccountPageViewModel>();
 
         DataContext =  vm;
         Loaded      += async (_, _) => await vm.LoadAsync();

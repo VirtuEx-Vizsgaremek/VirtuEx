@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using VirtuExAdmin.Enums;
 using VirtuExAdmin.Util;
 using VirtuExAdmin.ViewModels.Windows;
+using Wpf.Ui.Appearance;
 using Wpf.Ui.Controls;
 using MessageBox = System.Windows.MessageBox;
 using MessageBoxButton = System.Windows.MessageBoxButton;
@@ -11,12 +12,14 @@ namespace VirtuExAdmin.Windows;
 
 public partial class AuthWindow : FluentWindow {
     public AuthWindow(AuthViewModel vm) {
+        SystemThemeWatcher.Watch(this, updateAccents: true);
+        
         InitializeComponent();
         
         DataContext = vm;
         
         vm.LoginSuccess += () => {
-            Application.Current.MainWindow = App.Services.GetRequiredService<MainWindow>();
+            Application.Current.MainWindow = App.GetRequiredService<MainWindow>();
             Application.Current.MainWindow.Show();
             
             Close();
