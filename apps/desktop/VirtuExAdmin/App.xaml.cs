@@ -16,7 +16,9 @@ namespace VirtuExAdmin;
 /// </summary>
 public partial class App : Application {
     public static IServiceProvider Services { get; private set; }
-    
+    public static ApiClient ApiClient { get; private set; } = new ApiClient();
+
+
     public App() {
         var collection = new ServiceCollection();
         

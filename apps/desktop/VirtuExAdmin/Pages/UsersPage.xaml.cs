@@ -1,13 +1,19 @@
-﻿using System.Collections.ObjectModel;
+﻿using System;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
 using VirtuExAdmin.Serializables;
+using VirtuExAdmin.Util;
+using VirtuExAdmin.ViewModels.Pages;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace VirtuExAdmin.Pages;
 
 public partial class UsersPage : Page, INotifyPropertyChanged {
+    private readonly ApiClient _apiClient;
     public ObservableCollection<User> Users { get; set; }
 
     private User? _selectedUser;
@@ -55,29 +61,35 @@ public partial class UsersPage : Page, INotifyPropertyChanged {
         InitializeComponent();
 
         DataContext = this;
+        _apiClient = App.Services.GetRequiredService<ApiClient>();
+        
+        //Here are the users
+        Users = new ObservableCollection<User>();
+        this.Loaded += UsersPage_Loaded;
 
-        Users = new ObservableCollection<User> {
-            new User {
-                FullName = "John Doe",
-                Username = "jhon.doe12",
-                Email    = "john.doe@example.com",
-                Bio      = "",
-                Avatar   = "",
-                RegistrationDate = "2024-01-01",
-                Role = "user",
-                Status = "Active"
-            },
-            new User {
-                FullName = "William Woodless",
-                Username = "wwless16773",
-                Email    = "william.woodless@example.com",
-                Bio      = "bleh :3",
-                Avatar   = "",
-                RegistrationDate = "2023-02-14",
-                Role = "admin",
-                Status = "Pending"
+    }
+
+    private async void UsersPage_Loaded(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var users = await _apiClient.Users();
+            Users = new ObservableCollection<User>(users);
+            OnPropertyChanged(nameof(Users));
+
+            if (Users.Any())
+            {
+                SelectedUser = Users.First();
             }
-        };
+        }
+        catch (ResponseException ex)
+        {
+            MessageBox.Show($"API error \nErr mess: {ex.Message} (Status: {ex.StatusCode})", "API Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"An unexepted error ocured: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     private void PopulateEditableFieldsFromSelected() {

@@ -1,4 +1,4 @@
-using System.Net.Http;
+﻿using System.Net.Http;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
@@ -22,6 +22,8 @@ public class ApiClient : IDisposable {
     private DefaultContractResolver _contractResolver = new() {
         NamingStrategy = new SnakeCaseNamingStrategy()
     };
+    
+    private JsonSerializerSettings _jsonSettings;
 
     public ApiClient() {
         _httpClient = new HttpClient();
@@ -30,6 +32,11 @@ public class ApiClient : IDisposable {
         _httpClient.BaseAddress = new Uri("http://localhost:3001");
         _httpClient.DefaultRequestHeaders.UserAgent.Clear();
         _httpClient.DefaultRequestHeaders.Add("User-Agent", "VirtuExAdmin/1.0.0");
+
+        _jsonSettings = new JsonSerializerSettings {
+            ContractResolver = _contractResolver,
+            NullValueHandling = NullValueHandling.Ignore
+        };
     }
 
     public async Task<LoginResponse> Login(string email, string password) {
@@ -39,9 +46,9 @@ public class ApiClient : IDisposable {
         }));
 
         if (res.IsSuccessStatusCode)
-            return JsonConvert.DeserializeObject<LoginResponse>(await res.Content.ReadAsStringAsync())!;
+            return JsonConvert.DeserializeObject<LoginResponse>(await res.Content.ReadAsStringAsync(), _jsonSettings)!;
             
-        var err = JsonConvert.DeserializeObject<ErrorResponse>(await res.Content.ReadAsStringAsync())!;
+        var err = JsonConvert.DeserializeObject<ErrorResponse>(await res.Content.ReadAsStringAsync(), _jsonSettings)!;
         throw new ResponseException(err);
     }
 
@@ -53,9 +60,9 @@ public class ApiClient : IDisposable {
         var res = await _httpClient.GetAsync("/v1/user/@me");
         
         if (res.IsSuccessStatusCode)
-            return JsonConvert.DeserializeObject<User>(await res.Content.ReadAsStringAsync())!;
+            return JsonConvert.DeserializeObject<User>(await res.Content.ReadAsStringAsync(), _jsonSettings)!;
         
-        var err = JsonConvert.DeserializeObject<ErrorResponse>(await res.Content.ReadAsStringAsync())!;
+        var err = JsonConvert.DeserializeObject<ErrorResponse>(await res.Content.ReadAsStringAsync(), _jsonSettings)!;
         throw new ResponseException(err);
     }
     
@@ -63,9 +70,9 @@ public class ApiClient : IDisposable {
         var res = await _httpClient.GetAsync("/v1/user");
         
         if (res.IsSuccessStatusCode)
-            return JsonConvert.DeserializeObject<User[]>(await res.Content.ReadAsStringAsync())!;
+            return JsonConvert.DeserializeObject<User[]>(await res.Content.ReadAsStringAsync(), _jsonSettings)!;
         
-        var err = JsonConvert.DeserializeObject<ErrorResponse>(await res.Content.ReadAsStringAsync())!;
+        var err = JsonConvert.DeserializeObject<ErrorResponse>(await res.Content.ReadAsStringAsync(), _jsonSettings)!;
         throw new ResponseException(err);
     }
     
@@ -73,9 +80,9 @@ public class ApiClient : IDisposable {
         var res = await _httpClient.GetAsync($"/v1/currency/{id}");
         
         if (res.IsSuccessStatusCode)
-            return JsonConvert.DeserializeObject<Currency>(await res.Content.ReadAsStringAsync())!;
+            return JsonConvert.DeserializeObject<Currency>(await res.Content.ReadAsStringAsync(), _jsonSettings)!;
         
-        var err = JsonConvert.DeserializeObject<ErrorResponse>(await res.Content.ReadAsStringAsync())!;
+        var err = JsonConvert.DeserializeObject<ErrorResponse>(await res.Content.ReadAsStringAsync(), _jsonSettings)!;
         throw new ResponseException(err);
     }
     
@@ -83,9 +90,9 @@ public class ApiClient : IDisposable {
         var res = await _httpClient.GetAsync($"/v1/currency/{symbol}");
         
         if (res.IsSuccessStatusCode)
-            return JsonConvert.DeserializeObject<Currency>(await res.Content.ReadAsStringAsync())!;
+            return JsonConvert.DeserializeObject<Currency>(await res.Content.ReadAsStringAsync(), _jsonSettings)!;
         
-        var err = JsonConvert.DeserializeObject<ErrorResponse>(await res.Content.ReadAsStringAsync())!;
+        var err = JsonConvert.DeserializeObject<ErrorResponse>(await res.Content.ReadAsStringAsync(), _jsonSettings)!;
         throw new ResponseException(err);
     }
 
@@ -93,9 +100,9 @@ public class ApiClient : IDisposable {
         var res = await _httpClient.GetAsync("/v1/currency");
         
         if (res.IsSuccessStatusCode)
-            return JsonConvert.DeserializeObject<Currency[]>(await res.Content.ReadAsStringAsync())!;
+            return JsonConvert.DeserializeObject<Currency[]>(await res.Content.ReadAsStringAsync(), _jsonSettings)!;
         
-        var err = JsonConvert.DeserializeObject<ErrorResponse>(await res.Content.ReadAsStringAsync())!;
+        var err = JsonConvert.DeserializeObject<ErrorResponse>(await res.Content.ReadAsStringAsync(), _jsonSettings)!;
         throw new ResponseException(err);
     }
 
