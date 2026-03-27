@@ -8,6 +8,9 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using Microsoft.Extensions.DependencyInjection;
+using Wpf.Ui;
+using Wpf.Ui.Abstractions;
 using Wpf.Ui.Appearance;
 using Wpf.Ui.Controls;
 
@@ -17,11 +20,16 @@ namespace VirtuExAdmin.Windows;
 /// Interaction logic for MainWindow.xaml
 /// </summary>
 public partial class MainWindow : FluentWindow {
-    public MainWindow() {
-        SystemThemeWatcher.Watch(this);
+    public MainWindow(INavigationService navigationService) {
+        SystemThemeWatcher.Watch(this, updateAccents: true);
+        
+        InitializeComponent();
+        
+        var pageProvider = App.GetRequiredService<INavigationViewPageProvider>();
 
         DataContext = this;
-
-        InitializeComponent();
+        
+        navigationService.SetNavigationControl(NavigationView);
+        NavigationView.SetPageProviderService(pageProvider);
     }
 }

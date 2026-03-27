@@ -19,6 +19,7 @@
         WindowBackdropType="Mica">
     <Grid>
         <ui:NavigationView 
+            x:Name="NavigationView"
             IsBackButtonVisible="Auto"
             FrameMargin="0"
             TitleBar="{Binding ElementName=TitleBar, Mode=OneWay}">

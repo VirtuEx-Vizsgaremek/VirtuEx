@@ -6,7 +6,6 @@ using VirtuExAdmin.Pages;
 using VirtuExAdmin.Serializables;
 using VirtuExAdmin.Util;
 using Wpf.Ui;
-using NavigationService = System.Windows.Navigation.NavigationService;
 
 namespace VirtuExAdmin.ViewModels.Pages;
 
@@ -80,8 +79,9 @@ public partial class CurrenciesPageViewModel : ObservableObject {
     [RelayCommand]
     private void RowDoubleClick(Currency? currency) {
         if (currency is null) return;
-        var page = new DetailedCurrencyPage();
-        _navigationService.Navigate(typeof(CurrenciesPage), page);
+        
+        // TODO: pass the currency to `DetailedCurrencyPage` somehow
+        _navigationService.NavigateWithHierarchy(typeof(DetailedCurrencyPage));
     }
     
     [RelayCommand]
