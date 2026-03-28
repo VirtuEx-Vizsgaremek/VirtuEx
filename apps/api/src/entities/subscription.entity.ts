@@ -16,5 +16,5 @@ export class Subscription extends BaseEntity {
   startedAt: Date = new Date();
 
   @Property({ nullable: true })
-  expiresAt?: Date;
+  expiresAt?: Date | null;
 }

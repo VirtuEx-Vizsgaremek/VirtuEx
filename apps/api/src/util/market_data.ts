@@ -10,41 +10,73 @@ class MarketData {
   public static async updateData() {
     const db = (await orm).em.fork();
 
-    const currencies = await db.findAll(Currency);
-    await Promise.all(
-      currencies.map(async (c) => {
-        let shouldUpdate = false;
+    // Deduplicate by symbol — the seeder may have created multiple rows for the
+    // same ticker; only process the lowest-id (original) entry per symbol.
+    const allCurrencies = await db.findAll(Currency);
+    const seen = new Set<string>();
+    const currencies = allCurrencies
+      .sort((a, b) => (a.id < b.id ? -1 : 1))
+      .filter((c) => {
+        if (seen.has(c.symbol)) return false;
+        seen.add(c.symbol);
+        return true;
+      });
 
-        if (c.updateFreqency === '1m') {
-          shouldUpdate = true;
-        } else if (c.updateFreqency === '1d') {
-          const lastUpdate = await db.findOne(
-            CurrencyHistory,
-            { currency: c },
-            { orderBy: { timestamp: 'DESC' } }
-          );
-          const alreadyUpdatedToday =
-            lastUpdate &&
-            new Date(lastUpdate.timestamp).toDateString() ===
-              new Date().toDateString();
-          shouldUpdate = !alreadyUpdatedToday;
-        }
+    for (const c of currencies) {
+      let shouldUpdate = false;
 
-        if (!shouldUpdate) return;
+      if (c.updateFreqency === '1m') {
+        shouldUpdate = true;
+      } else if (c.updateFreqency === '1d') {
+        const lastUpdate = await db.findOne(
+          CurrencyHistory,
+          { currency: c },
+          { orderBy: { timestamp: 'DESC' } }
+        );
+        const alreadyUpdatedToday =
+          lastUpdate &&
+          Number(lastUpdate.close) > 0 &&
+          new Date(lastUpdate.timestamp).toDateString() ===
+            new Date().toDateString();
+        shouldUpdate = !alreadyUpdatedToday;
+      }
 
+      if (!shouldUpdate) continue;
+
+      try {
         const current = await this.yahooFinance.quote(c.symbol);
+
+        const rawClose = (current.regularMarketPrice ??
+          current.close ??
+          0) as number;
+        const rawOpen = (current.regularMarketOpen ??
+          current.open ??
+          rawClose) as number;
+        const rawHigh = (current.regularMarketDayHigh ??
+          current.high ??
+          rawClose) as number;
+        const rawLow = (current.regularMarketDayLow ??
+          current.low ??
+          rawClose) as number;
+
+        // Skip if the exchange is closed / Yahoo returned no price data
+        if (!rawClose || rawClose <= 0) continue;
+
+        const toBI = (n: number) =>
+          BigInt((parseFloat(n.toFixed(2)) * 100).toFixed(0)) as bigint;
+
         db.create(CurrencyHistory, {
           currency: c,
           timestamp: new Date(),
-          price: BigInt(
-            (
-              parseFloat((current.regularMarketPrice as number).toFixed(2)) *
-              100
-            ).toFixed(0)
-          ) as bigint
+          open: toBI(rawOpen),
+          high: toBI(rawHigh),
+          low: toBI(rawLow),
+          close: toBI(rawClose)
         });
-      })
-    );
+      } catch (e: unknown) {
+        console.error('failed to update market data for', c.symbol, e);
+      }
+    }
 
     await db.flush();
   }

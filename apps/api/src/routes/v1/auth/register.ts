@@ -24,7 +24,7 @@ export const schemas = {
       full_name: z.string(),
       username: z.string().min(3).max(32),
       email: z.email(),
-      password: z.string()
+      password: z.string().min(8).max(128)
     })
   }
 };
@@ -56,12 +56,25 @@ export const post = async (
 
     await db.persist(userObject).flush();
 
-    const code = await CodeUtil.genCode(CodeType.AccountActivation, userObject);
-    await EMail.sendTemplate(`"${fullName}" <${email}>`, 'verify', {
-      fullName,
-      link: `http://localhost:3000/auth/verify?code=${code}`,
-      year: new Date().getFullYear()
-    });
+    // Try to send verification email, but don't fail registration if it fails
+    try {
+      const code = await CodeUtil.genCode(
+        CodeType.AccountActivation,
+        userObject
+      );
+      await EMail.sendTemplate(`"${fullName}" <${email}>`, 'verify', {
+        fullName,
+        link: `http://localhost:3000/auth/verify?code=${code}`,
+        year: new Date().getFullYear()
+      });
+      console.log('[REGISTER] Verification email sent to', email);
+    } catch (emailError) {
+      console.error(
+        '[REGISTER] Failed to send verification email:',
+        emailError
+      );
+      // Continue anyway - user can verify later
+    }
 
     const token = sign(
       {

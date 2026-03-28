@@ -2,14 +2,18 @@
   "name": "@virutex/web",
   "version": "0.1.0",
   "scripts": {
-    "dev": "next dev",
+    "dev": "node -e \"require('child_process').spawnSync('next',['dev','--hostname',process.env.NEXT_DEV_HOSTNAME||'localhost'],{stdio:'inherit',shell:true})\"",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"
   },
   "dependencies": {
+    "@hookform/resolvers": "^5.2.2",
     "@icons-pack/react-simple-icons": "^13.8.0",
+    "@radix-ui/react-dialog": "^1.1.15",
+    "@radix-ui/react-label": "^2.1.8",
     "@radix-ui/react-navigation-menu": "^1.2.14",
+    "@radix-ui/react-separator": "^1.1.8",
     "@radix-ui/react-slot": "^1.2.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -19,10 +23,11 @@
     "radix-ui": "^1.4.3",
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "recharts": "2.15.4",
+    "react-hook-form": "^7.69.0",
+    "recharts": "^3.7.0",
     "shadcn": "^3.6.2",
     "tailwind-merge": "^3.4.0",
-    "technicalindicators": "^3.1.0"
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

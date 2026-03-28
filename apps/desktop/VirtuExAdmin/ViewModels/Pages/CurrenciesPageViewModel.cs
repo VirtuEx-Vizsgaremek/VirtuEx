@@ -2,13 +2,16 @@ using System.Collections.ObjectModel;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using VirtuExAdmin.Pages;
 using VirtuExAdmin.Serializables;
 using VirtuExAdmin.Util;
+using Wpf.Ui;
 
 namespace VirtuExAdmin.ViewModels.Pages;
 
 public partial class CurrenciesPageViewModel : ObservableObject {
     private readonly ApiClient   _api;
+    private readonly INavigationService  _navigationService; 
 
     [ObservableProperty]
     private Currency[]? _currencies;
@@ -33,8 +36,9 @@ public partial class CurrenciesPageViewModel : ObservableObject {
     public ObservableCollection<int>    PageSizeOptions   { get; } = [10, 25, 50, 100];
     public ObservableCollection<string> TypeFilterOptions { get; } = ["All", "Fiat", "Crypto", "Stock", "ETF"];
     
-    public CurrenciesPageViewModel(ApiClient api) {
+    public CurrenciesPageViewModel(ApiClient api, INavigationService navigationService) {
         _api = api;
+        _navigationService = navigationService;
     }
     
     public async Task LoadAsync() {
@@ -76,7 +80,8 @@ public partial class CurrenciesPageViewModel : ObservableObject {
     private void RowDoubleClick(Currency? currency) {
         if (currency is null) return;
         
-        MessageBox.Show($"{currency.Name}: {currency.Symbol}", "Currency");
+        // TODO: pass the currency to `DetailedCurrencyPage` somehow
+        _navigationService.NavigateWithHierarchy(typeof(DetailedCurrencyPage));
     }
     
     [RelayCommand]

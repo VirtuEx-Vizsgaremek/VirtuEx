@@ -16,7 +16,8 @@ export const schemas = {
       avatar: z.string().nullable().optional(),
       wallet: z.bigint(),
       permissions: z.number(),
-      subscription: z.bigint(),
+      subscription: z.bigint().nullable(),
+      subscription_plan: z.string().nullable(),
       activated: z.boolean()
     })
   },
@@ -35,6 +36,9 @@ export const get = async (
   res: Response<z.infer<typeof schemas.get.res>>
 ) => {
   const user = await req.getUser();
+  const db = (await orm).em.fork();
+
+  await db.populate(user, ['subscription.plan']);
 
   res.status(Status.Ok).json({
     id: user.id,
@@ -45,9 +49,8 @@ export const get = async (
     avatar: user.avatar,
     wallet: user.wallet.id,
     permissions: user.permissions,
-    subscription: user.subscription
-      ? user.subscription.id
-      : (BigInt(0) as bigint),
+    subscription: user.subscription?.id ?? null,
+    subscription_plan: user.subscription?.plan?.name ?? null,
     activated: user.activated
   });
 };
@@ -87,6 +90,56 @@ export const del = async (req: Request, res: Response<void>) => {
   const user = await req.getUser();
   const db = (await orm).em.fork();
 
-  await db.remove(user).flush();
-  res.status(Status.NoContent).end();
+  try {
+    console.log('[DELETE] Starting account deletion for user:', user.id);
+
+    // Populate wallet to access it
+    await db.populate(user, ['wallet']);
+    const walletId = user.wallet?.id;
+    console.log('[DELETE] Wallet ID:', walletId);
+
+    // Delete all transactions for each asset in this wallet
+    if (walletId) {
+      const assets = await db.find('Asset', { wallet: walletId });
+      console.log('[DELETE] Found assets:', assets.length);
+
+      for (const asset of assets) {
+        console.log('[DELETE] Deleting transactions for asset');
+        await db.nativeDelete('Transaction', { asset });
+      }
+      console.log('[DELETE] All transactions deleted');
+
+      // Delete all assets for this wallet
+      console.log('[DELETE] Deleting assets for wallet:', walletId);
+      await db.nativeDelete('Asset', { wallet: walletId });
+      console.log('[DELETE] All assets deleted');
+    }
+
+    // Delete subscription if exists
+    console.log('[DELETE] Deleting subscription for user:', user.id);
+    await db.nativeDelete('Subscription', { user: user.id });
+    console.log('[DELETE] Subscription deleted');
+
+    // Delete codes
+    console.log('[DELETE] Deleting codes for user:', user.id);
+    await db.nativeDelete('Code', { user: user.id });
+    console.log('[DELETE] Codes deleted');
+
+    // Delete wallet last (after all references are gone)
+    if (walletId) {
+      console.log('[DELETE] Deleting wallet:', walletId);
+      await db.nativeDelete('Wallet', { id: walletId });
+      console.log('[DELETE] Wallet deleted');
+    }
+
+    // Finally delete user
+    console.log('[DELETE] Deleting user:', user.id);
+    await db.nativeDelete('User', { id: user.id });
+    console.log('[DELETE] User deleted successfully');
+
+    res.status(Status.NoContent).end();
+  } catch (error) {
+    console.error('[DELETE] Error during account deletion:', error);
+    res.error(Status.InternalServerError, 'Failed to delete account');
+  }
 };

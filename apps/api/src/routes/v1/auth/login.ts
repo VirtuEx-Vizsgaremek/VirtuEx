@@ -19,7 +19,7 @@ export const schemas = {
     }),
     req: z.object({
       email: z.email(),
-      password: z.string()
+      password: z.string().min(8).max(128)
     })
   }
 };

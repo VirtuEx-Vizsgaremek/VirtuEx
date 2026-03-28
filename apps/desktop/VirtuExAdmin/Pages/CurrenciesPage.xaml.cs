@@ -10,7 +10,7 @@ public partial class CurrenciesPage : Page {
     public CurrenciesPage() {
         InitializeComponent();
         
-        var vm = App.Services.GetRequiredService<CurrenciesPageViewModel>();
+        var vm = App.GetRequiredService<CurrenciesPageViewModel>();
 
         DataContext =  vm;
         Loaded      += (_, _) => vm.LoadAsync();
