@@ -28,37 +28,37 @@ namespace VirtuExAdmin;
 /// </summary>
 public partial class App : Application {
     private static readonly IHost _host = Host.CreateDefaultBuilder()
-        .ConfigureAppConfiguration(c =>
-        {
+        .ConfigureAppConfiguration(c => {
             _ = c.SetBasePath(AppContext.BaseDirectory);
         }).ConfigureServices((_2, services) => {
-        // Singletons
-        _ = services.AddSingleton<ApiClient>();
-        _ = services.AddSingleton<UserService>();
-        
-        _ = services.AddNavigationViewPageProvider();
-        _ = services.AddSingleton<INavigationService, NavigationService>();
-        
-        // ViewModels
-        _ = services.AddTransient<AuthViewModel>();
-        
-        _ = services.AddTransient<AccountPageViewModel>();
-        _ = services.AddTransient<CurrenciesPageViewModel>();
-        
-        // Windows
-        _ = services.AddSingleton<AuthWindow>();
-        _ = services.AddSingleton<MainWindow>();
-        
-        // Pages
-        _ = services.AddScoped<AccountPage>();
-        _ = services.AddScoped<AuditLogPage>();
-        _ = services.AddScoped<CurrenciesPage>();
-        _ = services.AddScoped<DetailedCurrencyPage>();
-        _ = services.AddScoped<SettingsPage>();
-        _ = services.AddScoped<TransactionsPage>();
-        _ = services.AddScoped<UsersPage>();
-        _ = services.AddScoped<WebPage>();
-    }).Build();
+            // Singletons
+            _ = services.AddSingleton<ApiClient>();
+            _ = services.AddSingleton<UserService>();
+            
+            _ = services.AddNavigationViewPageProvider();
+            _ = services.AddSingleton<INavigationService, NavigationService>();
+            
+            // ViewModels
+            _ = services.AddTransient<AuthViewModel>();
+            
+            _ = services.AddTransient<AccountPageViewModel>();
+            _ = services.AddTransient<CurrenciesPageViewModel>();
+            _ = services.AddTransient<AuditLogPageViewModel>();
+            
+            // Windows
+            _ = services.AddSingleton<AuthWindow>();
+            _ = services.AddSingleton<MainWindow>();
+            
+            // Pages
+            _ = services.AddScoped<AccountPage>();
+            _ = services.AddScoped<AuditLogPage>();
+            _ = services.AddScoped<CurrenciesPage>();
+            _ = services.AddScoped<DetailedCurrencyPage>();
+            _ = services.AddScoped<SettingsPage>();
+            _ = services.AddScoped<TransactionsPage>();
+            _ = services.AddScoped<UsersPage>();
+            _ = services.AddScoped<WebPage>();
+        }).Build();
 
     public App() {
         // TODO: Get User Auth
@@ -89,6 +89,8 @@ public partial class App : Application {
             CloseButtonText = "Close",
         };
         _ = msgBox.ShowDialogAsync();
+        
+        Console.Error.WriteLine(e.Exception);
         
         e.Handled = true;
     }

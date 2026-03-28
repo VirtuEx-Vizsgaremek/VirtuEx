@@ -99,6 +99,16 @@ public class ApiClient : IDisposable {
         throw new ResponseException(err);
     }
 
+    public async Task<AuditLog[]> AuditLog() {
+        var res = await _httpClient.GetAsync("/v1/auditlog");
+        
+        if (res.IsSuccessStatusCode)
+            return JsonConvert.DeserializeObject<AuditLog[]>(await res.Content.ReadAsStringAsync())!;
+        
+        var err = JsonConvert.DeserializeObject<ErrorResponse>(await res.Content.ReadAsStringAsync())!;
+        throw new ResponseException(err);
+    }
+
     public void Dispose() {
         _httpClient.Dispose();
     }
