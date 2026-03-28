@@ -19,5 +19,3 @@ public class User {
     public string Role             { get; set; } = "user";
     public string Status           { get; set; } = "Active";
 }
-
-//ToDo: add subscription information

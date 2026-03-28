@@ -11,8 +11,22 @@
                 <ui:ControlsDictionary />
             </ResourceDictionary.MergedDictionaries>
             
+            <!-- Converters -->
             <util:BoolToVisibilityConverter x:Key="BoolToVisibility" />
             <util:NullToVisibilityConverter x:Key="NullToVisibility" />
+
+            <!-- Dark-theme fallback brushes for designer/runtime readability -->
+            <SolidColorBrush x:Key="ApplicationBackgroundBrush" Color="#FF0B0F14" />
+            <SolidColorBrush x:Key="TextFillColorPrimaryBrush" Color="#FFFFFFFF" />
+            <SolidColorBrush x:Key="TextFillColorSecondaryBrush" Color="#FFB3B3B3" />
+
+            <!-- Controls / surfaces -->
+            <SolidColorBrush x:Key="ControlFillColorDefaultBrush" Color="#FF0F1720" />
+            <SolidColorBrush x:Key="ControlFillColorSecondaryBrush" Color="#FF141A22" />
+            <SolidColorBrush x:Key="SurfaceStrokeColorDefaultBrush" Color="#FF2A2F35" />
+
+            <!-- Accents (adjust as needed) -->
+            <SolidColorBrush x:Key="AccentBrushSuccess" Color="#FF4CAF50" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>

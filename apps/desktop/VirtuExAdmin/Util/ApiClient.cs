@@ -1,8 +1,10 @@
 ﻿using System.Net.Http;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
 using VirtuExAdmin.Serializables;
+using System.Diagnostics;
 
 namespace VirtuExAdmin.Util;
 
@@ -58,9 +60,27 @@ public class ApiClient : IDisposable {
     /// <returns></returns>
     public async Task<User> User() {
         var res = await _httpClient.GetAsync("/v1/user/@me");
+        var body = await res.Content.ReadAsStringAsync();
         
-        if (res.IsSuccessStatusCode)
-            return JsonConvert.DeserializeObject<User>(await res.Content.ReadAsStringAsync(), _jsonSettings)!;
+        if (res.IsSuccessStatusCode) {
+            var jo = JObject.Parse(body);
+            var user = jo.ToObject<User>(JsonSerializer.Create(_jsonSettings))!;
+
+            // populate RegistrationDate from created_at if present
+            if (jo["created_at"] != null) {
+                if (jo["created_at"].Type == JTokenType.Integer)
+                {
+                    var dt = DateTimeOffset.FromUnixTimeMilliseconds(jo["created_at"].Value<long>()).ToLocalTime();
+                    user.RegistrationDate = dt.ToString("yyyy-MM-dd");
+                }
+                else
+                {
+                    user.RegistrationDate = jo["created_at"].ToString();
+                }
+            }
+
+            return user;
+        }
         
         var err = JsonConvert.DeserializeObject<ErrorResponse>(await res.Content.ReadAsStringAsync(), _jsonSettings)!;
         throw new ResponseException(err);
@@ -68,9 +88,33 @@ public class ApiClient : IDisposable {
     
     public async Task<User[]> Users() {
         var res = await _httpClient.GetAsync("/v1/user");
+        var body = await res.Content.ReadAsStringAsync();
         
-        if (res.IsSuccessStatusCode)
-            return JsonConvert.DeserializeObject<User[]>(await res.Content.ReadAsStringAsync(), _jsonSettings)!;
+        if (res.IsSuccessStatusCode) {
+            var ja = JArray.Parse(body);
+            var list = new List<User>();
+            foreach (var item in ja)
+            {
+                var jo = (JObject)item;
+                var user = jo.ToObject<User>(JsonSerializer.Create(_jsonSettings))!;
+
+                if (jo["created_at"] != null) {
+                    if (jo["created_at"].Type == JTokenType.Integer)
+                    {
+                        var dt = DateTimeOffset.FromUnixTimeMilliseconds(jo["created_at"].Value<long>()).ToLocalTime();
+                        user.RegistrationDate = dt.ToString("yyyy-MM-dd");
+                    }
+                    else
+                    {
+                        user.RegistrationDate = jo["created_at"].ToString();
+                    }
+                }
+
+                list.Add(user);
+            }
+
+            return list.ToArray();
+        }
         
         var err = JsonConvert.DeserializeObject<ErrorResponse>(await res.Content.ReadAsStringAsync(), _jsonSettings)!;
         throw new ResponseException(err);
@@ -103,6 +147,52 @@ public class ApiClient : IDisposable {
             return JsonConvert.DeserializeObject<Currency[]>(await res.Content.ReadAsStringAsync(), _jsonSettings)!;
         
         var err = JsonConvert.DeserializeObject<ErrorResponse>(await res.Content.ReadAsStringAsync(), _jsonSettings)!;
+        throw new ResponseException(err);
+    }
+
+    /// <summary>
+    /// Get subscription details for a specific user.
+    /// Calls GET /v1/user/{id}/subscription
+    /// </summary>
+    public async Task<Subscription> GetSubscription(ulong userId) {
+        Debug.WriteLine($"[ApiClient] Requesting subscription for userId={userId}");
+        if (_httpClient.DefaultRequestHeaders.TryGetValues("Authorization", out var auth)) {
+            Debug.WriteLine($"[ApiClient] Authorization: {auth.FirstOrDefault()}");
+        } else {
+            Debug.WriteLine("[ApiClient] Authorization header: <missing>");
+        }
+
+        var res = await _httpClient.GetAsync($"/v1/user/{userId}/subscription");
+        var body = await res.Content.ReadAsStringAsync();
+        Debug.WriteLine($"[ApiClient] GET /v1/user/{userId}/subscription -> HTTP {(int)res.StatusCode}\n{body}");
+
+        if (res.IsSuccessStatusCode) {
+            var jo = JObject.Parse(body);
+            var sub = new Subscription {
+                Id = jo["id"]?.ToString() ?? string.Empty,
+                PlanId = jo["plan_id"]?.ToString() ?? string.Empty,
+                PlanName = jo["plan_name"]?.ToString() ?? string.Empty,
+                MonthlyAiCredits = jo["monthly_ai_credits"]?.ToObject<int>() ?? 0,
+                AssetsMax = jo["assets_max"]?.ToObject<int>() ?? 0,
+                StopLoss = jo["stop_loss"]?.ToObject<bool>() ?? false,
+                RealTime = jo["real_time"]?.ToObject<bool>() ?? false,
+                TradingView = jo["trading_view"]?.ToObject<bool>() ?? false,
+                Price = jo["price"]?.ToObject<decimal>() ?? 0m,
+                StartedAt = jo["started_at"] != null
+                    ? (jo["started_at"].Type == JTokenType.Integer
+                        ? DateTimeOffset.FromUnixTimeMilliseconds(jo["started_at"].Value<long>()).ToLocalTime().ToString("yyyy-MM-dd")
+                        : jo["started_at"].ToString())
+                    : string.Empty,
+                ExpiresAt = jo["expires_at"] != null && jo["expires_at"].Type != JTokenType.Null
+                    ? (jo["expires_at"].Type == JTokenType.Integer
+                        ? DateTimeOffset.FromUnixTimeMilliseconds(jo["expires_at"].Value<long>()).ToLocalTime().ToString("yyyy-MM-dd")
+                        : jo["expires_at"].ToString())
+                    : null
+            };
+            return sub;
+        }
+
+        var err = JsonConvert.DeserializeObject<ErrorResponse>(body, _jsonSettings)!;
         throw new ResponseException(err);
     }
 

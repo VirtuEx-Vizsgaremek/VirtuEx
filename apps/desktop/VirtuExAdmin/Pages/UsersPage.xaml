@@ -70,6 +70,15 @@
                                 Foreground="{DynamicResource TextFillColorSecondaryBrush}" 
                                 FontSize="13"/>
 
+                            <!-- Registration date shown on the right column -->
+                            <TextBlock
+                                Grid.Row="0" Grid.Column="1" Grid.RowSpan="2"
+                                Text="{Binding RegistrationDate}"
+                                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                FontSize="12"
+                                VerticalAlignment="Top"
+                                HorizontalAlignment="Right"/>
+
                             <StackPanel 
                                 Grid.Row="3" Grid.Column="0" 
                                 Orientation="Horizontal" 
@@ -111,12 +120,15 @@
                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
                         <TextBlock Text="{Binding SelectedUser.FullName}" FontSize="24" FontWeight="Bold" Margin="0,0,0,4" />
                         <TextBlock Text="{Binding SelectedUser.Username}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="14" />
+                        <!-- Show registration date under username for clarity -->
+                        <TextBlock Text="{Binding SelectedUser.RegistrationDate}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="12" />
                     </StackPanel>
 
+                    <!-- Simplified subscription display: show user type, plan name and credits only -->
                     <StackPanel Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Right">
-                        <TextBlock Text="Premium User" Foreground="#4CAF50" FontWeight="SemiBold" HorizontalAlignment="Right"/>
-                        <TextBlock Text="Plan: Pro" Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="12" HorizontalAlignment="Right"/>
-                        <TextBlock Text="Credits: 100/mo" Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="12" HorizontalAlignment="Right"/>
+                        <TextBlock Text="{Binding SubscriptionUserType}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontWeight="SemiBold" HorizontalAlignment="Right"/>
+                        <TextBlock Text="{Binding SubscriptionPlanName}" Foreground="#4CAF50" FontWeight="SemiBold" HorizontalAlignment="Right"/>
+                        <TextBlock Text="{Binding SubscriptionCredits, StringFormat=Credits: {0}/mo}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="12" HorizontalAlignment="Right"/>
                     </StackPanel>
                 </Grid>
 
