@@ -257,17 +257,31 @@ public partial class UsersPage : Page, INotifyPropertyChanged {
         PopulateEditableFieldsFromSelected();
     }
 
-    private void SaveChanges_Click(object sender, RoutedEventArgs e) {
+    private async void SaveChanges_Click(object sender, RoutedEventArgs e) {
         if (SelectedUser is null) return;
 
-        // apply editable values back to selected user
-        SelectedUser.FullName = EditableFullName;
-        SelectedUser.Email = EditableEmail;
-        SelectedUser.RegistrationDate = EditableRegistrationDate;
-        SelectedUser.Role = EditableRole;
-        SelectedUser.Status = EditableStatus;
+        // apply editable values
+        SelectedUser.FullName           = EditableFullName;
+        SelectedUser.Email              = EditableEmail;
+        SelectedUser.RegistrationDate   = EditableRegistrationDate;
 
-        // notify UI that the collection item changed
+        try
+        {
+            await _apiClient.UpdateUser(SelectedUser);
+            MessageBox.Show("User successfully updated.", "Success",
+                MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+        catch (ResponseException ex)
+        {
+            MessageBox.Show($"API error while saving user: {ex.Message} (Status: {ex.StatusCode})",
+                "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Unexpected error while saving user: {ex.Message}",
+                "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+
         OnPropertyChanged(nameof(Users));
     }
 

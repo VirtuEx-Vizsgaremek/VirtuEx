@@ -157,11 +157,14 @@
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
 
+                            <!-- LEFT: Permissions -->
                             <StackPanel Grid.Column="0">
-                                <TextBlock Text="ROLE" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,4"/>
-                                <ComboBox SelectedValue="{Binding EditableRole, Mode=TwoWay}" SelectedValuePath="Content" HorizontalAlignment="Stretch">
-                                    <ComboBoxItem Content="admin" />
-                                    <ComboBoxItem Content="user" />
+                                <TextBlock Text="PERMISSIONS" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,4"/>
+
+                                <!-- Simple permission selector (example: Admin / User) -->
+                                <ComboBox SelectedValue="{Binding SelectedUser.Permissions, Mode=TwoWay}" HorizontalAlignment="Stretch">
+                                    <ComboBoxItem Content="User" Tag="0" />
+                                    <ComboBoxItem Content="Admin" Tag="1" />
                                 </ComboBox>
                             </StackPanel>
 

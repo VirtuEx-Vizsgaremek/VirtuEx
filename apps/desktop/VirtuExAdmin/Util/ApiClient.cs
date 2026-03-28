@@ -196,6 +196,26 @@ public class ApiClient : IDisposable {
         throw new ResponseException(err);
     }
 
+    public async Task UpdateUser(User user)
+    {
+        var payload = new {
+            full_name = user.FullName,
+            email = user.Email,
+            // ha szeretnél még bármit szerkeszteni, itt add hozzá
+        };
+
+        var json = JsonConvert.SerializeObject(payload, _jsonSettings);
+        var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+
+        var res = await _httpClient.PatchAsync($"/v1/user/{user.Id}", content);
+
+        if (!res.IsSuccessStatusCode)
+        {
+            var err = JsonConvert.DeserializeObject<ErrorResponse>(await res.Content.ReadAsStringAsync(), _jsonSettings)!;
+            throw new ResponseException(err);
+        }
+    }
+
     public void Dispose() {
         _httpClient.Dispose();
     }
