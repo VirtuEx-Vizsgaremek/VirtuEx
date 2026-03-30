@@ -79,12 +79,7 @@ export const patch = async (req: Request, res: Response<void>) => {
   }
 
   const { id } = req.params;
-  const {
-    email,
-    username,
-    full_name: fullName,
-    bio
-  } = req.validateBody(schemas.patch.req);
+  const { full_name, email } = req.validateBody(schemas.patch.req);
 
   const db = (await orm).em.fork();
   const user = await db.findOne(User, { id: BigInt(id) });
@@ -92,11 +87,10 @@ export const patch = async (req: Request, res: Response<void>) => {
   if (!user)
     return res.error(Status.NotFound, 'User with this id is not found.');
 
+  /*Only email and full_name update allowed yet !*/
   try {
     if (email) user.email = email;
-    if (username) user.username = username;
-    if (fullName) user.fullName = fullName;
-    if (bio !== undefined) user.bio = bio;
+    if (full_name) user.fullName = full_name;
 
     await db.persist(user).flush();
 
