@@ -264,12 +264,16 @@ public partial class UsersPage : Page, INotifyPropertyChanged {
         SelectedUser.FullName           = EditableFullName;
         SelectedUser.Email              = EditableEmail;
         SelectedUser.RegistrationDate   = EditableRegistrationDate;
+        SelectedUser.Status             = EditableStatus;
 
         try
         {
             await _apiClient.UpdateUser(SelectedUser);
             MessageBox.Show("User successfully updated.", "Success",
                 MessageBoxButton.OK, MessageBoxImage.Information);
+
+            // ensure details view stays in sync
+            PopulateEditableFieldsFromSelected();
         }
         catch (ResponseException ex)
         {
@@ -281,8 +285,6 @@ public partial class UsersPage : Page, INotifyPropertyChanged {
             MessageBox.Show($"Unexpected error while saving user: {ex.Message}",
                 "Error", MessageBoxButton.OK, MessageBoxImage.Error);
         }
-
-        OnPropertyChanged(nameof(Users));
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

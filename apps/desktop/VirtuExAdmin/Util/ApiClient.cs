@@ -8,40 +8,47 @@ using System.Diagnostics;
 
 namespace VirtuExAdmin.Util;
 
-public class ApiClient : IDisposable {
+public class ApiClient : IDisposable
+{
     private string _token;
-    public string Token {
+    public string Token
+    {
         get => _token;
-        set {
+        set
+        {
             _token = value ?? throw new ArgumentNullException(nameof(value));
-            
+
             _httpClient.DefaultRequestHeaders.Remove("Authorization");
             _httpClient.DefaultRequestHeaders.Add("Authorization", "Bearer " + _token);
         }
     }
 
     private readonly HttpClient _httpClient;
-    private DefaultContractResolver _contractResolver = new() {
+    private DefaultContractResolver _contractResolver = new()
+    {
         NamingStrategy = new SnakeCaseNamingStrategy()
     };
-    
+
     private JsonSerializerSettings _jsonSettings;
 
-    public ApiClient() {
+    public ApiClient()
+    {
         _httpClient = new HttpClient();
-        
+
         // TODO: configurable api uri
         _httpClient.BaseAddress = new Uri("http://localhost:3001");
         _httpClient.DefaultRequestHeaders.UserAgent.Clear();
         _httpClient.DefaultRequestHeaders.Add("User-Agent", "VirtuExAdmin/1.0.0");
 
-        _jsonSettings = new JsonSerializerSettings {
+        _jsonSettings = new JsonSerializerSettings
+        {
             ContractResolver = _contractResolver,
             NullValueHandling = NullValueHandling.Ignore
         };
     }
 
-    public async Task<LoginResponse> Login(string email, string password) {
+    public async Task<LoginResponse> Login(string email, string password)
+    {
         var res = await _httpClient.PostAsync("/v1/auth/login", new FormUrlEncodedContent(new Dictionary<string, string> {
             { "email", email },
             { "password", password }
@@ -49,7 +56,7 @@ public class ApiClient : IDisposable {
 
         if (res.IsSuccessStatusCode)
             return JsonConvert.DeserializeObject<LoginResponse>(await res.Content.ReadAsStringAsync(), _jsonSettings)!;
-            
+
         var err = JsonConvert.DeserializeObject<ErrorResponse>(await res.Content.ReadAsStringAsync(), _jsonSettings)!;
         throw new ResponseException(err);
     }
@@ -58,16 +65,19 @@ public class ApiClient : IDisposable {
     /// The currently logged-in user.
     /// </summary>
     /// <returns></returns>
-    public async Task<User> User() {
+    public async Task<User> User()
+    {
         var res = await _httpClient.GetAsync("/v1/user/@me");
         var body = await res.Content.ReadAsStringAsync();
-        
-        if (res.IsSuccessStatusCode) {
+
+        if (res.IsSuccessStatusCode)
+        {
             var jo = JObject.Parse(body);
             var user = jo.ToObject<User>(JsonSerializer.Create(_jsonSettings))!;
 
             // populate RegistrationDate from created_at if present
-            if (jo["created_at"] != null) {
+            if (jo["created_at"] != null)
+            {
                 if (jo["created_at"].Type == JTokenType.Integer)
                 {
                     var dt = DateTimeOffset.FromUnixTimeMilliseconds(jo["created_at"].Value<long>()).ToLocalTime();
@@ -81,16 +91,18 @@ public class ApiClient : IDisposable {
 
             return user;
         }
-        
+
         var err = JsonConvert.DeserializeObject<ErrorResponse>(await res.Content.ReadAsStringAsync(), _jsonSettings)!;
         throw new ResponseException(err);
     }
-    
-    public async Task<User[]> Users() {
+
+    public async Task<User[]> Users()
+    {
         var res = await _httpClient.GetAsync("/v1/user");
         var body = await res.Content.ReadAsStringAsync();
-        
-        if (res.IsSuccessStatusCode) {
+
+        if (res.IsSuccessStatusCode)
+        {
             var ja = JArray.Parse(body);
             var list = new List<User>();
             foreach (var item in ja)
@@ -98,7 +110,8 @@ public class ApiClient : IDisposable {
                 var jo = (JObject)item;
                 var user = jo.ToObject<User>(JsonSerializer.Create(_jsonSettings))!;
 
-                if (jo["created_at"] != null) {
+                if (jo["created_at"] != null)
+                {
                     if (jo["created_at"].Type == JTokenType.Integer)
                     {
                         var dt = DateTimeOffset.FromUnixTimeMilliseconds(jo["created_at"].Value<long>()).ToLocalTime();
@@ -115,37 +128,40 @@ public class ApiClient : IDisposable {
 
             return list.ToArray();
         }
-        
-        var err = JsonConvert.DeserializeObject<ErrorResponse>(await res.Content.ReadAsStringAsync(), _jsonSettings)!;
-        throw new ResponseException(err);
-    }
-    
-    public async Task<Currency> Currency(ulong id) {
-        var res = await _httpClient.GetAsync($"/v1/currency/{id}");
-        
-        if (res.IsSuccessStatusCode)
-            return JsonConvert.DeserializeObject<Currency>(await res.Content.ReadAsStringAsync(), _jsonSettings)!;
-        
-        var err = JsonConvert.DeserializeObject<ErrorResponse>(await res.Content.ReadAsStringAsync(), _jsonSettings)!;
-        throw new ResponseException(err);
-    }
-    
-    public async Task<Currency> Currency(string symbol) {
-        var res = await _httpClient.GetAsync($"/v1/currency/{symbol}");
-        
-        if (res.IsSuccessStatusCode)
-            return JsonConvert.DeserializeObject<Currency>(await res.Content.ReadAsStringAsync(), _jsonSettings)!;
-        
+
         var err = JsonConvert.DeserializeObject<ErrorResponse>(await res.Content.ReadAsStringAsync(), _jsonSettings)!;
         throw new ResponseException(err);
     }
 
-    public async Task<Currency[]> Currencies() {
+    public async Task<Currency> Currency(ulong id)
+    {
+        var res = await _httpClient.GetAsync($"/v1/currency/{id}");
+
+        if (res.IsSuccessStatusCode)
+            return JsonConvert.DeserializeObject<Currency>(await res.Content.ReadAsStringAsync(), _jsonSettings)!;
+
+        var err = JsonConvert.DeserializeObject<ErrorResponse>(await res.Content.ReadAsStringAsync(), _jsonSettings)!;
+        throw new ResponseException(err);
+    }
+
+    public async Task<Currency> Currency(string symbol)
+    {
+        var res = await _httpClient.GetAsync($"/v1/currency/{symbol}");
+
+        if (res.IsSuccessStatusCode)
+            return JsonConvert.DeserializeObject<Currency>(await res.Content.ReadAsStringAsync(), _jsonSettings)!;
+
+        var err = JsonConvert.DeserializeObject<ErrorResponse>(await res.Content.ReadAsStringAsync(), _jsonSettings)!;
+        throw new ResponseException(err);
+    }
+
+    public async Task<Currency[]> Currencies()
+    {
         var res = await _httpClient.GetAsync("/v1/currency");
-        
+
         if (res.IsSuccessStatusCode)
             return JsonConvert.DeserializeObject<Currency[]>(await res.Content.ReadAsStringAsync(), _jsonSettings)!;
-        
+
         var err = JsonConvert.DeserializeObject<ErrorResponse>(await res.Content.ReadAsStringAsync(), _jsonSettings)!;
         throw new ResponseException(err);
     }
@@ -154,11 +170,15 @@ public class ApiClient : IDisposable {
     /// Get subscription details for a specific user.
     /// Calls GET /v1/user/{id}/subscription
     /// </summary>
-    public async Task<Subscription> GetSubscription(ulong userId) {
+    public async Task<Subscription> GetSubscription(ulong userId)
+    {
         Debug.WriteLine($"[ApiClient] Requesting subscription for userId={userId}");
-        if (_httpClient.DefaultRequestHeaders.TryGetValues("Authorization", out var auth)) {
+        if (_httpClient.DefaultRequestHeaders.TryGetValues("Authorization", out var auth))
+        {
             Debug.WriteLine($"[ApiClient] Authorization: {auth.FirstOrDefault()}");
-        } else {
+        }
+        else
+        {
             Debug.WriteLine("[ApiClient] Authorization header: <missing>");
         }
 
@@ -166,9 +186,11 @@ public class ApiClient : IDisposable {
         var body = await res.Content.ReadAsStringAsync();
         Debug.WriteLine($"[ApiClient] GET /v1/user/{userId}/subscription -> HTTP {(int)res.StatusCode}\n{body}");
 
-        if (res.IsSuccessStatusCode) {
+        if (res.IsSuccessStatusCode)
+        {
             var jo = JObject.Parse(body);
-            var sub = new Subscription {
+            var sub = new Subscription
+            {
                 Id = jo["id"]?.ToString() ?? string.Empty,
                 PlanId = jo["plan_id"]?.ToString() ?? string.Empty,
                 PlanName = jo["plan_name"]?.ToString() ?? string.Empty,
@@ -198,10 +220,11 @@ public class ApiClient : IDisposable {
 
     public async Task UpdateUser(User user)
     {
-        var payload = new {
-            full_name = user.FullName,
+        // Only email and full_name update allowed yet!
+        var payload = new
+        {
             email = user.Email,
-            // ha szeretnél még bármit szerkeszteni, itt add hozzá
+            full_name = user.FullName
         };
 
         var json = JsonConvert.SerializeObject(payload, _jsonSettings);
@@ -216,7 +239,8 @@ public class ApiClient : IDisposable {
         }
     }
 
-    public void Dispose() {
+    public void Dispose()
+    {
         _httpClient.Dispose();
     }
 }

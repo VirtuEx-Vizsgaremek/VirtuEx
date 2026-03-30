@@ -163,8 +163,8 @@
 
                                 <!-- Simple permission selector (example: Admin / User) -->
                                 <ComboBox SelectedValue="{Binding SelectedUser.Permissions, Mode=TwoWay}" HorizontalAlignment="Stretch">
-                                    <ComboBoxItem Content="User" Tag="0" />
-                                    <ComboBoxItem Content="Admin" Tag="1" />
+                                    <ComboBoxItem Content="Wanted" Tag="0" />
+                                    <ComboBoxItem Content="Suspended" Tag="1" />
                                 </ComboBox>
                             </StackPanel>
 
