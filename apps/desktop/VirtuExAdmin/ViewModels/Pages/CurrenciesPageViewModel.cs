@@ -10,8 +10,9 @@ using Wpf.Ui;
 namespace VirtuExAdmin.ViewModels.Pages;
 
 public partial class CurrenciesPageViewModel : ObservableObject {
-    private readonly ApiClient   _api;
-    private readonly INavigationService  _navigationService; 
+    private readonly ApiClient              _api;
+    private readonly INavigationService     _navigationService;
+    private readonly CurrencyNavigationState _currencyState;
 
     [ObservableProperty]
     private Currency[]? _currencies;
@@ -36,9 +37,10 @@ public partial class CurrenciesPageViewModel : ObservableObject {
     public ObservableCollection<int>    PageSizeOptions   { get; } = [10, 25, 50, 100];
     public ObservableCollection<string> TypeFilterOptions { get; } = ["All", "Fiat", "Crypto", "Stock", "ETF"];
     
-    public CurrenciesPageViewModel(ApiClient api, INavigationService navigationService) {
-        _api = api;
+    public CurrenciesPageViewModel(ApiClient api, INavigationService navigationService, CurrencyNavigationState currencyState) {
+        _api           = api;
         _navigationService = navigationService;
+        _currencyState = currencyState;
     }
     
     public async Task LoadAsync() {
@@ -79,8 +81,11 @@ public partial class CurrenciesPageViewModel : ObservableObject {
     [RelayCommand]
     private void RowDoubleClick(Currency? currency) {
         if (currency is null) return;
-        
-        // TODO: pass the currency to `DetailedCurrencyPage` somehow
+
+        _currencyState.ViewModel = new DetailedCurrencyViewModel(currency, _api, _navigationService, async () => {
+            Currencies = await _api.Currencies();
+            RefreshPage();
+        });
         _navigationService.NavigateWithHierarchy(typeof(DetailedCurrencyPage));
     }
     

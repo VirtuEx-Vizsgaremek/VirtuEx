@@ -1,10 +1,11 @@
 ﻿using System.Windows.Controls;
-using VirtuExAdmin.Serializables;
+using VirtuExAdmin.Util;
 
 namespace VirtuExAdmin.Pages;
 
 public partial class DetailedCurrencyPage : Page {
-    public DetailedCurrencyPage() {
+    public DetailedCurrencyPage(CurrencyNavigationState state) {
         InitializeComponent();
+        Loaded += (_, _) => DataContext = state.ViewModel;
     }
 }
