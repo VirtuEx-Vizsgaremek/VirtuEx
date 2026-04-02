@@ -43,13 +43,26 @@ public partial class DetailedCurrencyViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void Reset()
+    private void Cancel() {
+        _navigationService.GoBack();
+    }
+
+    [RelayCommand]
+    private void ResetFields()
     {
-        Symbol         = _original.Symbol;
-        Name           = _original.Name;
-        Precision      = _original.Precision;
-        UpdateFreqency = _original.UpdateFreqency;
-        Type           = _original.Type;
+        // Write directly to backing fields and notify manually so PropertyChanged
+        // always fires, even when the value is identical to the current one.
+        _symbol         = _original.Symbol;
+        _name           = _original.Name;
+        _precision      = _original.Precision;
+        _updateFreqency = _original.UpdateFreqency;
+        _type           = _original.Type;
+
+        OnPropertyChanged(nameof(Symbol));
+        OnPropertyChanged(nameof(Name));
+        OnPropertyChanged(nameof(Precision));
+        OnPropertyChanged(nameof(UpdateFreqency));
+        OnPropertyChanged(nameof(Type));
     }
 
     [RelayCommand]
