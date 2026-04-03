@@ -139,11 +139,23 @@
 
                         <TextBlock Text="Personal information" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,16" />
 
+                        <!-- Create-only: Username -->
+                        <TextBlock Text="USERNAME" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,4"
+                                   Visibility="{Binding IsCreateMode, Converter={StaticResource BoolToVisibilityConverter}}" />
+                        <ui:TextBox Text="{Binding EditableUsername, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,16"
+                                    Visibility="{Binding IsCreateMode, Converter={StaticResource BoolToVisibilityConverter}}" />
+
                         <TextBlock Text="FULL NAME" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,4"/>
                         <ui:TextBox Text="{Binding EditableFullName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,16" />
 
                         <TextBlock Text="EMAIL" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,4"/>
                         <ui:TextBox Text="{Binding EditableEmail, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,16" />
+
+                        <!-- Create-only: Password -->
+                        <TextBlock Text="PASSWORD" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,4"
+                                   Visibility="{Binding IsCreateMode, Converter={StaticResource BoolToVisibilityConverter}}" />
+                        <ui:PasswordBox Password="{Binding EditablePassword, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,16"
+                                    Visibility="{Binding IsCreateMode, Converter={StaticResource BoolToVisibilityConverter}}" />
 
                         <TextBlock Text="REGISTRATION DATE" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,4"/>
                         <ui:TextBox Text="{Binding EditableRegistrationDate, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsEnabled="False" Margin="0,0,0,32" />
@@ -204,12 +216,28 @@
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
 
                     <ui:Button Grid.Column="0" Content="Delete profile" Appearance="Danger" />
 
-                    <ui:Button Grid.Column="2" Content="Cancel" Appearance="Secondary" Margin="0,0,8,0" Click="Cancel_Click" />
-                    <ui:Button Grid.Column="3" Content="Save changes" Appearance="Primary" Click="SaveChanges_Click" />
+                    <!-- New: Add new user -->
+                    <ui:Button Grid.Column="2" Content="Add new user" Appearance="Secondary" Margin="0,0,8,0" Click="AddNewUser_Click" />
+
+                    <ui:Button Grid.Column="3" Content="Cancel" Appearance="Secondary" Margin="0,0,8,0" Click="Cancel_Click" />
+
+                    <ui:Button Grid.Column="4" Appearance="Primary" Click="SaveChanges_Click">
+                        <ui:Button.Style>
+                            <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+                                <Setter Property="Content" Value="Save changes" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsCreateMode}" Value="True">
+                                        <Setter Property="Content" Value="Create" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ui:Button.Style>
+                    </ui:Button>
                 </Grid>
 
             </Grid>

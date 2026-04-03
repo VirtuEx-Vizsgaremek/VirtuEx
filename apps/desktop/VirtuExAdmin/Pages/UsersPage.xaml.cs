@@ -21,12 +21,31 @@ public partial class UsersPage : Page, INotifyPropertyChanged {
     // track last requested subscription user id to avoid races
     private ulong? _lastRequestedSubscriptionUserId;
 
+    private bool _isCreateMode;
+    public bool IsCreateMode
+    {
+        get => _isCreateMode;
+        set
+        {
+            if (_isCreateMode == value) return;
+            _isCreateMode = value;
+            OnPropertyChanged();
+        }
+    }
+
     private User? _selectedUser;
     public User? SelectedUser {
         get => _selectedUser;
         set {
             _selectedUser = value;
             OnPropertyChanged();
+
+            // switching selection implies edit mode
+            if (_selectedUser is not null)
+            {
+                IsCreateMode = false;
+            }
+
             PopulateEditableFieldsFromSelected();
             _ = LoadSubscriptionForSelected();
         }
@@ -37,6 +56,20 @@ public partial class UsersPage : Page, INotifyPropertyChanged {
     public string EditableFullName {
         get => _editableFullName;
         set { _editableFullName = value; OnPropertyChanged(); }
+    }
+
+    private string _editableUsername = string.Empty;
+    public string EditableUsername
+    {
+        get => _editableUsername;
+        set { _editableUsername = value; OnPropertyChanged(); }
+    }
+
+    private string _editablePassword = string.Empty;
+    public string EditablePassword
+    {
+        get => _editablePassword;
+        set { _editablePassword = value; OnPropertyChanged(); }
     }
 
     private string _editableEmail = string.Empty;
@@ -115,6 +148,11 @@ public partial class UsersPage : Page, INotifyPropertyChanged {
 
     private async void UsersPage_Loaded(object sender, RoutedEventArgs e)
     {
+        await ReloadUsersAndSelectFirstIfAny();
+    }
+
+    private async Task ReloadUsersAndSelectFirstIfAny()
+    {
         try
         {
             var users = await _apiClient.Users();
@@ -125,6 +163,10 @@ public partial class UsersPage : Page, INotifyPropertyChanged {
             {
                 SelectedUser = Users.First();
             }
+            else
+            {
+                SelectedUser = null;
+            }
         }
         catch (ResponseException ex)
         {
@@ -134,6 +176,20 @@ public partial class UsersPage : Page, INotifyPropertyChanged {
         {
             MessageBox.Show($"An unexepted error ocured: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
         }
+    }
+
+    private async Task ReloadUsersAndSelectCreated(string username, string email)
+    {
+        var users = await _apiClient.Users();
+        Users = new ObservableCollection<User>(users);
+        OnPropertyChanged(nameof(Users));
+
+        var created = Users.FirstOrDefault(u =>
+            (!string.IsNullOrWhiteSpace(username) && string.Equals(u.Username, username, StringComparison.OrdinalIgnoreCase)) ||
+            (!string.IsNullOrWhiteSpace(email) && string.Equals(u.Email, email, StringComparison.OrdinalIgnoreCase)));
+
+        SelectedUser = created ?? Users.FirstOrDefault();
+        IsCreateMode = false;
     }
 
     private async Task LoadSubscriptionForSelected()
@@ -252,12 +308,100 @@ public partial class UsersPage : Page, INotifyPropertyChanged {
         EditableStatus = SelectedUser.Status;
     }
 
+    private void EnterCreateMode()
+    {
+        IsCreateMode = true;
+
+        // clear create fields
+        EditableUsername = string.Empty;
+        EditablePassword = string.Empty;
+
+        // clear shared editable fields
+        EditableFullName = string.Empty;
+        EditableEmail = string.Empty;
+        EditableRegistrationDate = string.Empty;
+        EditableRole = string.Empty;
+        EditableStatus = "Active";
+
+        // Preferably set SelectedUser to null so subscription panel is cleared
+        SelectedUser = null;
+    }
+
+    private void AddNewUser_Click(object sender, RoutedEventArgs e)
+    {
+        EnterCreateMode();
+    }
+
     private void Cancel_Click(object sender, RoutedEventArgs e) {
+        if (IsCreateMode)
+        {
+            // exit create mode and re-select first user (or keep null)
+            IsCreateMode = false;
+            if (Users.Any())
+                SelectedUser = Users.First();
+            else
+                SelectedUser = null;
+            return;
+        }
+
         // revert changes by re-populating from selected user
         PopulateEditableFieldsFromSelected();
     }
 
     private async void SaveChanges_Click(object sender, RoutedEventArgs e) {
+        if (IsCreateMode)
+        {
+            // basic validation
+            if (string.IsNullOrWhiteSpace(EditableFullName))
+            {
+                MessageBox.Show("Full name is required.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(EditableEmail) || !EditableEmail.Contains('@'))
+            {
+                MessageBox.Show("Valid email is required.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(EditableUsername))
+            {
+                MessageBox.Show("Username is required.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(EditablePassword))
+            {
+                MessageBox.Show("Password is required.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            try
+            {
+                await _apiClient.RegisterUser(EditableFullName, EditableUsername, EditableEmail, EditablePassword);
+
+                await ReloadUsersAndSelectCreated(EditableUsername, EditableEmail);
+
+                // clear password from memory/UI after successful create
+                EditablePassword = string.Empty;
+
+                MessageBox.Show("User successfully created.", "Success",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (ResponseException ex)
+            {
+                MessageBox.Show($"API error while creating user: {ex.Message} (Status: {ex.StatusCode})",
+                    "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Unexpected error while creating user: {ex.Message}",
+                    "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+
+            return;
+        }
+
         if (SelectedUser is null) return;
 
         // apply editable values

@@ -5,6 +5,7 @@ using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
 using VirtuExAdmin.Serializables;
 using System.Diagnostics;
+using System.Text;
 
 namespace VirtuExAdmin.Util;
 
@@ -59,6 +60,30 @@ public class ApiClient : IDisposable
 
         var err = JsonConvert.DeserializeObject<ErrorResponse>(await res.Content.ReadAsStringAsync(), _jsonSettings)!;
         throw new ResponseException(err);
+    }
+
+    public async Task RegisterUser(string fullName, string username, string email, string password)
+    {
+        var payload = new
+        {
+            full_name = fullName,
+            username,
+            email,
+            password
+        };
+
+        var json = JsonConvert.SerializeObject(payload, _jsonSettings);
+        var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+        var res = await _httpClient.PostAsync("/v1/auth/register", content);
+
+        if (!res.IsSuccessStatusCode)
+        {
+            var err = JsonConvert.DeserializeObject<ErrorResponse>(await res.Content.ReadAsStringAsync(), _jsonSettings)!;
+            throw new ResponseException(err);
+        }
+
+        // backend may return JWT or other body; we intentionally ignore it for MVP
     }
 
     /// <summary>
