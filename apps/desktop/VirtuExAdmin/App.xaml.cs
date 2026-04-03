@@ -44,6 +44,7 @@ public partial class App : Application {
         
         _ = services.AddTransient<AccountPageViewModel>();
         _ = services.AddTransient<CurrenciesPageViewModel>();
+        _ = services.AddTransient<TransactionsPageViewModel>();
         
         // Windows
         _ = services.AddSingleton<AuthWindow>();
