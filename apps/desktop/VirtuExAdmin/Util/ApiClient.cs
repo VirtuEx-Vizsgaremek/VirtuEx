@@ -106,6 +106,52 @@ public class ApiClient : IDisposable
         }
     }
 
+    public async Task<Subscription> SetSubscription(ulong userId, string planName)
+    {
+        var payload = new
+        {
+            plan_name = planName
+        };
+
+        var json = JsonConvert.SerializeObject(payload, _jsonSettings);
+        var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+        var res = await _httpClient.PostAsync($"/v1/user/{userId}/subscription", content);
+        var body = await res.Content.ReadAsStringAsync();
+
+        if (res.IsSuccessStatusCode)
+        {
+            var jo = JObject.Parse(body);
+            var sub = new Subscription
+            {
+                Id = jo["id"]?.ToString() ?? string.Empty,
+                PlanId = jo["plan_id"]?.ToString() ?? string.Empty,
+                PlanName = jo["plan_name"]?.ToString() ?? string.Empty,
+                MonthlyAiCredits = jo["monthly_ai_credits"]?.ToObject<int>() ?? 0,
+                AssetsMax = jo["assets_max"]?.ToObject<int>() ?? 0,
+                StopLoss = jo["stop_loss"]?.ToObject<bool>() ?? false,
+                RealTime = jo["real_time"]?.ToObject<bool>() ?? false,
+                TradingView = jo["trading_view"]?.ToObject<bool>() ?? false,
+                Price = jo["price"]?.ToObject<decimal>() ?? 0m,
+                StartedAt = jo["started_at"] != null
+                    ? (jo["started_at"].Type == JTokenType.Integer
+                        ? DateTimeOffset.FromUnixTimeMilliseconds(jo["started_at"].Value<long>()).ToLocalTime().ToString("yyyy-MM-dd")
+                        : jo["started_at"].ToString())
+                    : string.Empty,
+                ExpiresAt = jo["expires_at"] != null && jo["expires_at"].Type != JTokenType.Null
+                    ? (jo["expires_at"].Type == JTokenType.Integer
+                        ? DateTimeOffset.FromUnixTimeMilliseconds(jo["expires_at"].Value<long>()).ToLocalTime().ToString("yyyy-MM-dd")
+                        : jo["expires_at"].ToString())
+                    : null
+            };
+
+            return sub;
+        }
+
+        var err = JsonConvert.DeserializeObject<ErrorResponse>(body, _jsonSettings)!;
+        throw new ResponseException(err);
+    }
+
     /// <summary>
     /// The currently logged-in user.
     /// </summary>

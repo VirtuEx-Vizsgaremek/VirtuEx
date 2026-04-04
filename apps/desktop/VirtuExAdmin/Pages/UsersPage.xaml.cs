@@ -12,6 +12,7 @@ using VirtuExAdmin.Serializables;
 using VirtuExAdmin.Util;
 using VirtuExAdmin.ViewModels.Pages;
 using Microsoft.Extensions.DependencyInjection;
+using VirtuExAdmin.Windows;
 
 namespace VirtuExAdmin.Pages;
 
@@ -394,6 +395,70 @@ public partial class UsersPage : Page, INotifyPropertyChanged {
         {
             MessageBox.Show($"Unexpected error while updating permissions: {ex.Message}",
                 "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private async void EditSubscription_Click(object sender, RoutedEventArgs e)
+    {
+        if (SelectedUser is null)
+        {
+            MessageBox.Show("Select a user first.", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        if (IsCreateMode)
+        {
+            MessageBox.Show("Create the user first, then edit subscription.", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        var currentPlan = string.IsNullOrWhiteSpace(SubscriptionPlanName) || SubscriptionPlanName.Equals("No plan", StringComparison.OrdinalIgnoreCase)
+            ? "Free"
+            : SubscriptionPlanName;
+
+        var modal = new EditSubscriptionWindow(SelectedUser.FullName, SelectedUser.Username, currentPlan)
+        {
+            Owner = Window.GetWindow(this)
+        };
+
+        if (modal.ShowDialog() == true)
+        {
+            try
+            {
+                var sub = await _apiClient.SetSubscription(SelectedUser.Id, modal.SelectedPlanName);
+
+                // Update UI properties similarly to LoadSubscriptionForSelected (without touching race-guard)
+                SubscriptionPlanName = sub.PlanName ?? string.Empty;
+                SubscriptionCredits = sub.MonthlyAiCredits;
+                SubscriptionPrice = sub.Price.ToString("C");
+
+                if (DateTime.TryParse(sub.StartedAt, out var startedAt))
+                    SubscriptionStarted = startedAt.ToLocalTime().ToString("yyyy-MM-dd");
+                else
+                    SubscriptionStarted = sub.StartedAt ?? string.Empty;
+
+                if (!string.IsNullOrEmpty(sub.ExpiresAt) && DateTime.TryParse(sub.ExpiresAt, out var expiresAt))
+                    SubscriptionExpires = expiresAt.ToLocalTime().ToString("yyyy-MM-dd");
+                else
+                    SubscriptionExpires = sub.ExpiresAt ?? "Never";
+
+                if (string.IsNullOrEmpty(SubscriptionPlanName) || SubscriptionPlanName == "No plan" || SubscriptionPlanName.Equals("Free", StringComparison.OrdinalIgnoreCase))
+                    SubscriptionUserType = "Free user";
+                else
+                    SubscriptionUserType = "Paid user";
+
+                MessageBox.Show("Subscription updated.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (ResponseException ex)
+            {
+                MessageBox.Show($"API error while updating subscription: {ex.Message} (Status: {ex.StatusCode})",
+                    "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Unexpected error while updating subscription: {ex.Message}",
+                    "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
     }
 
