@@ -86,6 +86,26 @@ public class ApiClient : IDisposable
         // backend may return JWT or other body; we intentionally ignore it for MVP
     }
 
+    public async Task UpdateUserRestrictions(ulong userId, int permissions, bool activated)
+    {
+        var payload = new
+        {
+            permissions,
+            activated
+        };
+
+        var json = JsonConvert.SerializeObject(payload, _jsonSettings);
+        var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+        var res = await _httpClient.PatchAsync($"/v1/user/{userId}/restrictions", content);
+
+        if (!res.IsSuccessStatusCode)
+        {
+            var err = JsonConvert.DeserializeObject<ErrorResponse>(await res.Content.ReadAsStringAsync(), _jsonSettings)!;
+            throw new ResponseException(err);
+        }
+    }
+
     /// <summary>
     /// The currently logged-in user.
     /// </summary>

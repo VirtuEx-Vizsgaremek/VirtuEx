@@ -154,7 +154,7 @@
                         <!-- Create-only: Password -->
                         <TextBlock Text="PASSWORD" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,4"
                                    Visibility="{Binding IsCreateMode, Converter={StaticResource BoolToVisibilityConverter}}" />
-                        <ui:PasswordBox Password="{Binding EditablePassword, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,16"
+                        <ui:TextBox Text="{Binding EditablePassword, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,16"
                                     Visibility="{Binding IsCreateMode, Converter={StaticResource BoolToVisibilityConverter}}" />
 
                         <TextBlock Text="REGISTRATION DATE" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,4"/>
@@ -173,11 +173,12 @@
                             <StackPanel Grid.Column="0">
                                 <TextBlock Text="PERMISSIONS" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,4"/>
 
-                                <!-- Simple permission selector (example: Admin / User) -->
-                                <ComboBox SelectedValue="{Binding SelectedUser.Permissions, Mode=TwoWay}" HorizontalAlignment="Stretch">
-                                    <ComboBoxItem Content="Wanted" Tag="0" />
-                                    <ComboBoxItem Content="Suspended" Tag="1" />
+                                <ComboBox SelectedValue="{Binding EditablePermissions, Mode=TwoWay}" SelectedValuePath="Tag" HorizontalAlignment="Stretch">
+                                    <ComboBoxItem Content="User" Tag="0" />
+                                    <ComboBoxItem Content="Admin" Tag="1" />
                                 </ComboBox>
+
+                                <CheckBox Content="Activated" Margin="0,12,0,0" IsChecked="{Binding EditableActivated, Mode=TwoWay}" />
                             </StackPanel>
 
                             <StackPanel Grid.Column="2">
@@ -217,6 +218,7 @@
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
 
                     <ui:Button Grid.Column="0" Content="Delete profile" Appearance="Danger" />
@@ -226,7 +228,9 @@
 
                     <ui:Button Grid.Column="3" Content="Cancel" Appearance="Secondary" Margin="0,0,8,0" Click="Cancel_Click" />
 
-                    <ui:Button Grid.Column="4" Appearance="Primary" Click="SaveChanges_Click">
+                    <ui:Button Grid.Column="4" Content="Apply permissions" Appearance="Secondary" Margin="0,0,8,0" Click="ApplyPermissions_Click" />
+
+                    <ui:Button Grid.Column="5" Appearance="Primary" Click="SaveChanges_Click">
                         <ui:Button.Style>
                             <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
                                 <Setter Property="Content" Value="Save changes" />

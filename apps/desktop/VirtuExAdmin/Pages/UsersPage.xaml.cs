@@ -7,6 +7,7 @@ using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using VirtuExAdmin.Enums;
 using VirtuExAdmin.Serializables;
 using VirtuExAdmin.Util;
 using VirtuExAdmin.ViewModels.Pages;
@@ -94,6 +95,20 @@ public partial class UsersPage : Page, INotifyPropertyChanged {
     public string EditableStatus {
         get => _editableStatus;
         set { _editableStatus = value; OnPropertyChanged(); }
+    }
+
+    private int _editablePermissions;
+    public int EditablePermissions
+    {
+        get => _editablePermissions;
+        set { _editablePermissions = value; OnPropertyChanged(); }
+    }
+
+    private bool _editableActivated;
+    public bool EditableActivated
+    {
+        get => _editableActivated;
+        set { _editableActivated = value; OnPropertyChanged(); }
     }
 
     // Subscription display properties
@@ -298,6 +313,8 @@ public partial class UsersPage : Page, INotifyPropertyChanged {
             EditableRegistrationDate = string.Empty;
             EditableRole = string.Empty;
             EditableStatus = string.Empty;
+            EditablePermissions = 0;
+            EditableActivated = false;
             return;
         }
 
@@ -306,6 +323,8 @@ public partial class UsersPage : Page, INotifyPropertyChanged {
         EditableRegistrationDate = SelectedUser.RegistrationDate;
         EditableRole = SelectedUser.Role;
         EditableStatus = SelectedUser.Status;
+        EditablePermissions = (int)SelectedUser.Permissions;
+        EditableActivated = SelectedUser.Activated;
     }
 
     private void EnterCreateMode()
@@ -323,6 +342,9 @@ public partial class UsersPage : Page, INotifyPropertyChanged {
         EditableRole = string.Empty;
         EditableStatus = "Active";
 
+        EditablePermissions = 0;
+        EditableActivated = false;
+
         // Preferably set SelectedUser to null so subscription panel is cleared
         SelectedUser = null;
     }
@@ -330,6 +352,49 @@ public partial class UsersPage : Page, INotifyPropertyChanged {
     private void AddNewUser_Click(object sender, RoutedEventArgs e)
     {
         EnterCreateMode();
+    }
+
+    private async void ApplyPermissions_Click(object sender, RoutedEventArgs e)
+    {
+        if (SelectedUser is null)
+        {
+            MessageBox.Show("Select a user first.", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        if (IsCreateMode)
+        {
+            MessageBox.Show("Create the user first, then apply permissions.", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        if (EditablePermissions is not (0 or 1))
+        {
+            MessageBox.Show("Permissions must be either User (0) or Admin (1).", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        try
+        {
+            await _apiClient.UpdateUserRestrictions(SelectedUser.Id, EditablePermissions, EditableActivated);
+
+            SelectedUser.Permissions = (Permission)EditablePermissions;
+            SelectedUser.Activated = EditableActivated;
+
+            MessageBox.Show("Permissions updated.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+
+            PopulateEditableFieldsFromSelected();
+        }
+        catch (ResponseException ex)
+        {
+            MessageBox.Show($"API error while updating permissions: {ex.Message} (Status: {ex.StatusCode})",
+                "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Unexpected error while updating permissions: {ex.Message}",
+                "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     private void Cancel_Click(object sender, RoutedEventArgs e) {
