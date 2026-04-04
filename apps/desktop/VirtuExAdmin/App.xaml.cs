@@ -34,6 +34,7 @@ public partial class App : Application {
             // Singletons
             _ = services.AddSingleton<ApiClient>();
             _ = services.AddSingleton<UserService>();
+            _ = services.AddSingleton<SettingsService>();
             
             _ = services.AddNavigationViewPageProvider();
             _ = services.AddSingleton<INavigationService, NavigationService>();
@@ -44,6 +45,7 @@ public partial class App : Application {
             _ = services.AddTransient<AccountPageViewModel>();
             _ = services.AddTransient<CurrenciesPageViewModel>();
             _ = services.AddTransient<AuditLogPageViewModel>();
+            _ = services.AddTransient<SettingsViewModel>();
             
             // Windows
             _ = services.AddSingleton<AuthWindow>();

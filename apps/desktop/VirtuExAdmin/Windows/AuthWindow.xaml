@@ -5,6 +5,8 @@
         Title="VirtuEx - Sign In"
         Height="400"
         Width="400"
+        xmlns:viewmodels="clr-namespace:VirtuExAdmin.ViewModels"
+        xmlns:windows="clr-namespace:VirtuExAdmin.ViewModels.Windows"
         ui:Design.Background="{DynamicResource ApplicationBackgroundBrush}"
         ui:Design.Foreground="{DynamicResource TextFillColorPrimaryBrush}"
         Foreground="{DynamicResource TextFillColorPrimaryBrush}"
@@ -12,6 +14,10 @@
         ExtendsContentIntoTitleBar="True"
         ResizeMode="NoResize"
         WindowBackdropType="Mica">
+    <ui:FluentWindow.DataContext>
+        <windows:AuthViewModel />
+    </ui:FluentWindow.DataContext>
+    
     <StackPanel>
         <!-- TitleBar -->
         <ui:TitleBar Title="VirtuEx"
@@ -52,7 +58,7 @@
                                 Password="{Binding Password, UpdateSourceTrigger=PropertyChanged}"
                              Margin="0,5,0,20"/>
                 
-                <CheckBox Margin="0,5,0,20" Content="Remember Me" />
+                <CheckBox Margin="0,5,0,20" Content="Remember Me" IsChecked="{Binding RememberMe, UpdateSourceTrigger=PropertyChanged}" />
 
                 <ui:Button Appearance="Primary"
                            Content="Sign In"
