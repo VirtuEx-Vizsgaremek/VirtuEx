@@ -83,8 +83,31 @@
                                 Grid.Row="3" Grid.Column="0" 
                                 Orientation="Horizontal" 
                                 VerticalAlignment="Center">
-                                <Ellipse Width="8" Height="8" Fill="#4CAF50" Margin="0,0,8,0" />
-                                <TextBlock Text="{Binding Status}" FontSize="13" />
+                                <Ellipse Width="8" Height="8" Margin="0,0,8,0">
+                                    <Ellipse.Style>
+                                        <Style TargetType="Ellipse">
+                                            <Setter Property="Fill" Value="#9E9E9E" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Activated}" Value="True">
+                                                    <Setter Property="Fill" Value="#4CAF50" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Ellipse.Style>
+                                </Ellipse>
+
+                                <TextBlock FontSize="13">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Text" Value="Inactive" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Activated}" Value="True">
+                                                    <Setter Property="Text" Value="Active" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
                             </StackPanel>
                         </Grid>
                     </Border>
