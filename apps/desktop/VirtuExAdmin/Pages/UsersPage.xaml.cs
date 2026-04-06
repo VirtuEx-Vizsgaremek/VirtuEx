@@ -462,6 +462,32 @@ public partial class UsersPage : Page, INotifyPropertyChanged {
         }
     }
 
+    private void OpenWallet_Click(object sender, RoutedEventArgs e)
+    {
+        if (SelectedUser is null)
+        {
+            MessageBox.Show("Select a user first.", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        if (IsCreateMode)
+        {
+            MessageBox.Show("Create the user first, then open wallet.", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        var displayName = string.IsNullOrWhiteSpace(SelectedUser.FullName)
+            ? SelectedUser.Username
+            : $"{SelectedUser.FullName} (@{SelectedUser.Username})";
+
+        var win = new UserWalletWindow(_apiClient, SelectedUser.Id, displayName)
+        {
+            Owner = Window.GetWindow(this)
+        };
+
+        win.ShowDialog();
+    }
+
     private void Cancel_Click(object sender, RoutedEventArgs e) {
         if (IsCreateMode)
         {

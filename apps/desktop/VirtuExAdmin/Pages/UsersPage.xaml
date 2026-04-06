@@ -243,6 +243,7 @@
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
 
                     <ui:Button Grid.Column="0" Content="Delete profile" Appearance="Danger" />
@@ -256,7 +257,9 @@
 
                     <ui:Button Grid.Column="5" Content="Edit subscription" Appearance="Secondary" Margin="0,0,8,0" Click="EditSubscription_Click" />
 
-                    <ui:Button Grid.Column="6" Appearance="Primary" Click="SaveChanges_Click">
+                    <ui:Button Grid.Column="6" Content="Wallet" Appearance="Secondary" Margin="0,0,8,0" Click="OpenWallet_Click" />
+
+                    <ui:Button Grid.Column="7" Appearance="Primary" Click="SaveChanges_Click">
                         <ui:Button.Style>
                             <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
                                 <Setter Property="Content" Value="Save changes" />

@@ -152,6 +152,118 @@ public class ApiClient : IDisposable
         throw new ResponseException(err);
     }
 
+    public async Task<AdminWalletResponse> GetUserWallet(ulong userId)
+    {
+        var res = await _httpClient.GetAsync($"/v1/user/{userId}/wallet");
+        var body = await res.Content.ReadAsStringAsync();
+
+        if (res.IsSuccessStatusCode)
+        {
+            var jo = JObject.Parse(body);
+
+            // Be defensive regarding response shape
+            var assetsToken = (JToken?)jo["assets"] ?? jo["Assets"]; // just in case
+
+            var resp = new AdminWalletResponse
+            {
+                WalletId = jo["wallet_id"]?.ToString() ?? jo["walletId"]?.ToString() ?? jo["id"]?.ToString() ?? string.Empty,
+                TotalAssets = jo["total_assets"]?.ToObject<int>() ?? jo["totalAssets"]?.ToObject<int>() ?? 0,
+                Assets = new List<WalletAsset>()
+            };
+
+            if (assetsToken is JArray ja)
+            {
+                foreach (var item in ja.OfType<JObject>())
+                {
+                    resp.Assets.Add(new WalletAsset
+                    {
+                        Id = item["id"]?.ToString() ?? string.Empty,
+                        Currency = item["currency"]?.ToString() ?? item["name"]?.ToString() ?? string.Empty,
+                        Symbol = item["symbol"]?.ToString() ?? string.Empty,
+                        Amount = item["amount"]?.ToString() ?? "0",
+                        Precision = item["precision"]?.ToObject<int>() ?? 0,
+                        Price = item["price"]?.ToObject<decimal>() ?? 0m,
+                        Type = item["type"]?.ToString() ?? string.Empty
+                    });
+                }
+            }
+
+            return resp;
+        }
+
+        var err = JsonConvert.DeserializeObject<ErrorResponse>(body, _jsonSettings)!;
+        throw new ResponseException(err);
+    }
+
+    public async Task<AdminWalletHistoryResponse> GetUserWalletHistory(ulong userId)
+    {
+        var res = await _httpClient.GetAsync($"/v1/user/{userId}/wallet/history");
+        var body = await res.Content.ReadAsStringAsync();
+
+        if (res.IsSuccessStatusCode)
+        {
+            var root = JObject.Parse(body);
+
+            // allow both { transactions: [...] } and { history: [...] } and direct array under different key
+            var listToken = (JToken?)root["transactions"] ?? root["history"] ?? root["items"];
+            if (listToken is null && root.First is not null && root.First is JProperty p && p.Value is JArray)
+                listToken = p.Value;
+
+            var resp = new AdminWalletHistoryResponse();
+
+            if (listToken is JArray ja)
+            {
+                foreach (var t in ja)
+                {
+                    if (t is not JObject jo) continue;
+
+                    // Symbol: may be in asset.symbol or currency.symbol or symbol
+                    var symbol = jo["symbol"]?.ToString()
+                                 ?? jo.SelectToken("asset.symbol")?.ToString()
+                                 ?? jo.SelectToken("currency.symbol")?.ToString()
+                                 ?? string.Empty;
+
+                    var direction = jo["direction"]?.ToString()
+                                    ?? jo["type"]?.ToString()
+                                    ?? jo["flow"]?.ToString()
+                                    ?? string.Empty;
+
+                    var amount = jo["amount"]?.ToString() ?? string.Empty;
+                    var status = jo["status"]?.ToString() ?? string.Empty;
+
+                    var dateToken = (JToken?)jo["created_at"] ?? jo["createdAt"] ?? jo["timestamp"] ?? jo["date"];
+                    string dateStr;
+                    if (dateToken is null)
+                    {
+                        dateStr = string.Empty;
+                    }
+                    else if (dateToken.Type == JTokenType.Integer)
+                    {
+                        dateStr = DateTimeOffset.FromUnixTimeMilliseconds(dateToken.Value<long>()).ToLocalTime().ToString("yyyy-MM-dd");
+                    }
+                    else
+                    {
+                        dateStr = dateToken.ToString();
+                    }
+
+                    resp.Transactions.Add(new WalletTransaction
+                    {
+                        Symbol = symbol,
+                        Direction = direction,
+                        Amount = amount,
+                        Status = status,
+                        Date = dateStr
+                    });
+                }
+            }
+
+            return resp;
+        }
+
+        var err = JsonConvert.DeserializeObject<ErrorResponse>(body, _jsonSettings)!;
+        throw new ResponseException(err);
+    }
+
     /// <summary>
     /// The currently logged-in user.
     /// </summary>
