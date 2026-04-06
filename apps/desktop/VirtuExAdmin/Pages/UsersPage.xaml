@@ -22,106 +22,127 @@
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
-        <ui:ListView
-            Grid.Column="0"
-            ItemsSource="{Binding Users}"
-            SelectedItem="{Binding SelectedUser, Mode=TwoWay}"
-            SelectionMode="Single"
-            BorderThickness="0"
-            Background="Transparent">
+        <!-- LEFT: Users list + toolbar -->
+        <Grid Grid.Column="0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="12" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
 
-            <ui:ListView.ItemContainerStyle>
-                <Style TargetType="ui:ListViewItem" BasedOn="{StaticResource {x:Type ui:ListViewItem}}">
-                    <Setter Property="Margin" Value="0,0,0,8"/>
-                    <Setter Property="Padding" Value="0"/>
-                    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-                </Style>
-            </ui:ListView.ItemContainerStyle>
+            <Grid Grid.Row="0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
 
-            <ui:ListView.ItemTemplate>
-                <DataTemplate DataType="{x:Type serializables:User}">
-                    <Border Padding="16" 
-                            Background="{DynamicResource ControlFillColorDefaultBrush}" 
-                            CornerRadius="8" 
-                            BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}" 
-                            BorderThickness="1">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="16"/>
-                                <RowDefinition Height="Auto"/>
-                            </Grid.RowDefinitions>
+                <TextBlock Grid.Column="0" Text="Users" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
 
-                            <TextBlock 
-                                Grid.Row="0" Grid.Column="0"
-                                Text="{Binding FullName}" 
-                                FontSize="16" 
-                                FontWeight="SemiBold" 
-                                Margin="0,0,0,2"/>
+                <ui:Button Grid.Column="1" Content="Add new user" Appearance="Secondary" Click="AddNewUser_Click" />
+            </Grid>
 
-                            <TextBlock 
-                                Grid.Row="1" Grid.Column="0"
-                                Text="{Binding Username}" 
-                                Foreground="{DynamicResource TextFillColorSecondaryBrush}" 
-                                FontSize="13"/>
+            <ui:ListView
+                Grid.Row="2"
+                ItemsSource="{Binding Users}"
+                SelectedItem="{Binding SelectedUser, Mode=TwoWay}"
+                SelectionMode="Single"
+                BorderThickness="0"
+                Background="Transparent">
 
-                            <!-- Registration date shown on the right column -->
-                            <TextBlock
-                                Grid.Row="0" Grid.Column="1" Grid.RowSpan="2"
-                                Text="{Binding RegistrationDate}"
-                                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                FontSize="12"
-                                VerticalAlignment="Top"
-                                HorizontalAlignment="Right"/>
+                <ui:ListView.ItemContainerStyle>
+                    <Style TargetType="ui:ListViewItem" BasedOn="{StaticResource {x:Type ui:ListViewItem}}">
+                        <Setter Property="Margin" Value="0,0,0,8"/>
+                        <Setter Property="Padding" Value="0"/>
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                    </Style>
+                </ui:ListView.ItemContainerStyle>
 
-                            <StackPanel 
-                                Grid.Row="3" Grid.Column="0" 
-                                Orientation="Horizontal" 
-                                VerticalAlignment="Center">
-                                <Ellipse Width="8" Height="8" Margin="0,0,8,0">
-                                    <Ellipse.Style>
-                                        <Style TargetType="Ellipse">
-                                            <Setter Property="Fill" Value="#9E9E9E" />
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding Activated}" Value="True">
-                                                    <Setter Property="Fill" Value="#4CAF50" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Ellipse.Style>
-                                </Ellipse>
+                <ui:ListView.ItemTemplate>
+                    <DataTemplate DataType="{x:Type serializables:User}">
+                        <Border Padding="16" 
+                                Background="{DynamicResource ControlFillColorDefaultBrush}" 
+                                CornerRadius="8" 
+                                BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}" 
+                                BorderThickness="1">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="16"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
 
-                                <TextBlock FontSize="13">
-                                    <TextBlock.Style>
-                                        <Style TargetType="TextBlock">
-                                            <Setter Property="Text" Value="Inactive" />
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding Activated}" Value="True">
-                                                    <Setter Property="Text" Value="Active" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </TextBlock.Style>
-                                </TextBlock>
-                            </StackPanel>
-                        </Grid>
-                    </Border>
-                </DataTemplate>
-            </ui:ListView.ItemTemplate>
-        </ui:ListView>
+                                <TextBlock 
+                                    Grid.Row="0" Grid.Column="0"
+                                    Text="{Binding FullName}" 
+                                    FontSize="16" 
+                                    FontWeight="SemiBold" 
+                                    Margin="0,0,0,2"/>
 
+                                <TextBlock 
+                                    Grid.Row="1" Grid.Column="0"
+                                    Text="{Binding Username}" 
+                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}" 
+                                    FontSize="13"/>
+
+                                <!-- Registration date shown on the right column -->
+                                <TextBlock
+                                    Grid.Row="0" Grid.Column="1" Grid.RowSpan="2"
+                                    Text="{Binding RegistrationDate}"
+                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                    FontSize="12"
+                                    VerticalAlignment="Top"
+                                    HorizontalAlignment="Right"/>
+
+                                <StackPanel 
+                                    Grid.Row="3" Grid.Column="0" 
+                                    Orientation="Horizontal" 
+                                    VerticalAlignment="Center">
+                                    <Ellipse Width="8" Height="8" Margin="0,0,8,0">
+                                        <Ellipse.Style>
+                                            <Style TargetType="Ellipse">
+                                                <Setter Property="Fill" Value="#9E9E9E" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Activated}" Value="True">
+                                                        <Setter Property="Fill" Value="#4CAF50" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Ellipse.Style>
+                                    </Ellipse>
+
+                                    <TextBlock FontSize="13">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Text" Value="Inactive" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Activated}" Value="True">
+                                                        <Setter Property="Text" Value="Active" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ui:ListView.ItemTemplate>
+            </ui:ListView>
+        </Grid>
+
+        <!-- RIGHT: Details -->
         <Border
             Grid.Column="2"
             Background="Transparent"
             CornerRadius="8"
             BorderBrush="Transparent"
             BorderThickness="0"
-            Padding="24">
+            Padding="16">
 
             <Grid>
                 <Grid.RowDefinitions>
@@ -131,7 +152,8 @@
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
-                <Grid Grid.Row="0" Margin="0,0,0,16">
+                <!-- Header: user + subscription quick actions -->
+                <Grid Grid.Row="0" Margin="0,0,0,8">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
@@ -143,56 +165,69 @@
                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
                         <TextBlock Text="{Binding SelectedUser.FullName}" FontSize="24" FontWeight="Bold" Margin="0,0,0,4" />
                         <TextBlock Text="{Binding SelectedUser.Username}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="14" />
-                        <!-- Show registration date under username for clarity -->
                         <TextBlock Text="{Binding SelectedUser.RegistrationDate}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="12" />
                     </StackPanel>
 
-                    <!-- Simplified subscription display: show user type, plan name and credits only -->
                     <StackPanel Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Right">
                         <TextBlock Text="{Binding SubscriptionUserType}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontWeight="SemiBold" HorizontalAlignment="Right"/>
                         <TextBlock Text="{Binding SubscriptionPlanName}" Foreground="#4CAF50" FontWeight="SemiBold" HorizontalAlignment="Right"/>
                         <TextBlock Text="{Binding SubscriptionCredits, StringFormat=Credits: {0}/mo}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="12" HorizontalAlignment="Right"/>
+
+                        <WrapPanel HorizontalAlignment="Right" Margin="0,10,0,0">
+                            <ui:Button Content="Edit subscription" Appearance="Secondary" Margin="0,0,8,8" Click="EditSubscription_Click" />
+                            <ui:Button Content="Wallet" Appearance="Secondary" Margin="0,0,0,8" Click="OpenWallet_Click" />
+                        </WrapPanel>
                     </StackPanel>
                 </Grid>
 
-                <Rectangle Grid.Row="1" Height="1" Fill="{DynamicResource SurfaceStrokeColorDefaultBrush}" Margin="0,8,0,24" />
+                <Rectangle Grid.Row="1" Height="1" Fill="{DynamicResource SurfaceStrokeColorDefaultBrush}" Margin="0,6,0,10" />
 
+                <!-- Content (keep ScrollViewer if needed but should not scroll at normal size) -->
                 <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
                     <StackPanel Margin="0,0,16,0">
 
-                        <TextBlock Text="Personal information" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,16" />
+                        <!-- Personal information header (title only) -->
+                        <TextBlock Text="Personal information" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8" />
 
                         <!-- Create-only: Username -->
                         <TextBlock Text="USERNAME" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,4"
                                    Visibility="{Binding IsCreateMode, Converter={StaticResource BoolToVisibilityConverter}}" />
-                        <ui:TextBox Text="{Binding EditableUsername, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,16"
+                        <ui:TextBox Text="{Binding EditableUsername, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"
                                     Visibility="{Binding IsCreateMode, Converter={StaticResource BoolToVisibilityConverter}}" />
 
                         <TextBlock Text="FULL NAME" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,4"/>
-                        <ui:TextBox Text="{Binding EditableFullName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,16" />
+                        <ui:TextBox Text="{Binding EditableFullName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8" />
 
                         <TextBlock Text="EMAIL" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,4"/>
-                        <ui:TextBox Text="{Binding EditableEmail, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,16" />
+                        <ui:TextBox Text="{Binding EditableEmail, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8" />
 
                         <!-- Create-only: Password -->
                         <TextBlock Text="PASSWORD" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,4"
                                    Visibility="{Binding IsCreateMode, Converter={StaticResource BoolToVisibilityConverter}}" />
-                        <ui:TextBox Text="{Binding EditablePassword, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,16"
+                        <ui:TextBox Text="{Binding EditablePassword, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"
                                     Visibility="{Binding IsCreateMode, Converter={StaticResource BoolToVisibilityConverter}}" />
 
                         <TextBlock Text="REGISTRATION DATE" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,4"/>
-                        <ui:TextBox Text="{Binding EditableRegistrationDate, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsEnabled="False" Margin="0,0,0,32" />
+                        <ui:TextBox Text="{Binding EditableRegistrationDate, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsEnabled="False" Margin="0,0,0,12" />
 
-                        <TextBlock Text="Admin settings" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,16" />
+                        <!-- Admin settings header row with inline action -->
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
 
-                        <Grid Margin="0,0,0,32">
+                            <TextBlock Grid.Column="0" Text="Admin settings" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
+                            <ui:Button Grid.Column="1" Content="Apply permissions" Appearance="Secondary" Click="ApplyPermissions_Click" Margin="12,0,0,0" />
+                        </Grid>
+
+                        <Grid Margin="0,0,0,16">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="16" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
 
-                            <!-- LEFT: Permissions -->
                             <StackPanel Grid.Column="0">
                                 <TextBlock Text="PERMISSIONS" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,4"/>
 
@@ -201,7 +236,7 @@
                                     <ComboBoxItem Content="Admin" Tag="1" />
                                 </ComboBox>
 
-                                <CheckBox Content="Activated" Margin="0,12,0,0" IsChecked="{Binding EditableActivated, Mode=TwoWay}" />
+                                <CheckBox Content="Activated" Margin="0,10,0,0" IsChecked="{Binding EditableActivated, Mode=TwoWay}" />
                             </StackPanel>
 
                             <StackPanel Grid.Column="2">
@@ -215,63 +250,60 @@
                             </StackPanel>
                         </Grid>
 
-                        <TextBlock Text="Security" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,16" />
-                        <Border Background="{DynamicResource ControlFillColorSecondaryBrush}" CornerRadius="4" Padding="16">
+                        <TextBlock Text="Security" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8" />
+                        <Border Background="{DynamicResource ControlFillColorSecondaryBrush}" CornerRadius="4" Padding="12">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
 
                                 <TextBlock Grid.Column="0" Text="Set security settings as administrator" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" Margin="0,0,16,0" />
 
-                                <ui:Button Grid.Column="1" Content="Reset password" Appearance="Secondary" Margin="0,0,8,0" />
-                                <ui:Button Grid.Column="2" Content="Delete 2FA" Appearance="Danger" />
+                                <WrapPanel Grid.Column="1" HorizontalAlignment="Right">
+                                    <ui:Button Content="Reset password" Appearance="Secondary" Margin="0,0,8,8" />
+                                    <ui:Button Content="Delete 2FA" Appearance="Danger" Margin="0,0,0,8" />
+                                </WrapPanel>
                             </Grid>
                         </Border>
 
                     </StackPanel>
                 </ScrollViewer>
 
-                <Grid Grid.Row="3" Margin="0,24,0,0">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
+                <!-- Fixed bottom action bar -->
+                <Border Grid.Row="3"
+                        Background="{DynamicResource ControlFillColorDefaultBrush}"
+                        BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
+                        BorderThickness="1,0,0,0"
+                        Padding="12,10"
+                        CornerRadius="0">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
 
-                    <ui:Button Grid.Column="0" Content="Delete profile" Appearance="Danger" />
+                        <ui:Button Grid.Column="0" Content="Delete profile" Appearance="Danger" />
 
-                    <!-- New: Add new user -->
-                    <ui:Button Grid.Column="2" Content="Add new user" Appearance="Secondary" Margin="0,0,8,0" Click="AddNewUser_Click" />
+                        <WrapPanel Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center">
+                            <ui:Button Content="Cancel" Appearance="Secondary" Margin="0,0,8,0" Click="Cancel_Click" />
 
-                    <ui:Button Grid.Column="3" Content="Cancel" Appearance="Secondary" Margin="0,0,8,0" Click="Cancel_Click" />
-
-                    <ui:Button Grid.Column="4" Content="Apply permissions" Appearance="Secondary" Margin="0,0,8,0" Click="ApplyPermissions_Click" />
-
-                    <ui:Button Grid.Column="5" Content="Edit subscription" Appearance="Secondary" Margin="0,0,8,0" Click="EditSubscription_Click" />
-
-                    <ui:Button Grid.Column="6" Content="Wallet" Appearance="Secondary" Margin="0,0,8,0" Click="OpenWallet_Click" />
-
-                    <ui:Button Grid.Column="7" Appearance="Primary" Click="SaveChanges_Click">
-                        <ui:Button.Style>
-                            <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
-                                <Setter Property="Content" Value="Save changes" />
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding IsCreateMode}" Value="True">
-                                        <Setter Property="Content" Value="Create" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </ui:Button.Style>
-                    </ui:Button>
-                </Grid>
+                            <ui:Button Appearance="Primary" Click="SaveChanges_Click">
+                                <ui:Button.Style>
+                                    <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+                                        <Setter Property="Content" Value="Save changes" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsCreateMode}" Value="True">
+                                                <Setter Property="Content" Value="Create" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </ui:Button.Style>
+                            </ui:Button>
+                        </WrapPanel>
+                    </Grid>
+                </Border>
 
             </Grid>
         </Border>
