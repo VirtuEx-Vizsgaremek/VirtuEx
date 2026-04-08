@@ -21,7 +21,7 @@ alter table "user" add constraint "user_username_unique" unique ("username");
 alter table "user" add constraint "user_email_unique" unique ("email");
 alter table "user" add constraint "user_wallet_id_unique" unique ("wallet_id");
 
-create table "subscription" ("id" bigserial primary key, "created_at" timestamptz not null, "updated_at" timestamptz not null, "user_id" bigint not null, "plan_id" bigint not null, "started_at" timestamptz not null, "expires_at" timestamptz null);
+create table "subscription" ("id" bigserial primary key, "created_at" timestamptz not null, "updated_at" timestamptz not null, "user_id" bigint not null, "plan_id" bigint not null, "billing_period" varchar not null default 'monthly', "pending_plan_id" bigint null, "pending_billing_period" varchar null, "pending_effective_at" timestamptz null, "started_at" timestamptz not null, "expires_at" timestamptz null);
 alter table "subscription" add constraint "subscription_user_id_unique" unique ("user_id");
 
 create table "code" ("id" bigserial primary key, "code" varchar(255) not null, "type" "code_type" not null, "user_id" bigint not null, "expires_at" timestamptz not null);
@@ -42,6 +42,7 @@ alter table "user" add constraint "user_wallet_id_foreign" foreign key ("wallet_
 
 alter table "subscription" add constraint "subscription_user_id_foreign" foreign key ("user_id") references "user" ("id") on update cascade;
 alter table "subscription" add constraint "subscription_plan_id_foreign" foreign key ("plan_id") references "subscription_plan" ("id") on update cascade;
+alter table "subscription" add constraint "subscription_pending_plan_id_foreign" foreign key ("pending_plan_id") references "subscription_plan" ("id") on update cascade;
 
 alter table "code" add constraint "code_user_id_foreign" foreign key ("user_id") references "user" ("id") on update cascade;
 

@@ -387,7 +387,10 @@ export const getMySubscription = async () => {
   return response.json();
 };
 
-export const changeMySubscription = async (planName: string) => {
+export const changeMySubscription = async (
+  planName: string,
+  billingPeriod: 'monthly' | 'yearly' = 'monthly'
+) => {
   const cookieStore = await cookies();
   const token = cookieStore.get('vtx_token')?.value;
   if (!token) throw new Error('Not authenticated');
@@ -398,7 +401,7 @@ export const changeMySubscription = async (planName: string) => {
       Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({ plan_name: planName })
+    body: JSON.stringify({ plan_name: planName, billing_period: billingPeriod })
   });
   if (response.status === 401) throw new Error('Not authenticated');
   if (!response.ok) throw new Error('Failed to update subscription');
