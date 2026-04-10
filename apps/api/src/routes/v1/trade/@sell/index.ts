@@ -41,6 +41,8 @@ import { Currency } from '@/entities/currency.entity';
 import { OrderStatus, OrderType } from '@/enum/order';
 import { TransactionDirection, TransactionStatus } from '@/enum/transaction';
 import { z } from 'zod';
+import { AuditLog } from '@/entities/log.entity';
+import { Action } from '@/enum/action';
 
 export const schemas = {
   post: {
@@ -189,6 +191,15 @@ export const post = async (
   txIn.direction = TransactionDirection.Incoming;
   txIn.status = TransactionStatus.Completed;
   db.persist(txIn);
+
+  const log = new AuditLog();
+  log.user = user;
+  log.data = {
+    action: Action.Sell,
+    currency: fromAsset.id,
+    amount: sellAmount
+  };
+  db.persist(log);
 
   await db.flush();
 

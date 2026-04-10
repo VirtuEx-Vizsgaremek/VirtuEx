@@ -16,7 +16,8 @@ public partial class AuthWindow : FluentWindow {
         
         InitializeComponent();
         
-        DataContext = vm;
+        DataContext =  vm;
+        Loaded      += (_, _) => vm.AutoLogin();
         
         vm.LoginSuccess += () => {
             Application.Current.MainWindow = App.GetRequiredService<MainWindow>();

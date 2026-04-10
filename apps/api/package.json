@@ -29,6 +29,7 @@
     "@virtuex/eslint-config": "workspace:*",
     "nodemon": "^3.1.11",
     "resolve-tspaths": "^0.8.23",
+    "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"

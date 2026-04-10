@@ -210,3 +210,6 @@ FakesAssemblies/
 
 # JetBrains Rider
 *.sln.iml
+
+# InnoSetup
+/Output/
