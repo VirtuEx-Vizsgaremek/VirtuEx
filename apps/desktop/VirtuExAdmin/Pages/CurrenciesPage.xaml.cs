@@ -15,8 +15,4 @@ public partial class CurrenciesPage : Page {
         DataContext =  vm;
         Loaded      += (_, _) => vm.LoadAsync();
     }
-
-    private void Control_OnMouseDoubleClick(object sender, MouseButtonEventArgs e) {
-        MessageBox.Show("It Works!");
-    }
 }
