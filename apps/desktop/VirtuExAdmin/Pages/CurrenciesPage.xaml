@@ -39,7 +39,7 @@
 
             <ui:TextBox Grid.Column="0"
                         PlaceholderText="Search by symbol or name..."
-                        Text="{Binding SearchText}"
+                        Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
                         Margin="0,0,8,0"/>
 
             <ComboBox Grid.Column="1"

@@ -96,10 +96,10 @@ public class ApiClient : IDisposable {
 
     public async Task<Currency[]> Currencies() {
         var res = await _httpClient.GetAsync("/v1/currency");
-        
+
         if (res.IsSuccessStatusCode)
             return JsonConvert.DeserializeObject<Currency[]>(await res.Content.ReadAsStringAsync())!;
-        
+
         var err = JsonConvert.DeserializeObject<ErrorResponse>(await res.Content.ReadAsStringAsync())!;
         throw new ResponseException(err);
     }
@@ -114,6 +114,17 @@ public class ApiClient : IDisposable {
         throw new ResponseException(err);
     }
 
+      public async Task UpdateCurrency(ulong id, string symbol, string name, uint precision, string updateFreqency, string type) {
+        var settings = new JsonSerializerSettings { ContractResolver = _contractResolver };
+        var json     = JsonConvert.SerializeObject(new { symbol, name, precision, updateFreqency, type }, settings);
+        var res      = await _httpClient.PatchAsync($"/v1/currency/{id}",
+            new System.Net.Http.StringContent(json, System.Text.Encoding.UTF8, "application/json"));
+
+        if (!res.IsSuccessStatusCode) {
+            var err = JsonConvert.DeserializeObject<ErrorResponse>(await res.Content.ReadAsStringAsync())!;
+            throw new ResponseException(err);
+        }
+    }
     public void Dispose() {
         _httpClient.Dispose();
     }

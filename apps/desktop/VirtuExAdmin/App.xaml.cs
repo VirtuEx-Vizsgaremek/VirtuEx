@@ -35,7 +35,8 @@ public partial class App : Application {
             _ = services.AddSingleton<ApiClient>();
             _ = services.AddSingleton<UserService>();
             _ = services.AddSingleton<SettingsService>();
-            
+            _ = services.AddSingleton<CurrencyNavigationState>();
+        
             _ = services.AddNavigationViewPageProvider();
             _ = services.AddSingleton<INavigationService, NavigationService>();
             

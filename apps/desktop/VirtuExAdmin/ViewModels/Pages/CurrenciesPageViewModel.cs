@@ -10,8 +10,9 @@ using Wpf.Ui;
 namespace VirtuExAdmin.ViewModels.Pages;
 
 public partial class CurrenciesPageViewModel : ObservableObject {
-    private readonly ApiClient   _api;
-    private readonly INavigationService  _navigationService; 
+    private readonly ApiClient              _api;
+    private readonly INavigationService     _navigationService;
+    private readonly CurrencyNavigationState _currencyState;
 
     [ObservableProperty]
     private Currency[]? _currencies;
@@ -30,15 +31,22 @@ public partial class CurrenciesPageViewModel : ObservableObject {
     
     [ObservableProperty]
     private string _searchText = "";
-    
+
+    [ObservableProperty]
+    private string _pageInfo = string.Empty;
+
+    [ObservableProperty]
+    private string _paginationSummary = string.Empty;
+
     private int _totalPages;
     
     public ObservableCollection<int>    PageSizeOptions   { get; } = [10, 25, 50, 100];
     public ObservableCollection<string> TypeFilterOptions { get; } = ["All", "Fiat", "Crypto", "Stock", "ETF"];
     
-    public CurrenciesPageViewModel(ApiClient api, INavigationService navigationService) {
-        _api = api;
+    public CurrenciesPageViewModel(ApiClient api, INavigationService navigationService, CurrencyNavigationState currencyState) {
+        _api           = api;
         _navigationService = navigationService;
+        _currencyState = currencyState;
     }
     
     public async Task LoadAsync() {
@@ -79,8 +87,11 @@ public partial class CurrenciesPageViewModel : ObservableObject {
     [RelayCommand]
     private void RowDoubleClick(Currency? currency) {
         if (currency is null) return;
-        
-        // TODO: pass the currency to `DetailedCurrencyPage` somehow
+
+        _currencyState.ViewModel = new DetailedCurrencyViewModel(currency, _api, _navigationService, async () => {
+            Currencies = await _api.Currencies();
+            RefreshPage();
+        });
         _navigationService.NavigateWithHierarchy(typeof(DetailedCurrencyPage));
     }
     
@@ -90,16 +101,36 @@ public partial class CurrenciesPageViewModel : ObservableObject {
         TypeFilter = "All";
     }
 
+    private static readonly Dictionary<string, int> _typeOrder = new(StringComparer.OrdinalIgnoreCase) {
+        { "stock",  0 },
+        { "etf",    1 },
+        { "crypto", 2 },
+        { "fiat",   3 },
+    };
+
     private void RefreshPage() {
-        var f = Currencies!
+        var filtered = Currencies!
             .Where(c =>
                 (string.Equals(TypeFilter, "All") ||
                  string.Equals(c.Type,     TypeFilter, StringComparison.InvariantCultureIgnoreCase)) &&
                 (string.IsNullOrWhiteSpace(SearchText)                             ||
                  c.Symbol.Contains(SearchText, StringComparison.OrdinalIgnoreCase) ||
-                 c.Name.Contains(SearchText, StringComparison.OrdinalIgnoreCase))).Skip((CurrentPage - 1) * PageSize)
-            .Take(PageSize).ToList();
-        PagedCurrencies = f.ToArray();
-        _totalPages = Math.Max(1, (int)Math.Ceiling(f.Count / (double)PageSize));
+                 c.Name.Contains(SearchText,   StringComparison.OrdinalIgnoreCase)))
+            .OrderBy(c => _typeOrder.TryGetValue(c.Type, out var o) ? o : 99)
+            .ThenBy(c => c.Name)
+            .ToList();
+
+        _totalPages     = Math.Max(1, (int)Math.Ceiling(filtered.Count / (double)PageSize));
+        PagedCurrencies = filtered.Skip((CurrentPage - 1) * PageSize).Take(PageSize).ToArray();
+
+        var start = filtered.Count == 0 ? 0 : (CurrentPage - 1) * PageSize + 1;
+        var end   = Math.Min(CurrentPage * PageSize, filtered.Count);
+        PageInfo          = $"Page {CurrentPage} of {_totalPages}";
+        PaginationSummary = $"Showing {start}–{end} of {filtered.Count}";
+
+        FirstPageCommand.NotifyCanExecuteChanged();
+        PrevPageCommand.NotifyCanExecuteChanged();
+        NextPageCommand.NotifyCanExecuteChanged();
+        LastPageCommand.NotifyCanExecuteChanged();
     }
 }
