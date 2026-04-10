@@ -1,6 +1,6 @@
 using System.IO;
 using System.Net.Http;
-using CommunityToolkit.Mvvm.ComponentModel;
+using System.Text;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using VirtuExAdmin.Serializables;
@@ -8,33 +8,39 @@ using VirtuExAdmin.Serializables;
 namespace VirtuExAdmin.Util;
 
 public class ApiClient : IDisposable {
+    private readonly HttpClient _httpClient;
+
+    private readonly DefaultContractResolver _contractResolver = new() {
+        NamingStrategy = new SnakeCaseNamingStrategy()
+    };
+
     private string _token;
+
+    public ApiClient() {
+        _httpClient = new HttpClient();
+
+        var configPath = Path.Combine(AppContext.BaseDirectory, "api_url.txt");
+        var baseAddress = File.Exists(configPath)
+            ? File.ReadAllText(configPath).Trim()
+            : "http://localhost:3001";
+
+        _httpClient.BaseAddress = new Uri(baseAddress);
+        _httpClient.DefaultRequestHeaders.UserAgent.Clear();
+        _httpClient.DefaultRequestHeaders.Add("User-Agent", "VirtuExAdmin/1.0.0");
+    }
+
     public string Token {
         get => _token;
         set {
             _token = value ?? throw new ArgumentNullException(nameof(value));
-            
+
             _httpClient.DefaultRequestHeaders.Remove("Authorization");
             _httpClient.DefaultRequestHeaders.Add("Authorization", "Bearer " + _token);
         }
     }
 
-    private readonly HttpClient _httpClient;
-    private DefaultContractResolver _contractResolver = new() {
-        NamingStrategy = new SnakeCaseNamingStrategy()
-    };
-
-    public ApiClient() {
-        _httpClient = new HttpClient();
-        
-        var configPath = Path.Combine(AppContext.BaseDirectory, "api_url.txt");
-        var baseAddress = File.Exists(configPath)
-            ? File.ReadAllText(configPath).Trim()
-            : "http://localhost:3001";
-        
-        _httpClient.BaseAddress = new Uri(baseAddress);
-        _httpClient.DefaultRequestHeaders.UserAgent.Clear();
-        _httpClient.DefaultRequestHeaders.Add("User-Agent", "VirtuExAdmin/1.0.0");
+    public void Dispose() {
+        _httpClient.Dispose();
     }
 
     public async Task<LoginResponse> Login(string email, string password) {
@@ -45,51 +51,51 @@ public class ApiClient : IDisposable {
 
         if (res.IsSuccessStatusCode)
             return JsonConvert.DeserializeObject<LoginResponse>(await res.Content.ReadAsStringAsync())!;
-            
+
         var err = JsonConvert.DeserializeObject<ErrorResponse>(await res.Content.ReadAsStringAsync())!;
         throw new ResponseException(err);
     }
 
     /// <summary>
-    /// The currently logged-in user.
+    ///     The currently logged-in user.
     /// </summary>
     /// <returns></returns>
     public async Task<User> User() {
         var res = await _httpClient.GetAsync("/v1/user/@me");
-        
+
         if (res.IsSuccessStatusCode)
             return JsonConvert.DeserializeObject<User>(await res.Content.ReadAsStringAsync())!;
-        
+
         var err = JsonConvert.DeserializeObject<ErrorResponse>(await res.Content.ReadAsStringAsync())!;
         throw new ResponseException(err);
     }
-    
+
     public async Task<User[]> Users() {
         var res = await _httpClient.GetAsync("/v1/user");
-        
+
         if (res.IsSuccessStatusCode)
             return JsonConvert.DeserializeObject<User[]>(await res.Content.ReadAsStringAsync())!;
-        
+
         var err = JsonConvert.DeserializeObject<ErrorResponse>(await res.Content.ReadAsStringAsync())!;
         throw new ResponseException(err);
     }
-    
+
     public async Task<Currency> Currency(ulong id) {
         var res = await _httpClient.GetAsync($"/v1/currency/{id}");
-        
+
         if (res.IsSuccessStatusCode)
             return JsonConvert.DeserializeObject<Currency>(await res.Content.ReadAsStringAsync())!;
-        
+
         var err = JsonConvert.DeserializeObject<ErrorResponse>(await res.Content.ReadAsStringAsync())!;
         throw new ResponseException(err);
     }
-    
+
     public async Task<Currency> Currency(string symbol) {
         var res = await _httpClient.GetAsync($"/v1/currency/{symbol}");
-        
+
         if (res.IsSuccessStatusCode)
             return JsonConvert.DeserializeObject<Currency>(await res.Content.ReadAsStringAsync())!;
-        
+
         var err = JsonConvert.DeserializeObject<ErrorResponse>(await res.Content.ReadAsStringAsync())!;
         throw new ResponseException(err);
     }
@@ -116,26 +122,24 @@ public class ApiClient : IDisposable {
 
     public async Task<AuditLog[]> AuditLog() {
         var res = await _httpClient.GetAsync("/v1/auditlog");
-        
+
         if (res.IsSuccessStatusCode)
             return JsonConvert.DeserializeObject<AuditLog[]>(await res.Content.ReadAsStringAsync())!;
-        
+
         var err = JsonConvert.DeserializeObject<ErrorResponse>(await res.Content.ReadAsStringAsync())!;
         throw new ResponseException(err);
     }
 
-      public async Task UpdateCurrency(ulong id, string symbol, string name, uint precision, string updateFreqency, string type) {
+    public async Task UpdateCurrency(ulong  id, string symbol, string name, uint precision, string updateFreqency,
+                                     string type) {
         var settings = new JsonSerializerSettings { ContractResolver = _contractResolver };
         var json     = JsonConvert.SerializeObject(new { symbol, name, precision, updateFreqency, type }, settings);
-        var res      = await _httpClient.PatchAsync($"/v1/currency/{id}",
-            new System.Net.Http.StringContent(json, System.Text.Encoding.UTF8, "application/json"));
+        var res = await _httpClient.PatchAsync($"/v1/currency/{id}",
+            new StringContent(json, Encoding.UTF8, "application/json"));
 
         if (!res.IsSuccessStatusCode) {
             var err = JsonConvert.DeserializeObject<ErrorResponse>(await res.Content.ReadAsStringAsync())!;
             throw new ResponseException(err);
         }
-    }
-    public void Dispose() {
-        _httpClient.Dispose();
     }
 }

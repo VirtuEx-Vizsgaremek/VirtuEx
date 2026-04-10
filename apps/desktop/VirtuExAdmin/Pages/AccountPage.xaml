@@ -14,14 +14,76 @@
       d:DesignHeight="450"
       d:DesignWidth="800">
     <Grid>
-        <StackPanel DataContext="{Binding User}"
-                    Visibility="{Binding DataContext.User, 
-                        RelativeSource={RelativeSource AncestorType=Page},
-                        Converter={StaticResource NullToVisibility}}">
-            <ui:TextBox Text="{Binding FullName}"/>
-            <ui:TextBox Text="{Binding Username}" />
-            <ui:TextBox Text="{Binding Email}" />
-            <ui:TextBox Text="{Binding Bio}" TextWrapping="Wrap" AcceptsReturn="True" Height="200" />
-        </StackPanel>
+        <ScrollViewer Padding="32" VerticalScrollBarVisibility="Auto">
+            
+            <StackPanel DataContext="{Binding User}"
+                        Visibility="{Binding DataContext.User, 
+                                     RelativeSource={RelativeSource AncestorType=Page},
+                                     Converter={StaticResource NullToVisibility}}">
+                
+                <TextBlock Text="Account Profile" 
+                           FontSize="32" 
+                           FontWeight="SemiBold" 
+                           Margin="0,0,0,32" />
+
+                <TextBlock Text="Personal Information" 
+                           FontSize="18" 
+                           FontWeight="Medium" 
+                           Margin="0,0,0,24" />
+                
+                <TextBlock Text="Full Name" FontWeight="Medium" Margin="0,0,0,8"/>
+                <ui:TextBox Text="{Binding FullName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                            PlaceholderText="e.g. John Doe"
+                            Icon="{ui:SymbolIcon Person24}"
+                            Margin="0,0,0,24"/>
+
+                <TextBlock Text="Username" FontWeight="Medium" Margin="0,0,0,8"/>
+                <ui:TextBox Text="{Binding Username, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                            PlaceholderText="e.g. jdoe99"
+                            Icon="{ui:SymbolIcon Mention24}"
+                            Margin="0,0,0,24"/>
+
+                <TextBlock Text="Email Address" FontWeight="Medium" Margin="0,0,0,8"/>
+                <ui:TextBox Text="{Binding Email, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                            PlaceholderText="e.g. john.doe@example.com"
+                            Icon="{ui:SymbolIcon Mail24}"
+                            Margin="0,0,0,32"/>
+
+                <TextBlock Text="Biography" 
+                           FontSize="18" 
+                           FontWeight="Medium" 
+                           Margin="0,0,0,8" />
+
+                <TextBlock Text="Tell us a little bit about yourself" 
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" 
+                           Margin="0,0,0,16"
+                           FontSize="14"/>
+                
+                <ui:TextBox Text="{Binding Bio, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                            PlaceholderText="Write your bio here..."
+                            TextWrapping="Wrap" 
+                            AcceptsReturn="True" 
+                            MinHeight="180"
+                            VerticalContentAlignment="Top"
+                            Padding="12"/>
+
+                <Separator Margin="0,0,0,8" Background="{DynamicResource ControlStrokeColorDefaultBrush}"/>
+
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <ui:Button Content="Reset Changes" 
+                               Margin="0,0,12,0"
+                               Icon="{ui:SymbolIcon ArrowCounterclockwise24}"
+                               Appearance="Secondary"
+                               Command="{Binding DataContext.ResetUserCommand, RelativeSource={RelativeSource AncestorType=Page}}" />
+               
+                    <ui:Button Content="Save Changes" 
+                               Icon="{ui:SymbolIcon Save24}"
+                               Appearance="Primary"
+                               Padding="30,8"
+                               Command="{Binding DataContext.SaveUserCommand, RelativeSource={RelativeSource AncestorType=Page}}" />
+                </StackPanel>
+                
+            </StackPanel>
+        </ScrollViewer>
     </Grid>
 </Page>
