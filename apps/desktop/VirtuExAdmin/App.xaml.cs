@@ -47,7 +47,8 @@ public partial class App : Application {
             _ = services.AddTransient<CurrenciesPageViewModel>();
             _ = services.AddTransient<AuditLogPageViewModel>();
             _ = services.AddTransient<SettingsViewModel>();
-            
+            _ = services.AddTransient<TransactionsPageViewModel>();
+        
             // Windows
             _ = services.AddSingleton<AuthWindow>();
             _ = services.AddSingleton<MainWindow>();

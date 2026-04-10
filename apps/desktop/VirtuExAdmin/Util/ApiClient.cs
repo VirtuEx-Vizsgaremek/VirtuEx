@@ -94,6 +94,16 @@ public class ApiClient : IDisposable {
         throw new ResponseException(err);
     }
 
+    public async Task<Transaction[]> Transactions() {
+        var res = await _httpClient.GetAsync("/v1/transaction");
+
+        if (res.IsSuccessStatusCode)
+            return JsonConvert.DeserializeObject<Transaction[]>(await res.Content.ReadAsStringAsync())!;
+
+        var err = JsonConvert.DeserializeObject<ErrorResponse>(await res.Content.ReadAsStringAsync())!;
+        throw new ResponseException(err);
+    }
+
     public async Task<Currency[]> Currencies() {
         var res = await _httpClient.GetAsync("/v1/currency");
 
