@@ -11,6 +11,7 @@ import { BaseEntity } from '@/entities/base.entity';
 import { Wallet } from '@/entities/wallet.entity';
 import { Code } from '@/entities/code.entity';
 import { Subscription } from '@/entities/subscription.entity';
+import { AuditLog } from '@/entities/log.entity';
 
 @Entity()
 export class User extends BaseEntity {
@@ -47,6 +48,9 @@ export class User extends BaseEntity {
     orphanRemoval: true
   })
   codes = new Collection<Code>(this);
+
+  @OneToMany(() => AuditLog, (log) => log.user)
+  logs = new Collection<AuditLog>(this);
 
   @Property()
   permissions: number = 0;

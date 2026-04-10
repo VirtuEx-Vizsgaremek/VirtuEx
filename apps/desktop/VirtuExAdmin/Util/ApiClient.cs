@@ -1,3 +1,4 @@
+using System.IO;
 using System.Net.Http;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Newtonsoft.Json;
@@ -26,8 +27,12 @@ public class ApiClient : IDisposable {
     public ApiClient() {
         _httpClient = new HttpClient();
         
-        // TODO: configurable api uri
-        _httpClient.BaseAddress = new Uri("http://localhost:3001");
+        var configPath = Path.Combine(AppContext.BaseDirectory, "api_url.txt");
+        var baseAddress = File.Exists(configPath)
+            ? File.ReadAllText(configPath).Trim()
+            : "http://localhost:3001";
+        
+        _httpClient.BaseAddress = new Uri(baseAddress);
         _httpClient.DefaultRequestHeaders.UserAgent.Clear();
         _httpClient.DefaultRequestHeaders.Add("User-Agent", "VirtuExAdmin/1.0.0");
     }
@@ -94,6 +99,16 @@ public class ApiClient : IDisposable {
         
         if (res.IsSuccessStatusCode)
             return JsonConvert.DeserializeObject<Currency[]>(await res.Content.ReadAsStringAsync())!;
+        
+        var err = JsonConvert.DeserializeObject<ErrorResponse>(await res.Content.ReadAsStringAsync())!;
+        throw new ResponseException(err);
+    }
+
+    public async Task<AuditLog[]> AuditLog() {
+        var res = await _httpClient.GetAsync("/v1/auditlog");
+        
+        if (res.IsSuccessStatusCode)
+            return JsonConvert.DeserializeObject<AuditLog[]>(await res.Content.ReadAsStringAsync())!;
         
         var err = JsonConvert.DeserializeObject<ErrorResponse>(await res.Content.ReadAsStringAsync())!;
         throw new ResponseException(err);
