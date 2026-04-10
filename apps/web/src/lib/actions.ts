@@ -40,6 +40,60 @@ export const logout = async (): Promise<void> => {
 };
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_URL_SOURCE = process.env.NEXT_PUBLIC_API_URL
+  ? 'NEXT_PUBLIC_API_URL'
+  : 'default';
+
+export type BillingPeriod = 'monthly' | 'yearly';
+
+export type SubscriptionResponse = {
+  id: string;
+  plan_id: string;
+  plan_name: string;
+  monthly_ai_credits: number;
+  assets_max: number;
+  stop_loss: boolean;
+  real_time: boolean;
+  trading_view: boolean;
+  price: number;
+  billing_period: BillingPeriod;
+  started_at: string | null;
+  expires_at: string | null;
+  is_expired: boolean;
+  pending_plan_id: string | null;
+  pending_plan_name: string | null;
+  pending_billing_period: BillingPeriod | null;
+  pending_effective_at: string | null;
+};
+
+export type ChangeSubscriptionResult = {
+  ok: boolean;
+  status: number;
+  data: SubscriptionResponse | null;
+  error: string | number | null;
+  message: string | null;
+  raw: unknown;
+};
+
+let loginBaseUrlLogged = false;
+
+const logLoginBaseUrlOnce = () => {
+  if (process.env.NODE_ENV === 'production') return;
+  if (loginBaseUrlLogged) return;
+  loginBaseUrlLogged = true;
+
+  console.log(`[LOGIN] Using API base URL (${API_URL_SOURCE}):`, API_URL);
+
+  const normalized = API_URL.toLowerCase();
+  const isLocal =
+    normalized.includes('localhost') || normalized.includes('127.0.0.1');
+
+  if (normalized.includes('192.168.') || !isLocal) {
+    console.warn(
+      `[LOGIN] WARNING: API base URL is non-local (${API_URL}). This can cause ECONNREFUSED in local dev.`
+    );
+  }
+};
 
 const loginSchema = z.object({
   email: z.email(),
@@ -142,6 +196,7 @@ export const login = async (initialState: any, formData: FormData) => {
   });
 
   if (validatedFields.success) {
+    logLoginBaseUrlOnce();
     const { email, password } = validatedFields.data;
     console.log('[LOGIN] Attempting with email:', email, 'API_URL:', API_URL);
     let data: any;
@@ -389,11 +444,20 @@ export const getMySubscription = async () => {
 
 export const changeMySubscription = async (
   planName: string,
-  billingPeriod: 'monthly' | 'yearly' = 'monthly'
-) => {
+  billingPeriod: BillingPeriod = 'monthly'
+): Promise<ChangeSubscriptionResult> => {
   const cookieStore = await cookies();
   const token = cookieStore.get('vtx_token')?.value;
-  if (!token) throw new Error('Not authenticated');
+  if (!token) {
+    return {
+      ok: false,
+      status: 401,
+      data: null,
+      error: 'Not authenticated',
+      message: 'Not authenticated',
+      raw: null
+    };
+  }
 
   const response = await fetch(`${API_URL}/v1/user/@me/subscription`, {
     method: 'POST',
@@ -403,11 +467,22 @@ export const changeMySubscription = async (
     },
     body: JSON.stringify({ plan_name: planName, billing_period: billingPeriod })
   });
-  if (response.status === 401) throw new Error('Not authenticated');
-  if (!response.ok) throw new Error('Failed to update subscription');
+  const payload = await response.json().catch(() => null);
+  const error = payload?.error ?? null;
+  const message = payload?.message ?? null;
+  const ok = response.ok && !error;
 
-  revalidatePath('/profile');
-  revalidatePath('/subscription');
+  if (ok) {
+    revalidatePath('/profile');
+    revalidatePath('/subscription');
+  }
 
-  return response.json();
+  return {
+    ok,
+    status: response.status,
+    data: ok ? (payload as SubscriptionResponse) : null,
+    error,
+    message,
+    raw: payload
+  };
 };

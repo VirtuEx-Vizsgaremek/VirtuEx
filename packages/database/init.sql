@@ -12,7 +12,7 @@ create table "currency" ("id" bigserial primary key, "created_at" timestamptz no
 
 create table "currency_history" ("currency_id" bigint not null, "timestamp" timestamptz not null, "price" bigint not null default 0, constraint "currency_history_pkey" primary key ("currency_id", "timestamp"));
 
-create table "subscription_plan" ("id" bigserial primary key, "created_at" timestamptz not null, "updated_at" timestamptz not null, "name" varchar(255) not null, "monthly_ai_credits" int not null, "assets_max" int not null, "stop_loss" boolean not null default false, "real_time" boolean not null default false, "display_features" jsonb not null, "price" int not null);
+create table "subscription_plan" ("id" bigserial primary key, "created_at" timestamptz not null, "updated_at" timestamptz not null, "name" varchar(255) not null, "monthly_ai_credits" int not null, "assets_max" int not null, "stop_loss" boolean not null default false, "real_time" boolean not null default false, "display_features" jsonb not null, "monthly_price" int not null default 0, "yearly_price" int not null default 0, "price" int not null);
 
 create table "wallet" ("id" bigserial primary key, "created_at" timestamptz not null, "updated_at" timestamptz not null);
 
