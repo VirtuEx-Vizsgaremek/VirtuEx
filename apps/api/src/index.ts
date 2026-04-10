@@ -57,7 +57,7 @@ app.use(multer().any());
   if (!ok) throw new Error();
 
   if (process.env.NODE_ENV !== 'production') {
-    // TEMPORARILY DISABLED FOR FASTER STARTUP
+    // TEMPORARILY DISABLED FOR FASTER STARTUP <-- WINDOWS SKILL ISSUE 🤷‍♂️🤷‍♂️🤷‍♂️🤷‍♂️
     // await db.schema.refreshDatabase();
 
     // Just ensure the schema exists without dropping everything

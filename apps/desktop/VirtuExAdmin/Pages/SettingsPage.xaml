@@ -4,16 +4,82 @@
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
       xmlns:local="clr-namespace:VirtuExAdmin.Pages"
-      xmlns:wpf="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
+      xmlns:viewmodels="clr-namespace:VirtuExAdmin.ViewModels"
       xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+      xmlns:pages="clr-namespace:VirtuExAdmin.ViewModels.Pages"
       mc:Ignorable="d"
-      Title="WebPage"
+      Title="Settings"
       ui:Design.Background="{DynamicResource ApplicationBackgroundBrush}"
       ui:Design.Foreground="{DynamicResource TextFillColorPrimaryBrush}"
       Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-      d:DesignHeight="450"
+      d:DesignHeight="600"
       d:DesignWidth="800">
-    <Grid>
-        <TextBlock>Settings</TextBlock>
-    </Grid>
+
+    <ScrollViewer Padding="24" VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="0,0,0,20">
+            
+            <TextBlock Text="Settings" 
+                       FontSize="28" 
+                       FontWeight="SemiBold" 
+                       Margin="0,0,0,24" />
+
+            <TextBlock Text="Appearance" FontSize="16" FontWeight="Medium" Margin="0,0,0,8" />
+            
+            <ui:CardControl Margin="0,0,0,8" Icon="{ui:SymbolIcon DarkTheme24}">
+                <ui:CardControl.Header>
+                    <StackPanel>
+                        <TextBlock Text="App Theme" FontWeight="Medium" />
+                        <TextBlock Text="Select the visual appearance of the application" 
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" 
+                                   FontSize="12" />
+                    </StackPanel>
+                </ui:CardControl.Header>
+                
+                <ComboBox Width="150" 
+                          SelectedIndex="{Binding ThemeIndex, Mode=TwoWay}">
+                    <ComboBoxItem Content="Light" />
+                    <ComboBoxItem Content="Dark" />
+                    <ComboBoxItem Content="System Default" />
+                </ComboBox>
+            </ui:CardControl>
+
+            <TextBlock Text="Behavior" FontSize="16" FontWeight="Medium" Margin="0,24,0,8" />
+
+            <ui:CardControl Margin="0,0,0,8" Icon="{ui:SymbolIcon WindowApps24}">
+                <ui:CardControl.Header>
+                    <StackPanel>
+                        <TextBlock Text="Start with Windows" FontWeight="Medium" />
+                        <TextBlock Text="Automatically launch VirtuExAdmin on system startup" 
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" 
+                                   FontSize="12" />
+                    </StackPanel>
+                </ui:CardControl.Header>
+                <ui:ToggleSwitch IsChecked="{Binding StartWithWindows, Mode=TwoWay}" />
+            </ui:CardControl>
+
+            <ui:CardControl Margin="0,0,0,8" Icon="{ui:SymbolIcon ArrowMinimize16}">
+                <ui:CardControl.Header>
+                    <StackPanel>
+                        <TextBlock Text="Minimize to Tray" FontWeight="Medium" />
+                        <TextBlock Text="Keep the application running in the background when closed" 
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" 
+                                   FontSize="12" />
+                    </StackPanel>
+                </ui:CardControl.Header>
+                <ui:ToggleSwitch IsChecked="{Binding MinimizeToTray, Mode=TwoWay}" />
+            </ui:CardControl>
+
+            <TextBlock Text="About" FontSize="16" FontWeight="Medium" Margin="0,24,0,8" />
+
+            <ui:CardAction Margin="0,0,0,8" Icon="{ui:SymbolIcon Info24}">
+                <StackPanel>
+                    <TextBlock Text="VirtuEx Admin" FontWeight="Medium" />
+                    <TextBlock Text="v1.0.0" 
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" 
+                               FontSize="12" />
+                </StackPanel>
+            </ui:CardAction>
+
+        </StackPanel>
+    </ScrollViewer>
 </Page>
