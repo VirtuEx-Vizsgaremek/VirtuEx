@@ -14,7 +14,12 @@ import {
 } from 'lucide-react';
 import { ModifyPlanModal } from '@/components/planmod';
 import { normalisePlanName, type PlanKey } from '@/lib/subscriptionApi';
-import { getMySubscription, changeMySubscription } from '@/lib/actions';
+import {
+  changeMySubscription,
+  getMySubscription,
+  type BillingPeriod,
+  type SubscriptionResponse
+} from '@/lib/actions';
 import SideNav from '@/components/sidenav';
 
 export default function Subscription() {
@@ -25,10 +30,23 @@ export default function Subscription() {
     credits: 30
   });
   const [userPlan, setUserPlan] = useState<PlanKey | null>(null);
+  const [subscription, setSubscription] = useState<SubscriptionResponse | null>(
+    null
+  );
+  const [selectedBillingPeriod, setSelectedBillingPeriod] =
+    useState<BillingPeriod>('monthly');
+  const [statusMessage, setStatusMessage] = useState<{
+    type: 'success' | 'error' | 'info';
+    message: string;
+  } | null>(null);
 
   useEffect(() => {
     getMySubscription()
-      .then((sub) => setUserPlan(normalisePlanName(sub.plan_name)))
+      .then((sub) => {
+        setSubscription(sub);
+        setUserPlan(normalisePlanName(sub.plan_name));
+        setSelectedBillingPeriod(sub.billing_period ?? 'monthly');
+      })
       .catch((err) => {
         if (err.message === 'Not authenticated') {
           router.push('/auth/login');
@@ -36,9 +54,89 @@ export default function Subscription() {
       });
   }, [router]);
 
-  const handleConfirmPlan = async (planName: string) => {
-    await changeMySubscription(planName);
-    setUserPlan(normalisePlanName(planName));
+  const formatDate = (value: string | number | null | undefined) => {
+    if (!value) return null;
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return null;
+    return date.toLocaleDateString('en-US');
+  };
+
+  const refreshSubscription = async () => {
+    const latest = await getMySubscription();
+    setSubscription(latest);
+    setUserPlan(normalisePlanName(latest.plan_name));
+    setSelectedBillingPeriod(latest.billing_period ?? 'monthly');
+  };
+
+  const handleConfirmPlan = async (
+    planName: string,
+    billingPeriod: BillingPeriod
+  ) => {
+    setStatusMessage(null);
+    const result = await changeMySubscription(planName, billingPeriod);
+
+    if (!result.ok || result.error) {
+      const errorMessage =
+        typeof result.message === 'string' ? result.message : null;
+      const insufficientFunds =
+        result.error === 'INSUFFICIENT_FUNDS' ||
+        (errorMessage?.toLowerCase().includes('insufficient') ?? false);
+      const message = insufficientFunds
+        ? 'Insufficient USD balance.'
+        : (errorMessage ?? 'Failed to change subscription.');
+      setStatusMessage({ type: 'error', message });
+      throw new Error(message);
+    }
+
+    const data = result.data as SubscriptionResponse & {
+      pending_plan?: unknown;
+      pendingPlan?: unknown;
+      pendingPlanName?: unknown;
+      pendingEffectiveAt?: string | null;
+      expiresAt?: string | null;
+    };
+    if (!data) {
+      const message = 'Failed to change subscription.';
+      setStatusMessage({ type: 'error', message });
+      throw new Error(message);
+    }
+
+    const pendingPlan =
+      data.pending_plan ??
+      data.pendingPlan ??
+      data.pending_plan_name ??
+      data.pendingPlanName ??
+      null;
+    const pendingDateRaw =
+      data.pending_effective_at ??
+      data.pendingEffectiveAt ??
+      data.expires_at ??
+      data.expiresAt ??
+      null;
+    const pendingDate = formatDate(pendingDateRaw);
+
+    if (pendingPlan) {
+      setStatusMessage({
+        type: 'success',
+        message: `Downgrade scheduled for ${
+          pendingDate ?? 'the current period end'
+        }.`
+      });
+    } else {
+      const chargeAmount =
+        data.price * (data.billing_period === 'yearly' ? 12 : 1);
+      const chargeLabel = chargeAmount.toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+
+      setStatusMessage({
+        type: 'success',
+        message: `Plan updated. You were charged $${chargeLabel}.`
+      });
+    }
+
+    await refreshSubscription();
     router.refresh();
   };
 
@@ -81,6 +179,60 @@ export default function Subscription() {
                   you&apos;re ready to grow.
                 </p>
               </div>
+
+              {statusMessage && (
+                <div
+                  className={`mb-6 rounded-lg border px-4 py-3 text-sm ${
+                    statusMessage.type === 'error'
+                      ? 'border-red-200 bg-red-50 text-red-700'
+                      : statusMessage.type === 'info'
+                        ? 'border-amber-200 bg-amber-50 text-amber-700'
+                        : 'border-green-200 bg-green-50 text-green-700'
+                  }`}
+                >
+                  {statusMessage.message}
+                </div>
+              )}
+
+              {subscription && (
+                <div className="mb-6 rounded-lg border border-border bg-card px-4 py-3">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="text-xs uppercase tracking-widest text-muted-foreground">
+                        Current plan
+                      </p>
+                      <p className="text-lg font-semibold text-foreground">
+                        {subscription.plan_name}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-widest text-muted-foreground">
+                        Billing period
+                      </p>
+                      <p className="text-lg font-semibold text-foreground">
+                        {subscription.billing_period === 'yearly'
+                          ? 'Yearly'
+                          : 'Monthly'}
+                      </p>
+                    </div>
+                    {subscription.pending_plan_name && (
+                      <span className="rounded-full bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-700">
+                        Scheduled
+                      </span>
+                    )}
+                  </div>
+                  {subscription.pending_plan_name && (
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      Will change to {subscription.pending_plan_name} on{' '}
+                      {formatDate(
+                        subscription.pending_effective_at ??
+                          subscription.expires_at
+                      ) ?? 'the current period end'}
+                      .
+                    </p>
+                  )}
+                </div>
+              )}
 
               {/* Plans Grid - Fully Responsive */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8 w-full">
@@ -365,6 +517,8 @@ export default function Subscription() {
               currentPlan={userPlan || 'Free'}
               selectedPlan={selectedPlanData.plan}
               currentCredits={selectedPlanData.credits}
+              billingPeriod={selectedBillingPeriod}
+              onBillingPeriodChange={setSelectedBillingPeriod}
               onConfirm={handleConfirmPlan}
             />
           </main>

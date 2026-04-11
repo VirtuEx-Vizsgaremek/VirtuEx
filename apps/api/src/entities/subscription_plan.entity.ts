@@ -30,6 +30,12 @@ export class SubscriptionPlan extends BaseEntity {
   @Property({ type: 'jsonb' })
   displayFeatures: DisplayFeatures = { version: 1, tradingView: false };
 
+  @Property({ default: 0 })
+  monthlyPrice: number = 0;
+
+  @Property({ default: 0 })
+  yearlyPrice: number = 0;
+
   @Property()
   price!: number;
 

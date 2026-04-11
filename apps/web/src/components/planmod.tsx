@@ -11,31 +11,37 @@ import {
   DialogFooter
 } from '@/components/ui/dialog';
 
-const PRICES = {
-  Free: { monthly: 0, yearly: 0 },
-  Standard: { monthly: 35, yearly: 350 },
-  Pro: { monthly: 49, yearly: 490 }
+type BillingPeriod = 'monthly' | 'yearly';
+
+const PLAN_PRICES: Record<string, number> = {
+  Free: 0,
+  Standard: 35,
+  Pro: 49
 };
 
 export function ModifyPlanModal({
   currentCredits,
   currentPlan,
   selectedPlan: initialPlan,
+  billingPeriod: initialBillingPeriod,
   isOpen,
   onClose,
-  onConfirm
+  onConfirm,
+  onBillingPeriodChange
 }: {
   currentCredits: number;
   currentPlan: string;
   selectedPlan?: string;
+  billingPeriod?: BillingPeriod;
   isOpen?: boolean;
   onClose?: (open: boolean) => void;
-  onConfirm?: (planName: string) => Promise<void>;
+  onConfirm?: (planName: string, billingPeriod: BillingPeriod) => Promise<void>;
+  onBillingPeriodChange?: (period: BillingPeriod) => void;
 }) {
   const [open, setOpen] = useState(isOpen ?? false);
   const [selectedPlan, setSelectedPlan] = useState(initialPlan ?? currentPlan);
-  const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>(
-    'monthly'
+  const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>(
+    initialBillingPeriod ?? 'monthly'
   );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -52,14 +58,20 @@ export function ModifyPlanModal({
     }
   }, [initialPlan]);
 
+  useEffect(() => {
+    if (initialBillingPeriod) {
+      setBillingPeriod(initialBillingPeriod);
+    }
+  }, [initialBillingPeriod]);
+
   const handleOpenChange = (newOpen: boolean) => {
     setOpen(newOpen);
     if (!newOpen) setError(null);
     onClose?.(newOpen);
   };
 
-  const currentPrice =
-    PRICES[selectedPlan as keyof typeof PRICES][billingCycle];
+  const basePrice = PLAN_PRICES[selectedPlan] ?? 0;
+  const currentPrice = billingPeriod === 'yearly' ? basePrice * 12 : basePrice;
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -106,24 +118,33 @@ export function ModifyPlanModal({
             </Label>
             <div className="flex gap-2 p-1 bg-gray-100 rounded-lg">
               <button
-                onClick={() => setBillingCycle('monthly')}
+                onClick={() => {
+                  setBillingPeriod('monthly');
+                  onBillingPeriodChange?.('monthly');
+                }}
                 className={`flex-1 py-2 text-sm font-medium rounded-md transition-all 
-                  ${billingCycle === 'monthly' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500'}
+                  ${billingPeriod === 'monthly' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500'}
                   ${selectedPlan === 'Free' ? 'cursor-not-allowed opacity-50' : 'hover:text-gray-700'}`}
                 disabled={selectedPlan === 'Free'}
               >
                 Monthly
               </button>
               <button
-                onClick={() => setBillingCycle('yearly')}
+                onClick={() => {
+                  setBillingPeriod('yearly');
+                  onBillingPeriodChange?.('yearly');
+                }}
                 className={`flex-1 py-2 text-sm font-medium rounded-md transition-all 
-                  ${billingCycle === 'yearly' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500'}
+                  ${billingPeriod === 'yearly' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500'}
                   ${selectedPlan === 'Free' ? 'cursor-not-allowed opacity-50' : 'hover:text-gray-700'}`}
                 disabled={selectedPlan === 'Free'}
               >
-                Yearly (Save 15%+)
+                Yearly
               </button>
             </div>
+            <p className="text-xs text-muted-foreground">
+              Yearly bills every 365 days.
+            </p>
           </div>
 
           <div className="pt-4 border-t flex items-center justify-between">
@@ -149,7 +170,7 @@ export function ModifyPlanModal({
               setError(null);
               setLoading(true);
               try {
-                await onConfirm(selectedPlan);
+                await onConfirm(selectedPlan, billingPeriod);
                 handleOpenChange(false);
               } catch (e: unknown) {
                 setError(

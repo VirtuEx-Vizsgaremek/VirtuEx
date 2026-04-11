@@ -12,6 +12,18 @@ export class Subscription extends BaseEntity {
   @ManyToOne(() => SubscriptionPlan)
   plan!: SubscriptionPlan;
 
+  @Property({ default: 'monthly' })
+  billingPeriod: 'monthly' | 'yearly' = 'monthly';
+
+  @ManyToOne(() => SubscriptionPlan, { nullable: true })
+  pendingPlan?: SubscriptionPlan | null;
+
+  @Property({ nullable: true })
+  pendingBillingPeriod?: 'monthly' | 'yearly' | null;
+
+  @Property({ nullable: true })
+  pendingEffectiveAt?: Date | null;
+
   @Property()
   startedAt: Date = new Date();
 
