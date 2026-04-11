@@ -8,6 +8,7 @@
     "build": "tsc && resolve-tspaths",
     "dev": "nodemon -r dotenv/config -r tsconfig-paths/register src/index.ts",
     "seed": "ts-node -r dotenv/config -r tsconfig-paths/register src/seed.ts",
+    "backfill": "ts-node -r dotenv/config -r tsconfig-paths/register src/scripts/backfill_history.ts",
     "lint": "eslint",
     "lint:fix": "eslint --fix",
     "db:create:dump": "mikro-orm schema:create --dump",

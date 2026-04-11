@@ -95,19 +95,19 @@ export function generateShadCnChartData(
  * // Returns: [{ time: '2024-01-01', value: 100.50 }, { time: '2024-01-02', value: 101.25 }, ...]
  */
 export function generateTradingViewChartData(
-  days: number = 90,
+  candles: number = 90,
   startDate: Date = new Date('2024-01-01'),
-  initialPrice: number = 100
+  initialPrice: number = 100,
+  stepDays: number = 1
 ) {
   const data = [];
   let currentPrice = initialPrice;
 
-  for (let i = 0; i < days; i++) {
-    const currentDate = new Date(startDate.getTime() + i * 24 * 60 * 60 * 1000);
-
-    // Generate realistic price movements
+  for (let i = 0; i < candles; i++) {
+    const currentDate = new Date(
+      startDate.getTime() + i * stepDays * 24 * 60 * 60 * 1000
+    );
     currentPrice = generateRandomPrice(currentPrice, 0.03);
-
     data.push({
       time: currentDate.toISOString().split('T')[0],
       value: Number(currentPrice.toFixed(2))
@@ -146,15 +146,18 @@ export function generateTradingViewChartData(
  * const data = generateCandlestickData(90, new Date('2024-01-01'), 100);
  * // Returns: [{\n * //   time: '2024-01-01',\n * //   open: 100.00,\n * //   high: 102.50,\n * //   low: 99.75,\n * //   close: 101.25\n * // }, ...]\n */
 export function generateCandlestickData(
-  days: number = 90,
+  candles: number = 90,
   startDate: Date = new Date('2024-01-01'),
-  initialPrice: number = 100
+  initialPrice: number = 100,
+  stepDays: number = 1
 ) {
   const data = [];
   let currentPrice = initialPrice;
 
-  for (let i = 0; i < days; i++) {
-    const currentDate = new Date(startDate.getTime() + i * 24 * 60 * 60 * 1000);
+  for (let i = 0; i < candles; i++) {
+    const currentDate = new Date(
+      startDate.getTime() + i * stepDays * 24 * 60 * 60 * 1000
+    );
 
     const open = currentPrice;
     const close = generateRandomPrice(open, 0.03);

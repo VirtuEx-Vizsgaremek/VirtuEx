@@ -3,7 +3,6 @@ import { CurrencyHistory } from '@/entities/currency_history.entity';
 import { CurrencyType } from '@/enum/currency_type';
 import { EntityManager } from '@mikro-orm/core';
 import { Seeder } from '@mikro-orm/seeder';
-import moment from 'moment';
 
 import YahooFinance from 'yahoo-finance2';
 
@@ -184,7 +183,7 @@ export class MarketDataSeeder extends Seeder {
     await batchedMap(cc, async (c) => {
       try {
         const yahooData = await yahoo.chart(c.symbol, {
-          period1: moment().subtract(1, 'y').toDate(),
+          period1: new Date('1900-01-01'), // fetch all available history
           period2: new Date(),
           interval: '1d'
         });

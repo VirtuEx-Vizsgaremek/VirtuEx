@@ -3,21 +3,16 @@
  *
  * Advanced financial chart component that displays stock market data using
  * TradingView's Lightweight Charts library. Supports both area and candlestick
- * chart types with real-time and mock data sources.
+ * chart types with real-time data from the backend API.
  *
  * Features:
  * - Dual chart types: Area chart and Candlestick (OHLC) chart
- * - Data sources: Generated mock data or real-time data from backend API
+ * - Interval selector: 1D, 1W, 1M, 1Y (aggregated from daily DB data)
+ * - Infinite pan: scrolling left/right loads older/newer data automatically
  * - Interactive crosshair with price overlays
  * - Dark/light theme support with smooth transitions
  * - Responsive design with automatic resizing
  * - Error handling and loading states
- *
- * Dependencies:
- * - lightweight-charts: TradingView's charting library
- * - marketApi: Backend API service for fetching real stock data
- * - dataGenerator: Generates realistic mock data for testing
- * - chartCalculations: Calculates price changes and percentages
  */
 
 'use client';
@@ -31,7 +26,12 @@ import {
   generateCandlestickData,
   generateTradingViewChartData
 } from '@/lib/dataGenerator';
-import { fetchMarketData } from '@/lib/marketApi';
+import {
+  ChartInterval,
+  INTERVAL_WINDOW_DAYS,
+  fetchChartData,
+  fetchCurrency
+} from '@/lib/marketApi';
 import {
   BuyResult,
   fetchCurrencies,
@@ -62,76 +62,67 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import ChartOverlay from './ChartOverlay';
 import TradeModal from './TradeModal';
 
-// Chart type: area (line chart) or candlestick (OHLC bars)
-type chartType = 'area' | 'candle';
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
 
-// Data source: generated (mock) or realtime (from API)
+type chartType = 'area' | 'candle';
 type dataSource = 'generated' | 'realtime';
 
-/**
- * OHLC data structure for candlestick overlay display
- * Null when no data is hovered or chart is in area mode
- */
 type OHLCData = {
-  open: number; // Opening price
-  high: number; // Highest price
-  low: number; // Lowest price
-  close: number; // Closing price
-  time: string | number | { year: number; month: number; day: number }; // Date string
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  time: string | number | { year: number; month: number; day: number };
 } | null;
 
-/**
- * Area data structure for area chart overlay display
- * Null when no data is hovered or chart is in candlestick mode
- */
 type AreaData = {
-  value: number; // Price value
-  time: string | number | { year: number; month: number; day: number }; // Date string
+  value: number;
+  time: string | number | { year: number; month: number; day: number };
 } | null;
 
-/**
- * Props interface for TradingView component
- * Symbol is now controlled by parent (MarketPage) instead of internal state
- */
 interface TradingViewProps {
-  symbol: string; // Stock symbol passed from parent (e.g., "AAPL")
-  onClearSelection?: () => void; // Optional callback to clear selection when switching to generated data
+  symbol: string;
+  onClearSelection?: () => void;
 }
 
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+const CHART_INTERVALS: ChartInterval[] = ['1D', '1W', '1M', '1Y'];
+
 /**
- * Returns the number of days to display on the time axis based on the container
- * width in pixels.  Wider viewports (ultrawide) show a full year; narrower ones
- * (tablet / phone) show progressively shorter windows so the chart always looks
- * dense and readable without wasted space.
+ * How many candles from the left edge trigger a "load more older data" fetch.
+ */
+const LOAD_MORE_THRESHOLD = 30;
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * How many candles to display by default based on screen width and interval.
+ * Wider screens show more candles; coarser intervals show fewer (so candles
+ * stay a reasonable width and the chart looks dense like TradingView).
  *
- * Breakpoints (approximate):
- *   ≥ 1800 px  → 365 days  (ultrawide / 21:9)
- *   ≥ 1200 px  → 180 days  (16:9 desktop)
- *   ≥  768 px  → 90 days   (tablet)
- *           <  → 30 days   (phone)
+ * Columns:  ≥1800px  ≥1200px  ≥768px  <768px
  */
-function getVisibleDaysForWidth(widthPx: number): number {
-  if (widthPx >= 1800) return 365;
-  if (widthPx >= 1200) return 180;
-  if (widthPx >= 768) return 90;
-  return 30;
-}
+const TARGET_CANDLES: Record<ChartInterval, [number, number, number, number]> =
+  {
+    '1D': [200, 130, 70, 35],
+    '1W': [80, 52, 36, 20],
+    '1M': [48, 36, 24, 14],
+    '1Y': [15, 10, 8, 5]
+  };
 
-/**
- * Given the last data point's date string ("YYYY-MM-DD") and a number of days,
- * returns a lightweight-charts TimeRange ({ from, to }) expressed as UTC
- * timestamp seconds so the chart shows exactly that window ending at `toDate`.
- */
-function buildVisibleRange(
-  toDateStr: string,
-  days: number
-): { from: number; to: number } | null {
-  // Parse as UTC explicitly (appending T00:00:00Z) to avoid timezone shifting.
-  const toMs = Date.parse(toDateStr + 'T00:00:00Z');
-  if (isNaN(toMs)) return null;
-  const to = Math.floor(toMs / 1000);
-  const from = to - days * 24 * 60 * 60;
-  return { from, to };
+function getTargetCandles(widthPx: number, interval: ChartInterval): number {
+  const [xl, lg, md, sm] = TARGET_CANDLES[interval];
+  if (widthPx >= 1800) return xl;
+  if (widthPx >= 1200) return lg;
+  if (widthPx >= 768) return md;
+  return sm;
 }
 
 const formatChartTime = (
@@ -149,16 +140,17 @@ const formatChartTime = (
   return `${time.year}-${String(time.month).padStart(2, '0')}-${String(time.day).padStart(2, '0')}`;
 };
 
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
+
 export default function TradingView({
   symbol,
   onClearSelection
 }: TradingViewProps) {
   // ========== Context & Theme ==========
-  const { theme, colorTheme } = useTheme(); // Get current theme (dark/light) and color theme from context
+  const { theme, colorTheme } = useTheme();
 
-  // Auth: read the JWT from the httpOnly `vtx_token` cookie via a server action.
-  // We keep a mounting flag so SSR and the first client render agree on the
-  // default (null / not-logged-in), then hydrate asynchronously after mount.
   const [isClient, setIsClient] = useState(false);
   const [token, setToken] = useState<string | null>(null);
 
@@ -171,95 +163,73 @@ export default function TradingView({
 
   const isLoggedIn = isClient && !!token;
 
-  // Get active color scheme based on theme and selected color theme
   const colors =
     theme === 'dark'
       ? CHART_THEMES[colorTheme].dark
       : CHART_THEMES[colorTheme].light;
 
-  // ========== Refs for Chart Management ==========
-  const chartContainerRef = useRef<HTMLDivElement>(null); // Container DOM element
-  const chartRef = useRef<any>(null); // Chart instance
-  const seriesRef = useRef<any>(null); // Current series (area or candlestick)
-  // Always holds the latest rendered dataset so resize / range helpers can
-  // access it without going stale inside closures.
+  // ========== Chart Refs ==========
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+  const chartRef = useRef<any>(null);
+  const seriesRef = useRef<any>(null);
   const activeDataRef = useRef<any[]>([]);
 
-  /**
-   * Applies a responsive visible time range to the chart based on the current
-   * container width. Called after animation completes and after every resize.
-   * Falls back to fitContent() when no data is available yet.
-   * Defined at component scope so both the chart-init and series-update
-   * useEffects can reference it without closure staleness.
-   */
-  const applyResponsiveRange = useCallback(
-    (data?: any[]) => {
-      if (!chartContainerRef.current || !chartRef.current) return;
-      const width = chartContainerRef.current.clientWidth;
-      const days = getVisibleDaysForWidth(width);
+  // ========== Interval & loading refs (stable across re-renders) ==========
+  const chartIntervalRef = useRef<ChartInterval>('1D');
+  const currencyPrecisionRef = useRef<number>(2);
+  // Earliest date we have loaded for the current symbol+interval
+  const loadedStartRef = useRef<Date | null>(null);
+  // Latest date we have loaded
+  const loadedEndRef = useRef<Date | null>(null);
+  // Whether there is older data to fetch
+  const hasMoreLeftRef = useRef(true);
+  // Whether there is newer data to fetch (rare — only at chart boot)
+  const hasMoreRightRef = useRef(false);
+  // Guard against concurrent fetches
+  const isFetchingMoreRef = useRef(false);
+  // After a prepend we restore the visible time range to prevent the view jumping
+  const restoreTimeRangeRef = useRef<{ from: number; to: number } | null>(null);
+  // Skip the load-in animation when appending/prepending
+  const skipAnimationRef = useRef(false);
+  // Current symbol, kept as a ref so async callbacks can access the latest value
+  const symbolRef = useRef(symbol);
 
-      // Prefer the explicitly passed data, then the always-current ref, then empty.
-      const dataset = data ?? activeDataRef.current ?? [];
-      const lastPoint = dataset[dataset.length - 1];
-
-      try {
-        if (lastPoint?.time) {
-          const toStr =
-            typeof lastPoint.time === 'string'
-              ? lastPoint.time
-              : `${lastPoint.time.year}-${String(lastPoint.time.month).padStart(2, '0')}-${String(lastPoint.time.day).padStart(2, '0')}`;
-
-          const range = buildVisibleRange(toStr, days);
-          if (range) {
-            chartRef.current.timeScale().setVisibleRange(range);
-            return;
-          }
-        }
-        // Fall back to showing all data if range can't be computed.
-        chartRef.current.timeScale().fitContent();
-      } catch {
-        // If the chart is being torn down, ignore the error gracefully.
-      }
-    },
-    [] // refs are stable — no deps needed
-  );
-
-  // ========== State Management ==========
-
-  // Client-side rendering flag moved above; preserved here as a note to keep hook order stable.
-  // (Initialisation happens earlier to avoid reordering hooks.)
-
-  // Animation state for progressive rendering
-  const [isAnimating, setIsAnimating] = useState(false);
-
-  // Crosshair mode toggle.
-  // On desktop: switches CrosshairMode between Normal and Hidden.
-  // On touch: switches TrackingModeExitMode between OnNextTap (default, tap-to-exit)
-  // and OnTouchEnd (crosshair stays while finger is down, lifts to drag).
-  // Both are needed so the button works correctly on all devices.
+  // ========== State ==========
   const [isCrosshairVisible, setIsCrosshairVisible] = useState(true);
+  const [chartInterval, setChartInterval] = useState<ChartInterval>('1D');
 
-  // Chart data arrays
-  const [areaData, setAreaData] = useState(
-    () => generateTradingViewChartData(365, new Date('2024-01-01'), 100) // Initial mock area data
+  const [areaData, setAreaData] = useState(() =>
+    generateTradingViewChartData(365, new Date('2024-01-01'), 100)
   );
-  const [candleData, setCandleData] = useState(
-    () => generateCandlestickData(365, new Date('2024-01-01'), 100) // Initial mock candlestick data
+  const [candleData, setCandleData] = useState(() =>
+    generateCandlestickData(365, new Date('2024-01-01'), 100)
   );
 
-  // Chart display options
-  const [chartType, setChartType] = useState<chartType>('area'); // Current chart type
-  const [dataSource, setDataSource] = useState<dataSource>('generated'); // Data source indicator
+  const [chartType, setChartType] = useState<chartType>('area');
+  const [dataSource, setDataSource] = useState<dataSource>('generated');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Real-time data controls
-  const [isLoading, setIsLoading] = useState(false); // Loading state during API call
-  const [error, setError] = useState<string | null>(null); // Error message display
+  const [ohlcData, setOhlcData] = useState<OHLCData>(null);
+  const [areaDisplayData, setAreaDisplayData] = useState<AreaData>(null);
 
-  // Crosshair hover data for overlay display
-  const [ohlcData, setOhlcData] = useState<OHLCData>(null); // OHLC data when hovering candlestick
-  const [areaDisplayData, setAreaDisplayData] = useState<AreaData>(null); // Price data when hovering area
+  // ========== Mock generator panel state ==========
+  const [showMockPanel, setShowMockPanel] = useState(false);
+  const [mockYears, setMockYears] = useState(1);
+  const [mockMonths, setMockMonths] = useState(0);
+  const [mockDays, setMockDays] = useState(0);
+  const [simSpeed, setSimSpeed] = useState(300); // ms per candle
+  const [isLiveSimulating, setIsLiveSimulating] = useState(false);
 
-  // Trade modal state
+  // Refs used by the live-sim interval so it never reads stale closures
+  const simLastPriceRef = useRef(100);
+  const simLastDateRef = useRef(new Date());
+  const isLiveSimRef = useRef(false); // guards the series-update effect
+  const chartTypeRef = useRef(chartType);
+  useEffect(() => {
+    chartTypeRef.current = chartType;
+  }, [chartType]);
+
   const [tradeMode, setTradeMode] = useState<'buy' | 'sell' | null>(null);
   const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [tradeNotification, setTradeNotification] = useState<{
@@ -267,15 +237,10 @@ export default function TradingView({
     result: BuyResult | SellResult;
   } | null>(null);
 
-  // Currency IDs for the trade modal — resolved dynamically from /v1/currency
   const [usdCurrencyId, setUsdCurrencyId] = useState<string | null>(null);
   const [symbolCurrencyId, setSymbolCurrencyId] = useState<string | null>(null);
-  // Precision of the asset being traded (decimal places), used by TradeModal
   const [symbolPrecision, setSymbolPrecision] = useState<number>(8);
 
-  // Candlestick color scheme preference (theme colors vs standard red/green)
-  // Candlestick color preference. Use a deterministic default for SSR, then hydrate
-  // the user's saved preference from localStorage after mount to avoid hydration mismatch.
   const [useThemeColors, setUseThemeColors] = useState<boolean>(true);
   useEffect(() => {
     try {
@@ -286,24 +251,56 @@ export default function TradingView({
     }
   }, []);
 
-  // Get candlestick colors based on user preference
   const candleColors = useThemeColors
     ? { up: colors.candleUp, down: colors.candleDown }
     : { up: '#22c55e', down: '#ef4444' };
 
-  // ========== Initialization Effect ==========
-  // Runs once on component mount to enable client-side rendering
+  // Keep refs in sync with state
   useEffect(() => {
-    setIsClient(true); // Signal that we're now on the client (not SSR)
+    chartIntervalRef.current = chartInterval;
+  }, [chartInterval]);
+
+  useEffect(() => {
+    symbolRef.current = symbol;
+  }, [symbol]);
+
+  // ========== Responsive visible range ==========
+  /**
+   * Sets the chart's visible logical range so that the last N candles fill the
+   * viewport (N depends on screen width and the active interval).  A small
+   * right-side padding (3 bars) replicates TradingView's "future space" feel.
+   */
+  const applyResponsiveRange = useCallback((data?: any[]) => {
+    if (!chartContainerRef.current || !chartRef.current) return;
+    const dataset = data ?? activeDataRef.current ?? [];
+    if (dataset.length === 0) {
+      try {
+        chartRef.current.timeScale().fitContent();
+      } catch {
+        /* tearing down */
+      }
+      return;
+    }
+
+    const width = chartContainerRef.current.clientWidth;
+    const candles = getTargetCandles(width, chartIntervalRef.current);
+    const total = dataset.length;
+    // `to` slightly past the last bar gives TradingView-style right padding.
+    const to = total + 3;
+    const from = to - candles;
+
+    try {
+      chartRef.current.timeScale().setVisibleLogicalRange({ from, to });
+    } catch {
+      // chart tearing down
+    }
   }, []);
 
-  // ========== Color Preference Effects ==========
-  // Persist color preference to localStorage
+  // ========== Color preference effects ==========
   useEffect(() => {
     localStorage.setItem('useThemeColors', String(useThemeColors));
   }, [useThemeColors]);
 
-  // Update candlestick colors when preference or colors change
   useEffect(() => {
     if (seriesRef.current && chartType === 'candle') {
       seriesRef.current.applyOptions({
@@ -315,70 +312,332 @@ export default function TradingView({
     }
   }, [candleColors.up, candleColors.down, chartType]);
 
-  // ========== Event Handlers ==========
+  // ========== Data loading ==========
 
   /**
-   * Fetch real-time stock data from backend API
-   * Triggered when user clicks "Fetch Real Data" button
+   * Core fetch: gets data for [start, end), merges into state.
+   * mode:
+   *   'replace' — clear existing data (initial load / interval change)
+   *   'prepend' — insert older candles at the front
+   *   'append'  — insert newer candles at the back
    */
-  const handleFetchRealData = async () => {
-    setIsLoading(true); // Show loading state
-    setError(null); // Clear any previous errors
+  const loadData = useCallback(
+    async (
+      sym: string,
+      start: Date,
+      end: Date,
+      interval: ChartInterval,
+      mode: 'replace' | 'prepend' | 'append'
+    ) => {
+      try {
+        // Resolve precision (cache it so prepend/append don't re-fetch metadata)
+        let precision = currencyPrecisionRef.current;
+        if (mode === 'replace') {
+          const currency = await fetchCurrency(sym);
+          precision = currency.precision;
+          currencyPrecisionRef.current = precision;
+        }
+
+        const result = await fetchChartData(
+          sym,
+          start,
+          end,
+          interval,
+          precision
+        );
+
+        // If nothing came back and we were looking for older data, mark exhausted
+        if (result.candlestick.length === 0) {
+          if (mode === 'prepend') hasMoreLeftRef.current = false;
+          if (mode === 'append') hasMoreRightRef.current = false;
+          return;
+        }
+
+        if (mode === 'replace') {
+          skipAnimationRef.current = false; // not a prepend
+          setCandleData(result.candlestick);
+          setAreaData(result.area);
+          loadedStartRef.current = start;
+          loadedEndRef.current = end;
+          hasMoreLeftRef.current = true;
+          hasMoreRightRef.current = false;
+        } else if (mode === 'prepend') {
+          // Save the visible time range so we can restore it after the data
+          // is spliced in (otherwise the chart jumps to the newly added candles)
+          const currentRange = chartRef.current
+            ?.timeScale()
+            .getVisibleRange() as { from: number; to: number } | null;
+          restoreTimeRangeRef.current = currentRange;
+
+          skipAnimationRef.current = true;
+
+          setCandleData((prev) => {
+            const merged = [...result.candlestick, ...prev];
+            const seen = new Set<string>();
+            return merged.filter((d) => {
+              const k = d.time as string;
+              if (seen.has(k)) return false;
+              seen.add(k);
+              return true;
+            });
+          });
+          setAreaData((prev) => {
+            const merged = [...result.area, ...prev];
+            const seen = new Set<string>();
+            return merged.filter((d) => {
+              const k = d.time as string;
+              if (seen.has(k)) return false;
+              seen.add(k);
+              return true;
+            });
+          });
+          loadedStartRef.current = start;
+        } else if (mode === 'append') {
+          skipAnimationRef.current = true;
+          setCandleData((prev) => {
+            const merged = [...prev, ...result.candlestick];
+            const seen = new Set<string>();
+            return merged.filter((d) => {
+              const k = d.time as string;
+              if (seen.has(k)) return false;
+              seen.add(k);
+              return true;
+            });
+          });
+          setAreaData((prev) => {
+            const merged = [...prev, ...result.area];
+            const seen = new Set<string>();
+            return merged.filter((d) => {
+              const k = d.time as string;
+              if (seen.has(k)) return false;
+              seen.add(k);
+              return true;
+            });
+          });
+          loadedEndRef.current = end;
+        }
+      } catch (err) {
+        console.error('loadData error:', err);
+        if (mode === 'replace') {
+          setError(err instanceof Error ? err.message : 'Failed to fetch data');
+        }
+      }
+    },
+    []
+  );
+
+  /**
+   * Load the initial window of data for the current symbol + interval.
+   * Resets all pan state.
+   */
+  const loadInitialData = useCallback(
+    async (sym: string, interval: ChartInterval) => {
+      setIsLoading(true);
+      setError(null);
+      setDataSource('realtime');
+
+      const windowDays = INTERVAL_WINDOW_DAYS[interval];
+      const end = new Date();
+      const start = new Date();
+      start.setDate(start.getDate() - windowDays);
+
+      await loadData(sym, start, end, interval, 'replace');
+      setIsLoading(false);
+    },
+    [loadData]
+  );
+
+  /**
+   * Load more older data when the user pans to the left edge.
+   */
+  const loadMoreLeft = useCallback(async () => {
+    if (
+      isFetchingMoreRef.current ||
+      !hasMoreLeftRef.current ||
+      !loadedStartRef.current
+    )
+      return;
+
+    const sym = symbolRef.current;
+    const interval = chartIntervalRef.current;
+
+    isFetchingMoreRef.current = true;
+    const windowDays = INTERVAL_WINDOW_DAYS[interval];
+    const end = new Date(loadedStartRef.current);
+    const start = new Date(loadedStartRef.current);
+    start.setDate(start.getDate() - windowDays);
+
+    await loadData(sym, start, end, interval, 'prepend');
+    isFetchingMoreRef.current = false;
+  }, [loadData]);
+
+  /**
+   * Load more newer data when the user pans to the right edge
+   * (only relevant if the initial load didn't reach today).
+   */
+  const loadMoreRight = useCallback(async () => {
+    if (
+      isFetchingMoreRef.current ||
+      !hasMoreRightRef.current ||
+      !loadedEndRef.current
+    )
+      return;
+
+    const sym = symbolRef.current;
+    const interval = chartIntervalRef.current;
+
+    isFetchingMoreRef.current = true;
+    const start = new Date(loadedEndRef.current);
+    const end = new Date();
+
+    await loadData(sym, start, end, interval, 'append');
+    isFetchingMoreRef.current = false;
+  }, [loadData]);
+
+  // Keep stable refs to pan handlers so the chart subscription (created once)
+  // always calls the latest version.
+  const loadMoreLeftRef = useRef(loadMoreLeft);
+  const loadMoreRightRef = useRef(loadMoreRight);
+  useEffect(() => {
+    loadMoreLeftRef.current = loadMoreLeft;
+  }, [loadMoreLeft]);
+  useEffect(() => {
+    loadMoreRightRef.current = loadMoreRight;
+  }, [loadMoreRight]);
+
+  // ========== Mock data handlers ==========
+
+  // Days each candle advances for the current interval
+  const INTERVAL_STEP: Record<ChartInterval, number> = {
+    '1D': 1,
+    '1W': 7,
+    '1M': 30,
+    '1Y': 365
+  };
+
+  const stopLiveSim = useCallback(() => {
+    isLiveSimRef.current = false;
+    setIsLiveSimulating(false);
+    // The useEffect below cleans up the actual setInterval
+  }, []);
+
+  // Stop sim when chart type changes (series gets replaced)
+  useEffect(() => {
+    if (isLiveSimRef.current) stopLiveSim();
+  }, [chartType]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleGenerateMock = useCallback(() => {
+    stopLiveSim();
+    const iv = chartIntervalRef.current;
+    const stepDays = INTERVAL_STEP[iv];
+    const totalDays = Math.max(1, mockYears * 365 + mockMonths * 30 + mockDays);
+    const totalCandles = Math.max(1, Math.ceil(totalDays / stepDays));
+
+    const startDate = new Date();
+    startDate.setTime(
+      startDate.getTime() - totalCandles * stepDays * 86_400_000
+    );
+
+    const candles = generateCandlestickData(
+      totalCandles,
+      startDate,
+      100,
+      stepDays
+    );
+    const area = generateTradingViewChartData(
+      totalCandles,
+      startDate,
+      100,
+      stepDays
+    );
+
+    // Seed live-sim refs so Live can continue from the last generated bar
+    if (candles.length > 0) {
+      const last = candles[candles.length - 1];
+      simLastPriceRef.current = last.close;
+      simLastDateRef.current = new Date(last.time + 'T00:00:00Z');
+    }
+
+    skipAnimationRef.current = false;
+    setCandleData(candles);
+    setAreaData(area);
+    setDataSource('generated');
+    loadedStartRef.current = null;
+    loadedEndRef.current = null;
+    hasMoreLeftRef.current = true;
+    onClearSelection?.();
+    setError(null);
+  }, [mockYears, mockMonths, mockDays, stopLiveSim, onClearSelection]); // chartIntervalRef is a ref, not listed
+
+  // Re-generate mock data when the interval changes (same as real data re-fetch)
+  useEffect(() => {
+    if (dataSource === 'generated') handleGenerateMock();
+  }, [chartInterval]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Single stable tick function — reads everything from refs so it never goes stale
+  const doSimTick = useCallback(() => {
+    if (!seriesRef.current) return;
+
+    const stepDays = INTERVAL_STEP[chartIntervalRef.current];
+    const open = simLastPriceRef.current;
+    const close = parseFloat(
+      Math.max(open * (1 + (Math.random() - 0.5) * 0.06), 0.01).toFixed(2)
+    );
+    const high = parseFloat(
+      (Math.max(open, close) * (1 + Math.random() * 0.02)).toFixed(2)
+    );
+    const low = parseFloat(
+      (Math.min(open, close) * (1 - Math.random() * 0.02)).toFixed(2)
+    );
+
+    simLastDateRef.current = new Date(
+      simLastDateRef.current.getTime() + stepDays * 86_400_000
+    );
+    const time = simLastDateRef.current.toISOString().slice(0, 10);
+    const candle = {
+      time,
+      open: parseFloat(open.toFixed(2)),
+      high,
+      low,
+      close
+    };
+    const area = { time, value: close };
 
     try {
-      // Call backend API to get stock data
-      const data = await fetchMarketData(symbol, 365);
-
-      // Update both chart formats with real data
-      setCandleData(data.candlestick);
-      setAreaData(data.area);
-      setDataSource('realtime'); // Update source indicator
-    } catch (err) {
-      // Display user-friendly error message
-      setError(err instanceof Error ? err.message : 'Failed to fetch data');
-    } finally {
-      setIsLoading(false); // Hide loading state
+      seriesRef.current.update(chartTypeRef.current === 'area' ? area : candle);
+    } catch {
+      /* series may have been replaced */
     }
-  };
 
-  /**
-   * Generate new mock data for testing/demo purposes
-   * Triggered when user clicks "Generate Mock Data" button
-   */
-  const handleRegenerateData = () => {
-    // Generate realistic-looking mock data
-    setAreaData(
-      generateTradingViewChartData(365, new Date('2024-01-01'), 10000)
-    );
-    setCandleData(generateCandlestickData(365, new Date('2024-01-01'), 10000));
-    setDataSource('generated'); // Update source indicator
-    setError(null); // Clear any errors
+    setCandleData((prev) => [...prev, candle]);
+    setAreaData((prev) => [...prev, area]);
+    simLastPriceRef.current = close;
+  }, []); // all state is accessed via stable refs
 
-    // Clear selection in AssetNav (unselect all stocks)
-    onClearSelection?.();
-  };
+  // Drives the simulation interval. Re-runs when speed changes → instant update.
+  useEffect(() => {
+    if (!isLiveSimulating) return;
+    const id = setInterval(doSimTick, simSpeed);
+    return () => clearInterval(id);
+  }, [isLiveSimulating, simSpeed, doSimTick]);
 
-  /**
-   * Toggle between area and candlestick chart types
-   * Triggered when user clicks "Switch to X Chart" button
-   */
+  const startLiveSim = useCallback(() => {
+    if (isLiveSimRef.current) return;
+    if (candleData.length === 0) handleGenerateMock();
+    isLiveSimRef.current = true;
+    setIsLiveSimulating(true);
+    setDataSource('generated');
+  }, [candleData.length, handleGenerateMock]);
+
   const handleToggleChartType = () => {
     setChartType((prev) => (prev === 'area' ? 'candle' : 'area'));
   };
 
-  // ========== Chart Initialization Effect ==========
-  /**
-   * Creates the chart instance and sets up event listeners
-   * Runs once when component mounts on client-side
-   */
+  // ========== Chart Initialization ==========
   useEffect(() => {
-    // Wait for client-side rendering and DOM element to be ready
     if (!chartContainerRef.current || !isClient) return;
-
-    // Prevent double initialization in React Strict Mode (development only)
     if (chartRef.current) return;
 
-    // Create new chart instance with initial configuration
     const chart = createChart(chartContainerRef.current, {
       width: chartContainerRef.current.clientWidth,
       height: chartContainerRef.current.clientHeight,
@@ -390,53 +649,24 @@ export default function TradingView({
         }
       },
       grid: {
-        vertLines: {
-          color: colors.gridColor
-        },
-        horzLines: {
-          color: colors.gridColor
-        }
+        vertLines: { color: colors.gridColor },
+        horzLines: { color: colors.gridColor }
       },
-      timeScale: {
-        borderColor: colors.borderColor
-      },
-      rightPriceScale: {
-        borderColor: colors.borderColor
-      },
-      // Always keep crosshair in Normal mode on init.
-      // Without this, a dblclick (fitContent) in lightweight-charts v5 can
-      // silently switch the mode to Hidden, breaking the hover overlay.
-      crosshair: {
-        mode: CrosshairMode.Normal
-      },
-      // Default touch tracking: OnTouchEnd so crosshair follows the finger
-      // while held, then drag resumes on lift — matches isCrosshairVisible=true.
-      trackingMode: {
-        exitMode: TrackingModeExitMode.OnTouchEnd
-      }
+      timeScale: { borderColor: colors.borderColor },
+      rightPriceScale: { borderColor: colors.borderColor },
+      crosshair: { mode: CrosshairMode.Normal },
+      trackingMode: { exitMode: TrackingModeExitMode.OnTouchEnd }
     });
 
     chartRef.current = chart;
 
-    /**
-     * Subscribe to crosshair move events for overlay display
-     * Updates OHLC or area data when user hovers over chart
-     */
+    // Crosshair overlay
     chart.subscribeCrosshairMove((param: any) => {
-      // Exit if no time or series data available
-      if (!param.time || !param.seriesData || !seriesRef.current) {
-        return;
-      }
-
-      // Get data for the current hovered point
+      if (!param.time || !param.seriesData || !seriesRef.current) return;
       const data = param.seriesData.get(seriesRef.current);
-      if (!data) {
-        return;
-      }
+      if (!data) return;
 
-      // Update overlay data based on chart type
       if (data.open !== undefined) {
-        // Candlestick data (has open, high, low, close)
         setOhlcData({
           open: data.open,
           high: data.high,
@@ -445,29 +675,42 @@ export default function TradingView({
           time: param.time
         });
       } else if (data.value !== undefined) {
-        // Area data (has only value)
-        setAreaDisplayData({
-          value: data.value,
-          time: param.time
-        });
+        setAreaDisplayData({ value: data.value, time: param.time });
       }
     });
 
-    /**
-     * lightweight-charts fires a dblclick internally to trigger fitContent.
-     * In v5 this can leave the crosshair in a hidden state.
-     * Re-apply Normal mode every time the user double-clicks so the crosshair
-     * is always restored.
-     */
+    // Restore crosshair after double-click fitContent
     const handleDblClick = () => {
       chart.applyOptions({ crosshair: { mode: CrosshairMode.Normal } });
     };
-
     chartContainerRef.current.addEventListener('dblclick', handleDblClick);
 
-    /**
-     * Handle window resize to keep chart responsive
-     */
+    // Infinite pan: watch the logical range
+    chart.timeScale().subscribeVisibleLogicalRangeChange((range: any) => {
+      if (!range) return;
+
+      const total = activeDataRef.current.length;
+
+      // Near the left edge → load older data
+      if (
+        range.from < LOAD_MORE_THRESHOLD &&
+        !isFetchingMoreRef.current &&
+        hasMoreLeftRef.current
+      ) {
+        loadMoreLeftRef.current();
+      }
+
+      // Near the right edge → load newer data
+      if (
+        range.to > total - LOAD_MORE_THRESHOLD &&
+        !isFetchingMoreRef.current &&
+        hasMoreRightRef.current
+      ) {
+        loadMoreRightRef.current();
+      }
+    });
+
+    // Resize handlers
     const handleResize = () => {
       if (chartContainerRef.current && chartRef.current) {
         chartRef.current.applyOptions({
@@ -476,13 +719,8 @@ export default function TradingView({
         applyResponsiveRange();
       }
     };
-
     window.addEventListener('resize', handleResize);
 
-    /**
-     * Use ResizeObserver to detect container size changes
-     * This handles layout shifts (e.g., when AssetNav is pinned)
-     */
     const resizeObserver = new ResizeObserver(() => {
       if (chartContainerRef.current && chartRef.current) {
         chartRef.current.applyOptions({
@@ -492,12 +730,9 @@ export default function TradingView({
         applyResponsiveRange();
       }
     });
-
-    if (chartContainerRef.current) {
+    if (chartContainerRef.current)
       resizeObserver.observe(chartContainerRef.current);
-    }
 
-    // Cleanup function: remove event listeners and destroy chart
     return () => {
       chartContainerRef.current?.removeEventListener(
         'dblclick',
@@ -506,191 +741,147 @@ export default function TradingView({
       window.removeEventListener('resize', handleResize);
       resizeObserver.disconnect();
       if (chartRef.current) {
-        chartRef.current.remove(); // Destroy chart instance
+        chartRef.current.remove();
         chartRef.current = null;
         seriesRef.current = null;
       }
     };
   }, [isClient, theme, applyResponsiveRange]);
 
-  // Active dataset for current chart type
+  // ========== Active dataset ==========
   const activeData = chartType === 'area' ? areaData : candleData;
 
   // ========== Chart Series Update Effect ==========
-  /**
-   * Updates the chart series when chart type or active data changes
-   * Removes old series and creates new one based on current chart type
-   * Runs whenever: chartType, activeData, or theme changes
-   */
   useEffect(() => {
     if (!chartRef.current || !isClient) return;
+    // During live simulation candles are pushed via series.update() directly;
+    // running setData here would recreate the series and cause a visible flash.
+    if (isLiveSimRef.current) return;
 
-    // Remove existing series if present (when switching chart types)
     if (seriesRef.current) {
       chartRef.current.removeSeries(seriesRef.current);
       seriesRef.current = null;
     }
 
-    const animateChartData = (data: any[], series: any) => {
-      // Keep the ref up-to-date so resize observers can access current data.
-      activeDataRef.current = data;
-      setIsAnimating(true);
-      const duration = 1500; // Animation duration in ms
-      const startTime = Date.now();
-      const totalPoints = data.length;
+    const isPrepend = skipAnimationRef.current;
+    skipAnimationRef.current = false;
 
-      const animate = () => {
-        const elapsed = Date.now() - startTime;
-        const progress = Math.min(elapsed / duration, 1);
+    /**
+     * Instantly render data and set the correct visible range.
+     * For prepend operations we restore the previously saved time range so
+     * the viewport doesn't jump to the newly loaded older candles.
+     */
+    const applyData = (data: any[], series: any) => {
+      // Deduplicate by time string, keep the last occurrence, then sort ascending.
+      // Guards against duplicate DB rows (e.g. seeder + backfill both ran).
+      const seen = new Map<string, any>();
+      for (const bar of data) seen.set(bar.time as string, bar);
+      const clean = Array.from(seen.values()).sort((a, b) =>
+        (a.time as string) < (b.time as string)
+          ? -1
+          : (a.time as string) > (b.time as string)
+            ? 1
+            : 0
+      );
 
-        // Easing function for smooth animation
-        const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
-        const easedProgress = easeOutCubic(progress);
+      activeDataRef.current = clean;
+      series.setData(clean);
 
-        const pointsToShow = Math.floor(easedProgress * totalPoints);
-        const visibleData = data.slice(0, Math.max(1, pointsToShow));
-
-        series.setData(visibleData);
-
-        // During animation keep the full range visible so the chart fills from
-        // the left as data is drawn in.
-        chartRef.current?.timeScale().fitContent();
-
-        if (progress < 1) {
-          requestAnimationFrame(animate);
-        } else {
-          setIsAnimating(false);
-          // Animation complete — apply responsive visible range based on current
-          // container width instead of showing all data at once.
-          applyResponsiveRange(data);
-        }
-      };
-
-      requestAnimationFrame(animate);
+      if (isPrepend && restoreTimeRangeRef.current) {
+        // Restore the exact time range the user was looking at before the prepend.
+        const savedRange = restoreTimeRangeRef.current;
+        restoreTimeRangeRef.current = null;
+        requestAnimationFrame(() => {
+          try {
+            chartRef.current?.timeScale().setVisibleRange(savedRange);
+          } catch {
+            /* chart may have been destroyed */
+          }
+        });
+      } else {
+        applyResponsiveRange(data);
+      }
     };
 
     if (chartType === 'area') {
-      // ===== Area Chart Mode =====
-      setOhlcData(null); // Clear candlestick overlay data
-
-      // Create area series with gradient
+      setOhlcData(null);
       const areaSeries = chartRef.current.addSeries(AreaSeries, {
         lineColor: colors.areaLine,
         topColor: colors.areaTop,
         bottomColor: colors.areaBottom
       });
       seriesRef.current = areaSeries;
+      applyData(areaData, areaSeries);
 
-      // Animate data loading
-      animateChartData(areaData, areaSeries);
-
-      // Set initial overlay data to most recent data point
       if (areaData.length > 0) {
-        const lastData = areaData[areaData.length - 1];
-        setAreaDisplayData({
-          value: lastData.value,
-          time: lastData.time
-        });
+        const last = areaData[areaData.length - 1];
+        setAreaDisplayData({ value: last.value, time: last.time });
       }
     } else {
-      // ===== Candlestick Chart Mode =====
-      setAreaDisplayData(null); // Clear area overlay data
-
-      // Create candlestick series with themed colors
+      setAreaDisplayData(null);
       const candleSeries = chartRef.current.addSeries(CandlestickSeries, {
         upColor: candleColors.up,
         downColor: candleColors.down,
-        borderVisible: false, // No borders around candles
+        borderVisible: false,
         wickUpColor: candleColors.up,
         wickDownColor: candleColors.down
       });
       seriesRef.current = candleSeries;
+      applyData(candleData, candleSeries);
 
-      // Animate data loading
-      animateChartData(candleData, candleSeries);
-
-      // Set initial overlay data to most recent candlestick
       if (candleData.length > 0) {
-        const lastCandle = candleData[candleData.length - 1];
+        const last = candleData[candleData.length - 1];
         setOhlcData({
-          open: lastCandle.open,
-          high: lastCandle.high,
-          low: lastCandle.low,
-          close: lastCandle.close,
-          time: lastCandle.time
+          open: last.open,
+          high: last.high,
+          low: last.low,
+          close: last.close,
+          time: last.time
         });
       }
     }
   }, [chartType, isClient, activeData, theme, colors]);
 
   // ========== Theme Update Effect ==========
-  /**
-   * Updates chart colors when theme changes (dark/light mode toggle)
-   * Does NOT recreate the chart - only updates color options for performance
-   * Runs whenever: theme changes
-   */
   useEffect(() => {
     if (chartRef.current && isClient) {
       chartRef.current.applyOptions({
         layout: {
           textColor: colors.textColor,
-          background: {
-            type: ColorType.Solid,
-            color: colors.background
-          }
+          background: { type: ColorType.Solid, color: colors.background }
         },
         grid: {
-          vertLines: {
-            color: colors.gridColor
-          },
-          horzLines: {
-            color: colors.gridColor
-          }
+          vertLines: { color: colors.gridColor },
+          horzLines: { color: colors.gridColor }
         },
-        timeScale: {
-          borderColor: colors.borderColor
-        },
-        rightPriceScale: {
-          borderColor: colors.borderColor
-        }
+        timeScale: { borderColor: colors.borderColor },
+        rightPriceScale: { borderColor: colors.borderColor }
       });
     }
   }, [theme, isClient, colors]);
 
-  // ========== Auto-Fetch Effect ==========
-  /**
-   * Automatically fetches new data when symbol changes
-   *
-   * When user selects a different stock in AssetNav:
-   * 1. Parent updates selectedSymbol state
-   * 2. This component re-renders with new symbol prop
-   * 3. useEffect detects symbol changed
-   * 4. Automatically sets dataSource to 'realtime'
-   * 5. Calls handleFetchRealData() to load stock data
-   * 6. Chart updates with new stock data
-   *
-   * Dependency: [symbol] - runs whenever symbol prop changes
-   */
+  // ========== Auto-fetch on symbol change ==========
   useEffect(() => {
     if (symbol) {
-      // Automatically switch to realtime mode when symbol changes
-      setDataSource('realtime');
-      handleFetchRealData();
+      loadInitialData(symbol, chartInterval);
     }
-  }, [symbol]);
+  }, [symbol]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ========== Crosshair Toggle ==========
+  // ========== Re-fetch / re-generate on interval change ==========
+  useEffect(() => {
+    if (dataSource === 'realtime' && symbol) {
+      loadInitialData(symbol, chartInterval);
+    }
+    // generated case is handled by the effect inside the mock handlers section
+  }, [chartInterval]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ========== Crosshair toggle ==========
   useEffect(() => {
     if (!chartRef.current || !isClient) return;
     chartRef.current.applyOptions({
-      // Desktop: show or hide the crosshair lines visually.
       crosshair: {
         mode: isCrosshairVisible ? CrosshairMode.Normal : CrosshairMode.Hidden
       },
-      // Touch: when crosshair is "on", use OnTouchEnd so the crosshair follows
-      // the finger as long as it's held down, and drag resumes on lift.
-      // When "off", use OnNextTap (default) so a single tap dismisses the
-      // crosshair and subsequent drags scroll freely.
       trackingMode: {
         exitMode: isCrosshairVisible
           ? TrackingModeExitMode.OnTouchEnd
@@ -699,7 +890,7 @@ export default function TradingView({
     });
   }, [isCrosshairVisible, isClient]);
 
-  // Resolve currency IDs and precision whenever symbol changes
+  // ========== Currency IDs for trade modal ==========
   useEffect(() => {
     if (!symbol) return;
 
@@ -724,30 +915,29 @@ export default function TradingView({
       .catch(() => setSymbolCurrencyId(null));
   }, [symbol]);
 
-  const onIntervalClick = () => {};
+  // ========== Shared interval button renderer ==========
+  const intervalButtons = (size: 'sm' | 'md') =>
+    CHART_INTERVALS.map((iv) => (
+      <button
+        key={iv}
+        onClick={() => setChartInterval(iv)}
+        disabled={isLoading}
+        className={`${size === 'sm' ? 'px-2 py-1 text-xs' : 'px-3 py-2 text-sm'} rounded-lg font-medium transition-all disabled:opacity-50 ${
+          chartInterval === iv
+            ? 'bg-primary text-primary-foreground'
+            : 'bg-card border border-border text-muted-foreground hover:bg-muted'
+        }`}
+      >
+        {iv}
+      </button>
+    ));
 
-  // TODO: Fix touch crosshair behaviour on mobile.
-  //       lightweight-charts v5 does not expose a reliable API for keeping the
-  //       crosshair active during a finger drag. The CrosshairMode / TrackingMode
-  //       approaches were tried and did not produce the expected UX. A manual
-  //       touchmove → setCrosshairPosition approach was also attempted but broke
-  //       the pan/scroll interaction. Needs a proper solution before shipping mobile.
-  //
-  // TODO: Fix logo placemint in navbar.
-  //
-  // TODO: Fix theme change in navbar.
-  //
-  // TODO: Fix asset's icon in toolbar.
-
-  // ========== SSR Prevention ==========
-  // ========== Component Render ==========
+  // ========== Render ==========
   return (
     <div className="flex h-full min-h-0 flex-col">
-      {/* ========== Control Panel ========== */}
-
-      {/* ── Mobile toolbar (< md) — icon buttons in a single tight row ── */}
+      {/* ── Mobile toolbar ── */}
       <div className="flex md:hidden items-center gap-1.5 px-2 py-1.5 shrink-0 border-b border-border">
-        {/* Crosshair toggle */}
+        {/* Crosshair */}
         <button
           onClick={() => setIsCrosshairVisible((v) => !v)}
           title={isCrosshairVisible ? 'Hide crosshair' : 'Show crosshair'}
@@ -757,7 +947,6 @@ export default function TradingView({
               : 'border-border bg-card text-muted-foreground'
           }`}
         >
-          {/* Crosshair icon */}
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="16"
@@ -777,9 +966,9 @@ export default function TradingView({
           </svg>
         </button>
 
-        {/* Regenerate */}
+        {/* Regenerate (mobile: just generates with current settings) */}
         <button
-          onClick={handleRegenerateData}
+          onClick={handleGenerateMock}
           disabled={isLoading}
           title="Generate mock data"
           className="p-2 rounded-lg bg-primary text-primary-foreground disabled:opacity-50 transition-all"
@@ -840,31 +1029,27 @@ export default function TradingView({
           )}
         </button>
 
+        {/* Interval buttons */}
+        <div className="flex gap-0.5">{intervalButtons('sm')}</div>
+
         {/* Source badge */}
         <div className="px-2 py-1 text-xs bg-card border border-border rounded-lg text-muted-foreground">
           {dataSource === 'realtime' ? symbol : 'Mock'}
         </div>
 
-        {/* Color legend dots */}
+        {/* Color legend + toggle */}
         <div className="flex items-center gap-1.5 px-2 py-1 bg-card border border-border rounded-lg">
           <div
-            className={`w-2.5 h-2.5 rounded-sm ${useThemeColors ? 'bg-[rgb(var(--color-success)/1)]' : 'bg-[#22c55e]'}`}
+            className="w-2.5 h-2.5 rounded-sm"
+            style={{ backgroundColor: candleColors.up }}
           />
           <div
-            className={`w-2.5 h-2.5 rounded-sm ${useThemeColors ? 'bg-[rgb(var(--color-danger)/1)]' : 'bg-[#ef4444]'}`}
+            className="w-2.5 h-2.5 rounded-sm"
+            style={{ backgroundColor: candleColors.down }}
           />
         </div>
-
-        {/* Theme color toggle */}
         <button
           onClick={() => setUseThemeColors(!useThemeColors)}
-          title={
-            isClient
-              ? useThemeColors
-                ? 'Using theme colors'
-                : 'Using standard colors'
-              : 'Toggle colors'
-          }
           className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${useThemeColors ? 'bg-[rgb(var(--color-success)/1)]' : 'bg-[#94a3b8]'}`}
         >
           <span
@@ -925,9 +1110,9 @@ export default function TradingView({
         </div>
       </div>
 
-      {/* ── Desktop toolbar (>= md) — full labeled row, same as before ── */}
+      {/* ── Desktop toolbar ── */}
       <div className="hidden md:flex m-3 flex-wrap gap-2 shrink-0">
-        {/* Crosshair toggle */}
+        {/* Crosshair */}
         <button
           onClick={() => setIsCrosshairVisible((v) => !v)}
           title={isCrosshairVisible ? 'Hide crosshair' : 'Show crosshair'}
@@ -957,16 +1142,37 @@ export default function TradingView({
           Crosshair
         </button>
 
-        {/* Mock Data Generation Button */}
+        {/* Mock generator toggle */}
         <button
-          onClick={handleRegenerateData}
+          onClick={() => setShowMockPanel((v) => !v)}
           disabled={isLoading}
-          className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-lg hover:bg-primary/80 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+          className={`px-4 py-2 text-sm rounded-lg border transition-all flex items-center gap-2 ${
+            showMockPanel
+              ? 'bg-primary/10 border-primary/50 text-primary'
+              : 'bg-card border-border text-muted-foreground hover:bg-muted'
+          }`}
         >
-          Generate Mock Data
+          Mock data
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            {showMockPanel ? (
+              <polyline points="18 15 12 9 6 15" />
+            ) : (
+              <polyline points="6 9 12 15 18 9" />
+            )}
+          </svg>
         </button>
 
-        {/* Chart Type Toggle Button */}
+        {/* Chart type */}
         <button
           onClick={handleToggleChartType}
           disabled={isLoading}
@@ -975,7 +1181,10 @@ export default function TradingView({
           Switch to {chartType === 'area' ? 'Candlestick' : 'Area'} Chart
         </button>
 
-        {/* Data Source Indicator Badge */}
+        {/* Interval buttons */}
+        <div className="flex gap-1">{intervalButtons('md')}</div>
+
+        {/* Source indicator */}
         <div className="flex items-center px-3 py-2 text-sm bg-card border border-border rounded-lg">
           <span className="text-muted-foreground">Source:</span>
           <span className="ml-2 font-semibold text-foreground">
@@ -983,23 +1192,25 @@ export default function TradingView({
           </span>
         </div>
 
-        {/* Candlestick Color Legend */}
+        {/* Color legend */}
         <div className="flex items-center gap-4 px-3 py-2 text-sm bg-card border border-border rounded-lg">
           <div className="flex items-center gap-1.5">
             <div
-              className={`w-3 h-3 rounded-sm ${useThemeColors ? 'bg-[rgb(var(--color-success)/1)]' : 'bg-[#22c55e]'}`}
+              className="w-3 h-3 rounded-sm"
+              style={{ backgroundColor: candleColors.up }}
             />
             <span className="text-muted-foreground">Bullish</span>
           </div>
           <div className="flex items-center gap-1.5">
             <div
-              className={`w-3 h-3 rounded-sm ${useThemeColors ? 'bg-[rgb(var(--color-danger)/1)]' : 'bg-[#ef4444]'}`}
+              className="w-3 h-3 rounded-sm"
+              style={{ backgroundColor: candleColors.down }}
             />
             <span className="text-muted-foreground">Bearish</span>
           </div>
         </div>
 
-        {/* Toggle switch between theme colors and standard red/green */}
+        {/* Color toggle */}
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground">Standard</span>
           <button
@@ -1008,8 +1219,8 @@ export default function TradingView({
             title={
               isClient
                 ? useThemeColors
-                  ? 'Using theme colors - Click for standard'
-                  : 'Using standard colors - Click for theme'
+                  ? 'Using theme colors'
+                  : 'Using standard colors'
                 : 'Toggle colors'
             }
           >
@@ -1020,14 +1231,12 @@ export default function TradingView({
           <span className="text-xs text-muted-foreground">Theme</span>
         </div>
 
+        {/* Buy / Sell */}
         <div className="ml-auto flex items-center gap-2">
           <button
             onClick={() => {
-              if (!isLoggedIn) {
-                setShowAuthDialog(true);
-              } else {
-                setTradeMode('buy');
-              }
+              if (!isLoggedIn) setShowAuthDialog(true);
+              else setTradeMode('buy');
             }}
             disabled={
               !isClient || !symbol || dataSource !== 'realtime' || isLoading
@@ -1049,11 +1258,8 @@ export default function TradingView({
           </button>
           <button
             onClick={() => {
-              if (!isLoggedIn) {
-                setShowAuthDialog(true);
-              } else {
-                setTradeMode('sell');
-              }
+              if (!isLoggedIn) setShowAuthDialog(true);
+              else setTradeMode('sell');
             }}
             disabled={
               !isClient || !symbol || dataSource !== 'realtime' || isLoading
@@ -1075,7 +1281,7 @@ export default function TradingView({
           </button>
         </div>
 
-        {/* ========== Auth Gate Dialog ========== */}
+        {/* Auth gate dialog */}
         <Dialog open={showAuthDialog} onOpenChange={setShowAuthDialog}>
           <DialogContent className="sm:max-w-sm">
             <DialogHeader>
@@ -1107,7 +1313,174 @@ export default function TradingView({
         </Dialog>
       </div>
 
-      {/* ========== Trade Success Notification ========== */}
+      {/* ── Mock generator panel (desktop, below toolbar) ── */}
+      {showMockPanel && (
+        <div className="hidden md:flex items-center gap-3 px-4 pb-2 shrink-0 flex-wrap">
+          {/* Range inputs */}
+          <div className="flex items-center gap-2 bg-card border border-border rounded-lg px-3 py-1.5">
+            <span className="text-xs text-muted-foreground">Range</span>
+            <label className="flex items-center gap-1 text-xs">
+              <input
+                type="number"
+                min={0}
+                max={100}
+                value={mockYears}
+                onChange={(e) => setMockYears(Math.max(0, +e.target.value))}
+                className="w-10 bg-transparent text-foreground text-center outline-none border-b border-border focus:border-primary"
+              />
+              <span className="text-muted-foreground">yr</span>
+            </label>
+            <label className="flex items-center gap-1 text-xs">
+              <input
+                type="number"
+                min={0}
+                max={11}
+                value={mockMonths}
+                onChange={(e) => setMockMonths(Math.max(0, +e.target.value))}
+                className="w-10 bg-transparent text-foreground text-center outline-none border-b border-border focus:border-primary"
+              />
+              <span className="text-muted-foreground">mo</span>
+            </label>
+            <label className="flex items-center gap-1 text-xs">
+              <input
+                type="number"
+                min={0}
+                max={365}
+                value={mockDays}
+                onChange={(e) => setMockDays(Math.max(0, +e.target.value))}
+                className="w-10 bg-transparent text-foreground text-center outline-none border-b border-border focus:border-primary"
+              />
+              <span className="text-muted-foreground">d</span>
+            </label>
+          </div>
+
+          {/* Generate static data */}
+          <button
+            onClick={handleGenerateMock}
+            className="px-3 py-1.5 text-xs bg-primary text-primary-foreground rounded-lg hover:bg-primary/80 transition-all"
+          >
+            Generate
+          </button>
+
+          {/* Speed control */}
+          <div className="flex items-center gap-2 bg-card border border-border rounded-lg px-3 py-1.5">
+            <span className="text-xs text-muted-foreground">Speed</span>
+            <input
+              type="range"
+              min={50}
+              max={2000}
+              step={50}
+              value={simSpeed}
+              onChange={(e) => setSimSpeed(+e.target.value)}
+              className="w-24 accent-primary"
+            />
+            {/* Decrement */}
+            <button
+              onClick={() => setSimSpeed((v) => Math.max(50, v - 50))}
+              className="w-5 h-5 flex items-center justify-center rounded border border-border bg-muted hover:bg-muted/70 text-foreground transition-colors"
+              title="Decrease speed by 50ms"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="10"
+                height="10"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+            </button>
+            {/* Editable value */}
+            <input
+              type="number"
+              min={50}
+              max={2000}
+              step={50}
+              value={simSpeed}
+              onChange={(e) => {
+                const v = parseInt(e.target.value, 10);
+                if (!isNaN(v)) setSimSpeed(Math.min(2000, Math.max(50, v)));
+              }}
+              onBlur={(e) => {
+                const v = parseInt(e.target.value, 10);
+                setSimSpeed(isNaN(v) ? 300 : Math.min(2000, Math.max(50, v)));
+              }}
+              className="w-14 text-xs text-center bg-transparent border-b border-border focus:border-primary outline-none text-foreground"
+            />
+            <span className="text-xs text-muted-foreground">ms/bar</span>
+            {/* Increment */}
+            <button
+              onClick={() => setSimSpeed((v) => Math.min(2000, v + 50))}
+              className="w-5 h-5 flex items-center justify-center rounded border border-border bg-muted hover:bg-muted/70 text-foreground transition-colors"
+              title="Increase speed by 50ms"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="10"
+                height="10"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Live play / stop */}
+          {isLiveSimulating ? (
+            <button
+              onClick={stopLiveSim}
+              className="px-3 py-1.5 text-xs rounded-lg font-medium transition-all flex items-center gap-1.5 text-white bg-[rgb(var(--color-danger)/1)] hover:bg-[rgb(var(--color-danger)/0.8)]"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+              >
+                <rect x="4" y="4" width="16" height="16" />
+              </svg>
+              Stop
+            </button>
+          ) : (
+            <button
+              onClick={startLiveSim}
+              className="px-3 py-1.5 text-xs rounded-lg font-medium transition-all flex items-center gap-1.5 text-white bg-[rgb(var(--color-success)/1)] hover:bg-[rgb(var(--color-success)/0.8)]"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+              >
+                <polygon points="5 3 19 12 5 21 5 3" />
+              </svg>
+              Live
+            </button>
+          )}
+
+          {/* Live indicator dot */}
+          {isLiveSimulating && (
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <span className="w-2 h-2 rounded-full bg-[rgb(var(--color-danger)/1)] animate-pulse" />
+              Simulating…
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Trade notification */}
       {tradeNotification && (
         <div
           className="mx-3 mb-2 px-4 py-2.5 rounded-lg border text-sm flex items-center justify-between shrink-0 animate-in fade-in slide-in-from-top-2 duration-200"
@@ -1159,34 +1532,38 @@ export default function TradingView({
         </div>
       )}
 
-      {/* ========== Error Message Display ========== */}
+      {/* Error message */}
       {error && (
         <div className="m-2 p-3 bg-red-100 dark:bg-red-900 border border-red-400 dark:border-red-700 rounded-lg text-red-700 dark:text-red-200 text-sm shrink-0">
           {error}
         </div>
       )}
 
-      {/* ========== Chart Container with Overlays ========== */}
+      {/* Chart area */}
       <div className="relative w-full flex-1 min-h-0">
-        {/* Main chart canvas - always rendered */}
         <div
           ref={chartContainerRef}
           className="w-full h-full rounded-2xl overflow-hidden"
         />
 
-        {/* OHLC Data Overlay - shown when hovering candlestick chart */}
+        {/* Loading indicator for pan fetches */}
+        {isLoading && (
+          <div className="absolute top-2 right-2 z-20 px-2 py-1 text-xs bg-card/90 border border-border rounded-lg text-muted-foreground">
+            Loading…
+          </div>
+        )}
+
+        {/* OHLC overlay */}
         {ohlcData &&
           chartType === 'candle' &&
           (() => {
-            // Calculate price change from previous day
             const { changeAmount, changePercent, isPositive } =
               calculateOHLCChange(ohlcData, candleData);
-
             return (
               <ChartOverlay
                 type="ohlc"
                 data={{
-                  symbol: symbol,
+                  symbol,
                   assetName:
                     dataSource === 'realtime'
                       ? tickerToName[symbol]
@@ -1202,25 +1579,22 @@ export default function TradingView({
                 isPositive={isPositive}
                 upColor={candleColors.up}
                 downColor={candleColors.down}
-                onIntervalClick={onIntervalClick}
-                interval={1}
+                interval={chartInterval}
               />
             );
           })()}
 
-        {/* Area Data Overlay - shown when hovering area chart */}
+        {/* Area overlay */}
         {areaDisplayData &&
           chartType === 'area' &&
           (() => {
-            // Calculate price change from previous day
             const { changeAmount, changePercent, isPositive } =
               calculateAreaChange(areaDisplayData, areaData);
-
             return (
               <ChartOverlay
                 type="simple"
                 data={{
-                  symbol: symbol,
+                  symbol,
                   assetName:
                     dataSource === 'realtime'
                       ? tickerToName[symbol]
@@ -1233,14 +1607,13 @@ export default function TradingView({
                 isPositive={isPositive}
                 upColor={candleColors.up}
                 downColor={candleColors.down}
-                onIntervalClick={onIntervalClick}
-                interval={1}
+                interval={chartInterval}
               />
             );
           })()}
       </div>
 
-      {/* ========== Trade Modal ========== */}
+      {/* Trade modal */}
       {tradeMode && (
         <TradeModal
           mode={tradeMode}
@@ -1268,7 +1641,6 @@ export default function TradingView({
           onSuccess={(result) => {
             setTradeNotification({ type: tradeMode, result });
             setTradeMode(null);
-            // Auto-dismiss after 5 seconds
             setTimeout(() => setTradeNotification(null), 5000);
           }}
         />
@@ -1276,52 +1648,3 @@ export default function TradingView({
     </div>
   );
 }
-
-/**
- * ========== KEY TECHNICAL DECISIONS & PATTERNS ==========
- *
- * 1. ResizeObserver Implementation (Lines 283-292)
- *    Problem: Chart needs to resize when AssetNav pin state changes
- *    Solution: ResizeObserver monitors container size changes without remounting
- *    Benefits: No key prop switching, no chart flicker, smooth transitions
- *    Alternative avoided: Using key prop would destroy and recreate chart instance
- *
- * 2. TimeValue Type Union (Lines 53-77)
- *    Problem: Different data sources use different time formats
- *      - API: ISO string "2024-01-01"
- *      - Mock data: ISO string "2024-01-01"
- *      - TradingView Lightweight Charts: Unix timestamp (number)
- *      - Some legacy sources: {year, month, day} object
- *    Solution: TimeValue = string | number | { year, month, day }
- *    Benefit: Single type supports all sources without conversion overhead
- *    Usage: formatChartTime() normalizes display, calculateChange() uses normalizeTime()
- *
- * 3. Active Data Filtering (Line 328)
- *    Problem: Effect triggered on both areaData and candleData changes
- *    Result: Animation played 3x (once for each state update)
- *    Solution: Select only current chart's data into local variable
- *    Code: const activeData = chartType === 'area' ? areaData : candleData
- *    Effect: Depends only on activeData, not on unused data array
- *    Result: Animation plays once per data load
- *
- * 4. Crosshair Overlay Data Flow (Lines 596-676)
- *    Source: TradingView's subscribeCrosshairMove() event
- *    Processing: Extract OHLC/area data + format time + calculate change
- *    Display: ChartOverlay component shows formatted data with calculations
- *    Components:
- *      - formatChartTime(): Converts any time format to readable date
- *      - calculateOHLCChange/calculateAreaChange(): Compute price movement
- *      - ChartOverlay: Renders styled overlay with color coding
- *
- * 5. Theme Colors & Candlestick Styling (Lines 119-145)
- *    Feature: useThemeColors toggle (localStorage persistence)
- *    Options: Theme colors vs standard green/red
- *    Logic: Dynamically update candlestick colors when preference changes
- *    Usage: User-facing toggle in floating navbar control section
- *
- * 6. Client-Side Rendering Guard (Lines 175-178)
- *    Problem: SSR would try to access DOM (chartContainerRef.current)
- *    Solution: isClient state ensures rendering only on client
- *    Pattern: Common Next.js pattern for client-only libraries
- *    Impact: Prevents hydration mismatches with TradingView library
- */

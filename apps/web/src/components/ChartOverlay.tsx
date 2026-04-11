@@ -41,7 +41,7 @@ interface ChartOverlayProps {
   };
 
   // Time period and change metrics (calculated by chartCalculations.ts functions)
-  interval: number; // Time period in days (e.g., 1, 7, 30)
+  interval: string; // Active candle interval label (e.g., '1D', '1W', '1M', '1Y')
   changeAmount: number; // Absolute price change (from calculateChange/calculateOHLCChange/calculateAreaChange)
   changePercent: number; // Percentage change (from calculation functions)
   isPositive: boolean; // True if price increased, false if decreased
@@ -49,9 +49,6 @@ interface ChartOverlayProps {
   // Color scheme (from CHART_THEMES)
   upColor: string; // Color for positive change (e.g., green)
   downColor: string; // Color for negative change (e.g., red)
-
-  // Event handler for interval button
-  onIntervalClick: () => void; // Called when user clicks interval button to switch chart period
 }
 
 const ChartOverlay = ({
@@ -62,8 +59,7 @@ const ChartOverlay = ({
   isPositive,
   upColor,
   downColor,
-  interval,
-  onIntervalClick
+  interval
 }: ChartOverlayProps) => {
   // Choose color based on direction of price movement
   const indicatorColor = isPositive ? upColor : downColor;
@@ -87,14 +83,8 @@ const ChartOverlay = ({
       {/* Shows the date of the hovered data point (formatted by formatChartTime in TradingView) */}
       {data.time && <span className="text-muted-foreground">{data.time}</span>}
 
-      {/* Interval Button */}
-      {/* Clickable button to switch chart time period (1D, 7D, 30D, etc.) */}
-      <button
-        className="pointer-events-auto text-foreground hover:font-bold"
-        onClick={onIntervalClick}
-      >
-        {interval}D
-      </button>
+      {/* Active interval label */}
+      <span className="text-muted-foreground font-medium">{interval}</span>
 
       {/* OHLC Data Display for Candlestick Charts */}
       {/* Shows Open, High, Low, Close prices from candlestick data */}

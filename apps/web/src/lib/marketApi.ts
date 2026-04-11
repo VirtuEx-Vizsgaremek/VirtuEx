@@ -163,18 +163,21 @@ export async function fetchAllCurrencies(): Promise<Currency[]> {
  * @param idOrSymbol - Symbol (e.g. "AAPL") or numeric snowflake ID string
  * @param start      - Start of date range (inclusive)
  * @param end        - End of date range (exclusive)
+ * @param interval   - Candle size: '1d' (default), '1w', '1m', '1y'
  * @returns Promise resolving to a CurrencyHistoryEntry array
  */
 export async function fetchCurrencyHistory(
   idOrSymbol: string,
   start: Date,
-  end: Date
+  end: Date,
+  interval: string = '1d'
 ): Promise<CurrencyHistoryEntry[]> {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
   const params = new URLSearchParams({
     start: start.toISOString(),
-    end: end.toISOString()
+    end: end.toISOString(),
+    interval
   });
 
   const response = await fetch(
@@ -189,6 +192,83 @@ export async function fetchCurrencyHistory(
   }
 
   return response.json() as Promise<CurrencyHistoryEntry[]>;
+}
+
+// ---------------------------------------------------------------------------
+// Chart-ready data fetcher (used by TradingView for all interval/pan loading)
+// ---------------------------------------------------------------------------
+
+export type ChartInterval = '1D' | '1W' | '1M' | '1Y';
+
+/** Maps a UI interval label to the backend's interval parameter string. */
+const INTERVAL_PARAM: Record<ChartInterval, string> = {
+  '1D': '1d',
+  '1W': '1w',
+  '1M': '1m',
+  '1Y': '1y'
+};
+
+/**
+ * How many days of raw daily data to request per fetch window.
+ * Larger intervals need wider windows to produce enough candles.
+ */
+export const INTERVAL_WINDOW_DAYS: Record<ChartInterval, number> = {
+  '1D': 365, // ~365 daily candles
+  '1W': 365 * 3, // ~156 weekly candles
+  '1M': 365 * 10, // ~120 monthly candles
+  '1Y': 365 * 60 // covers all available stock history
+};
+
+/**
+ * Fetch and transform chart data for a date window and interval.
+ * Returns both candlestick and area arrays ready for lightweight-charts.
+ *
+ * @param symbol   - Ticker symbol (e.g. "AAPL")
+ * @param start    - Window start (inclusive)
+ * @param end      - Window end (exclusive)
+ * @param interval - Candle size
+ * @param precision - Decimal precision from the Currency metadata (pass 0 to
+ *                    auto-fetch; supplying it avoids an extra round-trip)
+ */
+export async function fetchChartData(
+  symbol: string,
+  start: Date,
+  end: Date,
+  interval: ChartInterval,
+  precision?: number
+): Promise<{
+  candlestick: CandlestickData[];
+  area: AreaData[];
+  precision: number;
+}> {
+  // Only fetch currency metadata when precision wasn't supplied by the caller.
+  let resolvedPrecision = precision;
+  if (resolvedPrecision === undefined) {
+    const currency = await fetchCurrency(symbol);
+    resolvedPrecision = currency.precision;
+  }
+
+  const history = await fetchCurrencyHistory(
+    symbol,
+    start,
+    end,
+    INTERVAL_PARAM[interval]
+  );
+
+  const candlestick: CandlestickData[] = history.map((entry) => ({
+    time: toDateString(new Date(entry.timestamp)),
+    open: toFloat(entry.open, resolvedPrecision!),
+    high: toFloat(entry.high, resolvedPrecision!),
+    low: toFloat(entry.low, resolvedPrecision!),
+    close: toFloat(entry.close, resolvedPrecision!)
+  }));
+
+  const area: AreaData[] = history.map((entry) => ({
+    time: toDateString(new Date(entry.timestamp)),
+    value: toFloat(entry.close, resolvedPrecision!)
+  }));
+
+  return { candlestick, area, precision: resolvedPrecision! };
 }
 
 /**
