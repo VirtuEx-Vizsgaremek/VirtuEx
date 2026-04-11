@@ -147,7 +147,7 @@ app.use(multer().any());
 
             return res.status(400).json({
               error: 400,
-              message: 'The request body was malformed.',
+              message: e.message || 'The request body was malformed.',
               fields: i
             });
           }
@@ -177,7 +177,7 @@ app.use(multer().any());
 
       return res.status(400).json({
         error: 400,
-        message: 'The request body was malformed.',
+        message: e.message || 'The request body was malformed.',
         fields: i
       });
     }
