@@ -4,6 +4,7 @@ import { orm } from '@/util/orm';
 import { Wallet } from '@/entities/wallet.entity';
 
 import Status from '@/enum/status';
+import Permissions from '@/enum/permissions';
 import { CurrencyType } from '@/enum/currency_type';
 
 import { getWalletAssetsWithPrices } from '@/util/wallet';
@@ -38,6 +39,8 @@ export const get = async (
     const user = await req.getUser();
     const db = (await orm).em.fork();
     const { id } = req.params;
+    const isAdmin =
+      (user.permissions & Permissions.Admin) === Permissions.Admin;
 
     // Convert string ID to BigInt for database query
     const walletId = BigInt(id);
@@ -51,7 +54,7 @@ export const get = async (
       return res.error(Status.NotFound, 'Wallet not found');
     }
 
-    if (wallet.user.id !== user.id) {
+    if (!isAdmin && wallet.user.id !== user.id) {
       return res.error(Status.Forbidden, 'Access denied');
     }
 
