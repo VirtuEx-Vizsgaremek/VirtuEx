@@ -12,14 +12,16 @@ public partial class UserWalletWindow : Wpf.Ui.Controls.FluentWindow
 {
     private readonly ApiClient _api;
     private readonly ulong _userId;
+    private readonly ulong _walletId;
 
     public ObservableCollection<AssetRow> AssetRows { get; } = new();
     public ObservableCollection<WalletTransaction> Transactions { get; } = new();
 
-    public UserWalletWindow(ApiClient apiClient, ulong userId, string displayName)
+    public UserWalletWindow(ApiClient apiClient, ulong userId, ulong walletId, string displayName)
     {
         _api = apiClient;
         _userId = userId;
+        _walletId = walletId;
 
         InitializeComponent();
 
@@ -30,6 +32,12 @@ public partial class UserWalletWindow : Wpf.Ui.Controls.FluentWindow
         HistoryGrid.ItemsSource = Transactions;
 
         Loaded += UserWalletWindow_Loaded;
+    }
+
+    // Backward-compatible overload (falls back to userId-based endpoints)
+    public UserWalletWindow(ApiClient apiClient, ulong userId, string displayName)
+        : this(apiClient, userId, 0UL, displayName)
+    {
     }
 
     private async void UserWalletWindow_Loaded(object sender, RoutedEventArgs e)
@@ -43,8 +51,20 @@ public partial class UserWalletWindow : Wpf.Ui.Controls.FluentWindow
         {
             LoadingText.Text = "Loading wallet…";
 
-            var walletTask = _api.GetUserWallet(_userId);
-            var historyTask = _api.GetUserWalletHistory(_userId);
+            Task<AdminWalletResponse> walletTask;
+            Task<AdminWalletHistoryResponse> historyTask;
+
+            if (_walletId != 0UL)
+            {
+                walletTask = _api.GetWalletById(_walletId);
+                historyTask = _api.GetWalletHistoryById(_walletId);
+            }
+            else
+            {
+                // fallback to older routes if walletId wasn't provided
+                walletTask = _api.GetUserWallet(_userId);
+                historyTask = _api.GetUserWalletHistory(_userId);
+            }
 
             await Task.WhenAll(walletTask, historyTask);
 

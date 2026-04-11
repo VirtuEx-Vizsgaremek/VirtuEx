@@ -442,6 +442,141 @@ public class ApiClient : IDisposable
         }
     }
 
+    public async Task<CreditWalletResponse> CreditUserWallet(ulong userId, string currencyId, string amount)
+    {
+        var payload = new
+        {
+            currency_id = currencyId,
+            amount
+        };
+
+        var json = JsonConvert.SerializeObject(payload, _jsonSettings);
+
+        var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+        var res = await _httpClient.PostAsync($"/v1/admin/users/{userId}/credit", content);
+        var body = await res.Content.ReadAsStringAsync();
+
+        if (res.IsSuccessStatusCode)
+        {
+            return JsonConvert.DeserializeObject<CreditWalletResponse>(body, _jsonSettings)!
+                   ?? new CreditWalletResponse();
+        }
+
+        var err = JsonConvert.DeserializeObject<ErrorResponse>(body, _jsonSettings)!;
+        throw new ResponseException(err);
+    }
+
+    // Optional helpers (minimal, non-breaking): wallet routes by walletId
+    public async Task<AdminWalletResponse> GetWalletById(ulong walletId)
+    {
+        var res = await _httpClient.GetAsync($"/v1/wallet/{walletId}");
+        var body = await res.Content.ReadAsStringAsync();
+
+        if (res.IsSuccessStatusCode)
+        {
+            var jo = JObject.Parse(body);
+
+            var assetsToken = (JToken?)jo["assets"] ?? jo["Assets"];
+
+            var resp = new AdminWalletResponse
+            {
+                WalletId = jo["wallet_id"]?.ToString() ?? jo["walletId"]?.ToString() ?? jo["id"]?.ToString() ?? walletId.ToString(),
+                TotalAssets = jo["total_assets"]?.ToObject<int>() ?? jo["totalAssets"]?.ToObject<int>() ?? 0,
+                Assets = new List<WalletAsset>()
+            };
+
+            if (assetsToken is JArray ja)
+            {
+                foreach (var item in ja.OfType<JObject>())
+                {
+                    resp.Assets.Add(new WalletAsset
+                    {
+                        Id = item["id"]?.ToString() ?? string.Empty,
+                        Currency = item["currency"]?.ToString() ?? item["name"]?.ToString() ?? string.Empty,
+                        Symbol = item["symbol"]?.ToString() ?? string.Empty,
+                        Amount = item["amount"]?.ToString() ?? "0",
+                        Precision = item["precision"]?.ToObject<int>() ?? 0,
+                        Price = item["price"]?.ToObject<decimal>() ?? 0m,
+                        Type = item["type"]?.ToString() ?? string.Empty
+                    });
+                }
+            }
+
+            return resp;
+        }
+
+        var err = JsonConvert.DeserializeObject<ErrorResponse>(body, _jsonSettings)!;
+        throw new ResponseException(err);
+    }
+
+    public async Task<AdminWalletHistoryResponse> GetWalletHistoryById(ulong walletId)
+    {
+        var res = await _httpClient.GetAsync($"/v1/wallet/{walletId}/history");
+        var body = await res.Content.ReadAsStringAsync();
+
+        if (res.IsSuccessStatusCode)
+        {
+            var root = JObject.Parse(body);
+
+            var listToken = (JToken?)root["transactions"] ?? root["history"] ?? root["items"];
+            if (listToken is null && root.First is not null && root.First is JProperty p && p.Value is JArray)
+                listToken = p.Value;
+
+            var resp = new AdminWalletHistoryResponse();
+
+            if (listToken is JArray ja)
+            {
+                foreach (var t in ja)
+                {
+                    if (t is not JObject jo) continue;
+
+                    var symbol = jo["symbol"]?.ToString()
+                                 ?? jo.SelectToken("asset.symbol")?.ToString()
+                                 ?? jo.SelectToken("currency.symbol")?.ToString()
+                                 ?? string.Empty;
+
+                    var direction = jo["direction"]?.ToString()
+                                    ?? jo["type"]?.ToString()
+                                    ?? jo["flow"]?.ToString()
+                                    ?? string.Empty;
+
+                    var amount = jo["amount"]?.ToString() ?? string.Empty;
+                    var status = jo["status"]?.ToString() ?? string.Empty;
+
+                    var dateToken = (JToken?)jo["created_at"] ?? jo["createdAt"] ?? jo["timestamp"] ?? jo["date"];
+                    string dateStr;
+                    if (dateToken is null)
+                    {
+                        dateStr = string.Empty;
+                    }
+                    else if (dateToken.Type == JTokenType.Integer)
+                    {
+                        dateStr = DateTimeOffset.FromUnixTimeMilliseconds(dateToken.Value<long>()).ToLocalTime().ToString("yyyy-MM-dd");
+                    }
+                    else
+                    {
+                        dateStr = dateToken.ToString();
+                    }
+
+                    resp.Transactions.Add(new WalletTransaction
+                    {
+                        Symbol = symbol,
+                        Direction = direction,
+                        Amount = amount,
+                        Status = status,
+                        Date = dateStr
+                    });
+                }
+            }
+
+            return resp;
+        }
+
+        var err = JsonConvert.DeserializeObject<ErrorResponse>(body, _jsonSettings)!;
+        throw new ResponseException(err);
+    }
+
     public void Dispose()
     {
         _httpClient.Dispose();

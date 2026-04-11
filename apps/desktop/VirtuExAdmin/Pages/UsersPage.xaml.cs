@@ -480,7 +480,7 @@ public partial class UsersPage : Page, INotifyPropertyChanged {
             ? SelectedUser.Username
             : $"{SelectedUser.FullName} (@{SelectedUser.Username})";
 
-        var win = new UserWalletWindow(_apiClient, SelectedUser.Id, displayName)
+        var win = new UserWalletWindow(_apiClient, SelectedUser.Id, SelectedUser.Wallet, displayName)
         {
             Owner = Window.GetWindow(this)
         };
@@ -584,6 +584,30 @@ public partial class UsersPage : Page, INotifyPropertyChanged {
         {
             MessageBox.Show($"Unexpected error while saving user: {ex.Message}",
                 "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private async void AddFunds_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button btn || btn.CommandParameter is not User user)
+            return;
+
+        // do not allow crediting while creating a user
+        if (IsCreateMode)
+        {
+            MessageBox.Show("Create the user first, then add funds.", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        var modal = new CreditUserWindow(_apiClient, user)
+        {
+            Owner = Window.GetWindow(this)
+        };
+
+        if (modal.ShowDialog() == true)
+        {
+            // simplest: refetch users list to keep UI in sync (wallet balance might be shown later)
+            await ReloadUsersAndSelectFirstIfAny();
         }
     }
 
