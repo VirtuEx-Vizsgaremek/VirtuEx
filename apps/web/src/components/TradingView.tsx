@@ -23,8 +23,9 @@ import {
 } from '@/lib/chartCalculations';
 import { CHART_THEMES } from '@/lib/chartThemes';
 import {
+  createSimulator,
   generateCandlestickData,
-  generateTradingViewChartData
+  type Simulator
 } from '@/lib/dataGenerator';
 import {
   ChartInterval,
@@ -198,12 +199,17 @@ export default function TradingView({
   const [isCrosshairVisible, setIsCrosshairVisible] = useState(true);
   const [chartInterval, setChartInterval] = useState<ChartInterval>('1D');
 
-  const [areaData, setAreaData] = useState(() =>
-    generateTradingViewChartData(365, new Date('2024-01-01'), 100)
-  );
-  const [candleData, setCandleData] = useState(() =>
-    generateCandlestickData(365, new Date('2024-01-01'), 100)
-  );
+  // Both chart types must share the same price path so that switching between
+  // area and candle mode (or starting live sim) never produces a visual jump.
+  const [{ candleData: _initCandles, areaData: _initArea }] = useState(() => {
+    const candles = generateCandlestickData(365, new Date('2024-01-01'), 100);
+    return {
+      candleData: candles,
+      areaData: candles.map((c) => ({ time: c.time, value: c.close }))
+    };
+  });
+  const [candleData, setCandleData] = useState(_initCandles);
+  const [areaData, setAreaData] = useState(_initArea);
 
   const [chartType, setChartType] = useState<chartType>('area');
   const [dataSource, setDataSource] = useState<dataSource>('generated');
@@ -225,6 +231,7 @@ export default function TradingView({
   const simLastPriceRef = useRef(100);
   const simLastDateRef = useRef(new Date());
   const isLiveSimRef = useRef(false); // guards the series-update effect
+  const simulatorRef = useRef<Simulator | null>(null);
   const chartTypeRef = useRef(chartType);
   useEffect(() => {
     chartTypeRef.current = chartType;
@@ -544,18 +551,17 @@ export default function TradingView({
       100,
       stepDays
     );
-    const area = generateTradingViewChartData(
-      totalCandles,
-      startDate,
-      100,
-      stepDays
-    );
+    // Derive area data from the same simulation so both chart types share
+    // an identical price path — prevents a visual jump when the live sim
+    // continues from candle close prices but area data ended elsewhere.
+    const area = candles.map((c) => ({ time: c.time, value: c.close }));
 
     // Seed live-sim refs so Live can continue from the last generated bar
     if (candles.length > 0) {
       const last = candles[candles.length - 1];
       simLastPriceRef.current = last.close;
       simLastDateRef.current = new Date(last.time + 'T00:00:00Z');
+      simulatorRef.current = createSimulator(last.close);
     }
 
     skipAnimationRef.current = false;
@@ -578,30 +584,19 @@ export default function TradingView({
   const doSimTick = useCallback(() => {
     if (!seriesRef.current) return;
 
-    const stepDays = INTERVAL_STEP[chartIntervalRef.current];
-    const open = simLastPriceRef.current;
-    const close = parseFloat(
-      Math.max(open * (1 + (Math.random() - 0.5) * 0.06), 0.01).toFixed(2)
-    );
-    const high = parseFloat(
-      (Math.max(open, close) * (1 + Math.random() * 0.02)).toFixed(2)
-    );
-    const low = parseFloat(
-      (Math.min(open, close) * (1 - Math.random() * 0.02)).toFixed(2)
-    );
+    // Lazily create simulator if somehow not yet seeded
+    if (!simulatorRef.current) {
+      simulatorRef.current = createSimulator(simLastPriceRef.current);
+    }
 
+    const stepDays = INTERVAL_STEP[chartIntervalRef.current];
     simLastDateRef.current = new Date(
       simLastDateRef.current.getTime() + stepDays * 86_400_000
     );
     const time = simLastDateRef.current.toISOString().slice(0, 10);
-    const candle = {
-      time,
-      open: parseFloat(open.toFixed(2)),
-      high,
-      low,
-      close
-    };
-    const area = { time, value: close };
+
+    const candle = simulatorRef.current.nextCandle(time, stepDays);
+    const area = { time, value: candle.close };
 
     try {
       seriesRef.current.update(chartTypeRef.current === 'area' ? area : candle);
@@ -611,7 +606,7 @@ export default function TradingView({
 
     setCandleData((prev) => [...prev, candle]);
     setAreaData((prev) => [...prev, area]);
-    simLastPriceRef.current = close;
+    simLastPriceRef.current = candle.close;
   }, []); // all state is accessed via stable refs
 
   // Drives the simulation interval. Re-runs when speed changes → instant update.
