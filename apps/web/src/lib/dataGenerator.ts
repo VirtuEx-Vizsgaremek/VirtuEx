@@ -69,8 +69,9 @@ function buildCandle(
   time: string,
   open: number,
   close: number,
-  dailySigma: number
-): { time: string; open: number; high: number; low: number; close: number } {
+  dailySigma: number,
+  volume: number
+): SimCandle {
   const body = Math.abs(close - open);
   const shadowBase = Math.max(body, open * dailySigma * 0.4);
   const upperShadow = shadowBase * (0.2 + Math.random() * 0.7);
@@ -84,7 +85,8 @@ function buildCandle(
     open: Number(open.toFixed(4)),
     high: Number(high.toFixed(4)),
     low: Number(low.toFixed(4)),
-    close: Number(close.toFixed(4))
+    close: Number(close.toFixed(4)),
+    volume
   };
 }
 
@@ -96,6 +98,7 @@ interface SimCandle {
   high: number;
   low: number;
   close: number;
+  volume: number;
 }
 
 interface SimOptions {
@@ -110,7 +113,13 @@ function simStep(
   regime: Regime,
   ewmaVol: number,
   stepDays: number
-): { open: number; close: number; effectiveSigma: number; newEwmaVol: number } {
+): {
+  open: number;
+  close: number;
+  effectiveSigma: number;
+  newEwmaVol: number;
+  volume: number;
+} {
   const cfg = REGIMES[regime];
   // dt correctly accounts for the candle period (weekly, monthly, etc.)
   const dt = stepDays / 252;
@@ -140,7 +149,12 @@ function simStep(
   const dailyEquivReturn = periodReturn / Math.sqrt(stepDays);
   const newEwmaVol = 0.06 * dailyEquivReturn + 0.94 * ewmaVol;
 
-  return { open, close, effectiveSigma, newEwmaVol };
+  // Simulated volume: log-normal, correlated with absolute return magnitude.
+  // Larger moves attract more volume (a well-known empirical market property).
+  const absReturn = Math.abs(Math.log(close / open));
+  const volume = Math.round(500_000 * Math.exp(absReturn * 6 + 0.4 * randn()));
+
+  return { open, close, effectiveSigma, newEwmaVol, volume };
 }
 
 /**
@@ -168,7 +182,7 @@ function simulate({
     }
     regimeRemaining--;
 
-    const { open, close, effectiveSigma, newEwmaVol } = simStep(
+    const { open, close, effectiveSigma, newEwmaVol, volume } = simStep(
       price,
       regime,
       ewmaVol,
@@ -181,7 +195,7 @@ function simulate({
     );
     const time = date.toISOString().split('T')[0];
 
-    result.push(buildCandle(time, open, close, effectiveSigma));
+    result.push(buildCandle(time, open, close, effectiveSigma, volume));
     price = close;
   }
 
@@ -192,10 +206,7 @@ function simulate({
 
 export interface Simulator {
   /** Advance by one candle and return the OHLC bar for the given date string. */
-  nextCandle(
-    time: string,
-    stepDays?: number
-  ): { time: string; open: number; high: number; low: number; close: number };
+  nextCandle(time: string, stepDays?: number): SimCandle;
 }
 
 /**
@@ -219,7 +230,7 @@ export function createSimulator(initialPrice: number): Simulator {
       }
       regimeRemaining--;
 
-      const { open, close, effectiveSigma, newEwmaVol } = simStep(
+      const { open, close, effectiveSigma, newEwmaVol, volume } = simStep(
         price,
         regime,
         ewmaVol,
@@ -227,7 +238,7 @@ export function createSimulator(initialPrice: number): Simulator {
       );
       ewmaVol = newEwmaVol;
       price = close;
-      return buildCandle(time, open, close, effectiveSigma);
+      return buildCandle(time, open, close, effectiveSigma, volume);
     }
   };
 }
@@ -299,6 +310,7 @@ export function generateCandlestickData(
     open: Number(c.open.toFixed(2)),
     high: Number(c.high.toFixed(2)),
     low: Number(c.low.toFixed(2)),
-    close: Number(c.close.toFixed(2))
+    close: Number(c.close.toFixed(2)),
+    volume: c.volume
   }));
 }

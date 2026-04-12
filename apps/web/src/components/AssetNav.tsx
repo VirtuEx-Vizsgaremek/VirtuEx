@@ -21,12 +21,15 @@
 
 import { useState, useMemo } from 'react';
 import tickerToDomain, { tickerToName, tickerToType } from '@/lib/stocks';
-import { X, Search } from 'lucide-react';
+import { X, Search, Lock } from 'lucide-react';
 import StockLogo from './StockLogo';
 import { Card } from './ui/card';
 import { Input } from './ui/input';
 
 type FilterType = 'all' | 'stock' | 'etf' | 'crypto';
+
+/** Symbols accessible on the free plan. Everything else is locked. */
+const FREE_SYMBOLS = ['AAPL', 'GOOGL', 'NVDA'];
 
 const FILTER_LABELS: { value: FilterType; label: string }[] = [
   { value: 'all', label: 'All' },
@@ -43,13 +46,16 @@ interface SidenavProps {
   onSelectSymbol: (symbol: string) => void;
   showAssetNav: boolean;
   onClose: () => void;
+  /** When true, only FREE_SYMBOLS are selectable; everything else is grayed out. */
+  freePlan?: boolean;
 }
 
 export default function SideNav({
   selectedSymbol,
   onSelectSymbol,
   showAssetNav,
-  onClose
+  onClose,
+  freePlan = false
 }: SidenavProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
@@ -171,6 +177,31 @@ export default function SideNav({
               <ul className="space-y-1">
                 {filteredStocks.map((stock) => {
                   const isSelected = selectedSymbol === stock.symbol;
+                  const isLocked =
+                    freePlan && !FREE_SYMBOLS.includes(stock.symbol);
+
+                  if (isLocked) {
+                    return (
+                      <li key={stock.symbol}>
+                        <div
+                          title="Upgrade to Pro to unlock"
+                          className="w-full text-left px-3 py-2 rounded-lg flex items-center gap-3 opacity-40 cursor-not-allowed select-none"
+                        >
+                          <StockLogo ticker={stock.symbol} />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium">{stock.symbol}</div>
+                            <div className="text-xs text-muted-foreground truncate">
+                              {stock.name}
+                            </div>
+                          </div>
+                          <Lock
+                            size={12}
+                            className="shrink-0 text-muted-foreground"
+                          />
+                        </div>
+                      </li>
+                    );
+                  }
 
                   return (
                     <li key={stock.symbol}>

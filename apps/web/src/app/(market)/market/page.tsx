@@ -7,9 +7,13 @@
  */
 
 import { getIsAuthenticated } from '@/lib/actions';
+import { fetchCurrentPlan, type PlanKey } from '@/lib/subscriptionApi';
 import MarketClient from '@/components/MarketClient';
 
 export default async function MarketPage() {
-  const isLoggedIn = await getIsAuthenticated();
-  return <MarketClient isLoggedIn={isLoggedIn} />;
+  const [isLoggedIn, plan] = await Promise.all([
+    getIsAuthenticated(),
+    fetchCurrentPlan().catch(() => null as PlanKey | null)
+  ]);
+  return <MarketClient isLoggedIn={isLoggedIn} plan={plan} />;
 }

@@ -26,24 +26,31 @@
 'use client';
 
 import AssetNav from '@/components/AssetNav';
-import Chart from '@/components/ShadCnChart';
-import TradingView from '@/components/TradingView';
+import Chart from '@/components/FreeChart';
+import TradingView from '@/components/PremiumChart';
 import MarketNavbar from '@/components/MarketNavbar';
+import { type PlanKey } from '@/lib/subscriptionApi';
 import { BarChart2, PanelLeft, PanelTop } from 'lucide-react';
 import { useState } from 'react';
 
 type Props = {
   isLoggedIn: boolean;
+  /** User's subscription plan from the server. Null when not logged in or unknown. */
+  plan: PlanKey | null;
 };
 
-export default function MarketClient({ isLoggedIn }: Props) {
+export default function MarketClient({ isLoggedIn, plan }: Props) {
   // ── State ──────────────────────────────────────────────────────────────────
 
   /** Currently selected stock symbol for the TradingView chart */
   const [selectedSymbol, setSelectedSymbol] = useState('');
 
-  /** Toggle between premium (TradingView) and free (simple) chart */
-  const [isPremium, setIsPremium] = useState(true);
+  /**
+   * Free-plan users see the ShadCn chart; Standard/Pro/guests see TradingView.
+   * Guests (plan === null) default to TradingView as a preview so they can
+   * see what they'd get after signing up.
+   */
+  const [isPremium, setIsPremium] = useState(plan !== 'Free');
 
   /** Whether the asset sidebar is visible */
   const [showAssetNav, setShowAssetNav] = useState(false);
@@ -119,6 +126,7 @@ export default function MarketClient({ isLoggedIn }: Props) {
         onSelectSymbol={handleSelectSymbol}
         showAssetNav={showAssetNav}
         onClose={() => setShowAssetNav(false)}
+        freePlan={!isPremium}
       />
 
       {/* ── Main chart area ───────────────────────────────────────────────── */}
@@ -140,7 +148,7 @@ export default function MarketClient({ isLoggedIn }: Props) {
           />
         ) : (
           <div className="h-full">
-            <Chart />
+            <Chart selectedSymbol={selectedSymbol} />
           </div>
         )}
       </div>

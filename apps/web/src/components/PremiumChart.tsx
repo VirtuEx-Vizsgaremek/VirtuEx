@@ -54,6 +54,7 @@ import { tickerToName } from '@/lib/stocks';
 import {
   AreaSeries,
   CandlestickSeries,
+  HistogramSeries,
   ColorType,
   CrosshairMode,
   TrackingModeExitMode,
@@ -70,6 +71,16 @@ import TradeModal from './TradeModal';
 type chartType = 'area' | 'candle';
 type dataSource = 'generated' | 'realtime';
 
+/** Candle row — volume is optional because real API data has no volume column. */
+type CandleRow = {
+  time: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume?: number;
+};
+
 type OHLCData = {
   open: number;
   high: number;
@@ -83,7 +94,7 @@ type AreaData = {
   time: string | number | { year: number; month: number; day: number };
 } | null;
 
-interface TradingViewProps {
+interface PremiumChartProps {
   symbol: string;
   onClearSelection?: () => void;
 }
@@ -145,10 +156,10 @@ const formatChartTime = (
 // Component
 // ---------------------------------------------------------------------------
 
-export default function TradingView({
+export default function PremiumChart({
   symbol,
   onClearSelection
-}: TradingViewProps) {
+}: PremiumChartProps) {
   // ========== Context & Theme ==========
   const { theme, colorTheme } = useTheme();
 
@@ -208,7 +219,7 @@ export default function TradingView({
       areaData: candles.map((c) => ({ time: c.time, value: c.close }))
     };
   });
-  const [candleData, setCandleData] = useState(_initCandles);
+  const [candleData, setCandleData] = useState<CandleRow[]>(_initCandles);
   const [areaData, setAreaData] = useState(_initArea);
 
   const [chartType, setChartType] = useState<chartType>('area');
@@ -232,6 +243,23 @@ export default function TradingView({
   const simLastDateRef = useRef(new Date());
   const isLiveSimRef = useRef(false); // guards the series-update effect
   const simulatorRef = useRef<Simulator | null>(null);
+  const [showVolume, setShowVolume] = useState(false);
+  const [range3MActive, setRange3MActive] = useState(false);
+
+  /**
+   * Saved copy of the last batch-generated mock dataset.
+   * Lets the user switch to real data and back without losing the generated bars.
+   */
+  const savedMockRef = useRef<{
+    candles: CandleRow[];
+    area: { time: string; value: number }[];
+  } | null>(null);
+  const [hasSavedMock, setHasSavedMock] = useState(false);
+  const showVolumeRef = useRef(false);
+  useEffect(() => {
+    showVolumeRef.current = showVolume;
+  }, [showVolume]);
+  const volumeSeriesRef = useRef<any>(null);
   const chartTypeRef = useRef(chartType);
   useEffect(() => {
     chartTypeRef.current = chartType;
@@ -573,6 +601,10 @@ export default function TradingView({
     hasMoreLeftRef.current = true;
     onClearSelection?.();
     setError(null);
+
+    // Persist a copy so the user can restore it later without regenerating.
+    savedMockRef.current = { candles, area };
+    setHasSavedMock(true);
   }, [mockYears, mockMonths, mockDays, stopLiveSim, onClearSelection]); // chartIntervalRef is a ref, not listed
 
   // Re-generate mock data when the interval changes (same as real data re-fetch)
@@ -607,6 +639,21 @@ export default function TradingView({
     setCandleData((prev) => [...prev, candle]);
     setAreaData((prev) => [...prev, area]);
     simLastPriceRef.current = candle.close;
+
+    if (volumeSeriesRef.current && showVolumeRef.current) {
+      try {
+        volumeSeriesRef.current.update({
+          time,
+          value: candle.volume ?? 0,
+          color:
+            candle.close >= candle.open
+              ? 'rgba(34,197,94,0.45)'
+              : 'rgba(239,68,68,0.45)'
+        });
+      } catch {
+        /* series may have been replaced */
+      }
+    }
   }, []); // all state is accessed via stable refs
 
   // Drives the simulation interval. Re-runs when speed changes → instant update.
@@ -627,6 +674,25 @@ export default function TradingView({
   const handleToggleChartType = () => {
     setChartType((prev) => (prev === 'area' ? 'candle' : 'area'));
   };
+
+  /** Snaps the visible range to the last ~3 months of data. */
+  const handleRange3M = useCallback(() => {
+    if (!chartRef.current) return;
+    const data = activeDataRef.current;
+    if (data.length === 0) return;
+    const end = data[data.length - 1].time as string;
+    const d = new Date(end);
+    d.setMonth(d.getMonth() - 3);
+    const start = d.toISOString().split('T')[0];
+    try {
+      chartRef.current
+        .timeScale()
+        .setVisibleRange({ from: start as any, to: end as any });
+      setRange3MActive(true);
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   // ========== Chart Initialization ==========
   useEffect(() => {
@@ -739,6 +805,7 @@ export default function TradingView({
         chartRef.current.remove();
         chartRef.current = null;
         seriesRef.current = null;
+        volumeSeriesRef.current = null;
       }
     };
   }, [isClient, theme, applyResponsiveRange]);
@@ -756,6 +823,14 @@ export default function TradingView({
     if (seriesRef.current) {
       chartRef.current.removeSeries(seriesRef.current);
       seriesRef.current = null;
+    }
+    if (volumeSeriesRef.current) {
+      try {
+        chartRef.current.removeSeries(volumeSeriesRef.current);
+      } catch {
+        /* already gone */
+      }
+      volumeSeriesRef.current = null;
     }
 
     const isPrepend = skipAnimationRef.current;
@@ -835,7 +910,31 @@ export default function TradingView({
         });
       }
     }
-  }, [chartType, isClient, activeData, theme, colors]);
+    // Volume histogram — overlaid at the bottom 25% of the chart, only for
+    // generated data (real API has no volume column in the DB).
+    if (showVolume && dataSource === 'generated' && chartRef.current) {
+      const volSeries = chartRef.current.addSeries(HistogramSeries, {
+        priceFormat: { type: 'volume' },
+        priceScaleId: 'vol'
+      });
+      chartRef.current.priceScale('vol').applyOptions({
+        scaleMargins: { top: 0.78, bottom: 0 }
+      });
+      const volData = candleData.map((c: any) => ({
+        time: c.time,
+        value: c.volume ?? 0,
+        color:
+          c.close >= c.open ? 'rgba(34,197,94,0.45)' : 'rgba(239,68,68,0.45)'
+      }));
+      const seen = new Map<string, any>();
+      for (const bar of volData) seen.set(bar.time as string, bar);
+      const cleanVol = Array.from(seen.values()).sort((a, b) =>
+        (a.time as string) < (b.time as string) ? -1 : 1
+      );
+      volSeries.setData(cleanVol);
+      volumeSeriesRef.current = volSeries;
+    }
+  }, [chartType, isClient, activeData, theme, colors, showVolume]);
 
   // ========== Theme Update Effect ==========
   useEffect(() => {
@@ -911,21 +1010,48 @@ export default function TradingView({
   }, [symbol]);
 
   // ========== Shared interval button renderer ==========
-  const intervalButtons = (size: 'sm' | 'md') =>
-    CHART_INTERVALS.map((iv) => (
-      <button
-        key={iv}
-        onClick={() => setChartInterval(iv)}
-        disabled={isLoading}
-        className={`${size === 'sm' ? 'px-2 py-1 text-xs' : 'px-3 py-2 text-sm'} rounded-lg font-medium transition-all disabled:opacity-50 ${
-          chartInterval === iv
-            ? 'bg-primary text-primary-foreground'
-            : 'bg-card border border-border text-muted-foreground hover:bg-muted'
-        }`}
-      >
-        {iv}
-      </button>
-    ));
+  const intervalButtons = (size: 'sm' | 'md') => {
+    const base = size === 'sm' ? 'px-2 py-1 text-xs' : 'px-3 py-2 text-sm';
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const elements: any[] = [];
+    for (const iv of CHART_INTERVALS) {
+      if (iv === '1Y') {
+        // Insert 3M view-range button just before 1Y
+        elements.push(
+          <button
+            key="3M"
+            onClick={handleRange3M}
+            title="Zoom to last 3 months"
+            className={`${base} rounded-lg font-medium transition-all ${
+              range3MActive
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-card border border-border text-muted-foreground hover:bg-muted'
+            }`}
+          >
+            3M
+          </button>
+        );
+      }
+      elements.push(
+        <button
+          key={iv}
+          onClick={() => {
+            setChartInterval(iv);
+            setRange3MActive(false);
+          }}
+          disabled={isLoading}
+          className={`${base} rounded-lg font-medium transition-all disabled:opacity-50 ${
+            chartInterval === iv && !range3MActive
+              ? 'bg-primary text-primary-foreground'
+              : 'bg-card border border-border text-muted-foreground hover:bg-muted'
+          }`}
+        >
+          {iv}
+        </button>
+      );
+    }
+    return elements;
+  };
 
   // ========== Render ==========
   return (
@@ -960,6 +1086,38 @@ export default function TradingView({
             <line x1="17" y1="12" x2="22" y2="12" />
           </svg>
         </button>
+
+        {/* Restore saved mock (mobile) */}
+        {hasSavedMock && dataSource !== 'generated' && (
+          <button
+            onClick={() => {
+              if (!savedMockRef.current) return;
+              stopLiveSim();
+              skipAnimationRef.current = false;
+              setCandleData(savedMockRef.current.candles);
+              setAreaData(savedMockRef.current.area);
+              setDataSource('generated');
+              loadedStartRef.current = null;
+              loadedEndRef.current = null;
+              hasMoreLeftRef.current = true;
+              onClearSelection?.();
+              setError(null);
+              const last =
+                savedMockRef.current.candles[
+                  savedMockRef.current.candles.length - 1
+                ];
+              if (last) {
+                simLastPriceRef.current = last.close;
+                simLastDateRef.current = new Date(last.time + 'T00:00:00Z');
+                simulatorRef.current = createSimulator(last.close);
+              }
+            }}
+            title="Restore mock data"
+            className="px-2 py-1 text-xs rounded-lg border border-amber-500/40 bg-amber-500/10 text-amber-500"
+          >
+            Mock
+          </button>
+        )}
 
         {/* Regenerate (mobile: just generates with current settings) */}
         <button
@@ -1026,6 +1184,19 @@ export default function TradingView({
 
         {/* Interval buttons */}
         <div className="flex gap-0.5">{intervalButtons('sm')}</div>
+
+        {/* Volume (mobile) */}
+        <button
+          onClick={() => setShowVolume((v) => !v)}
+          disabled={dataSource !== 'generated'}
+          className={`px-2 py-1 text-xs rounded-lg border transition-all disabled:opacity-40 ${
+            showVolume
+              ? 'border-primary/50 bg-primary/10 text-primary'
+              : 'border-border bg-card text-muted-foreground'
+          }`}
+        >
+          Vol
+        </button>
 
         {/* Source badge */}
         <div className="px-2 py-1 text-xs bg-card border border-border rounded-lg text-muted-foreground">
@@ -1167,6 +1338,38 @@ export default function TradingView({
           </svg>
         </button>
 
+        {/* Restore saved mock data */}
+        {hasSavedMock && dataSource !== 'generated' && (
+          <button
+            onClick={() => {
+              if (!savedMockRef.current) return;
+              stopLiveSim();
+              skipAnimationRef.current = false;
+              setCandleData(savedMockRef.current.candles);
+              setAreaData(savedMockRef.current.area);
+              setDataSource('generated');
+              loadedStartRef.current = null;
+              loadedEndRef.current = null;
+              hasMoreLeftRef.current = true;
+              onClearSelection?.();
+              setError(null);
+              const last =
+                savedMockRef.current.candles[
+                  savedMockRef.current.candles.length - 1
+                ];
+              if (last) {
+                simLastPriceRef.current = last.close;
+                simLastDateRef.current = new Date(last.time + 'T00:00:00Z');
+                simulatorRef.current = createSimulator(last.close);
+              }
+            }}
+            title="Restore the previously generated mock dataset"
+            className="px-4 py-2 text-sm rounded-lg border border-amber-500/40 bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 transition-all"
+          >
+            Restore Mock
+          </button>
+        )}
+
         {/* Chart type */}
         <button
           onClick={handleToggleChartType}
@@ -1178,6 +1381,26 @@ export default function TradingView({
 
         {/* Interval buttons */}
         <div className="flex gap-1">{intervalButtons('md')}</div>
+
+        {/* Volume toggle — only available for generated data */}
+        <button
+          onClick={() => setShowVolume((v) => !v)}
+          title={
+            dataSource !== 'generated'
+              ? 'Volume only available for generated data'
+              : showVolume
+                ? 'Hide volume'
+                : 'Show volume'
+          }
+          disabled={dataSource !== 'generated'}
+          className={`px-3 py-2 text-sm rounded-lg border transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
+            showVolume
+              ? 'border-primary/50 bg-primary/10 text-primary'
+              : 'border-border bg-card text-muted-foreground hover:bg-muted'
+          }`}
+        >
+          Volume
+        </button>
 
         {/* Source indicator */}
         <div className="flex items-center px-3 py-2 text-sm bg-card border border-border rounded-lg">
