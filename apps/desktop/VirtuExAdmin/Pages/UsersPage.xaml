@@ -128,7 +128,7 @@
                                         </TextBlock.Style>
                                     </TextBlock>
 
-                                    <ui:Button Content="Add funds / Jóváírás"
+                                    <ui:Button Content="Add funds"
                                                Appearance="Secondary"
                                                Padding="10,4"
                                                Click="AddFunds_Click"
