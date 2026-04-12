@@ -29,9 +29,24 @@ async function batchedMap<T, R>(
 
 export class MarketDataSeeder extends Seeder {
   async run(em: EntityManager): Promise<void> {
+    const ensureUsd = async () => {
+      let usd = await em.findOne(Currency, { symbol: 'USD' });
+      if (!usd) {
+        usd = new Currency();
+        usd.symbol = 'USD';
+        usd.name = 'United States Dollar';
+        usd.precision = 2;
+        usd.type = CurrencyType.Fiat;
+        em.persist(usd);
+      }
+      return usd;
+    };
+
     // Skip seeding if currencies already exist in the database
     const existingCount = await em.count(Currency);
     if (existingCount > 0) {
+      await ensureUsd();
+      await em.flush();
       console.log(
         `[MarketDataSeeder] ${existingCount} currencies already exist, skipping seed.`
       );
@@ -152,13 +167,7 @@ export class MarketDataSeeder extends Seeder {
     ];
 
     // usd
-    const usd = new Currency();
-    usd.symbol = 'USD';
-    usd.name = 'United States Dollar';
-    usd.precision = 2;
-    usd.type = CurrencyType.Fiat;
-
-    em.persist(usd);
+    await ensureUsd();
 
     const cc: Currency[] = [];
 

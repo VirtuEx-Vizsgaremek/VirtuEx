@@ -126,6 +126,7 @@ export class UsersSeeder extends Seeder {
         const sub = new Subscription();
         sub.user = user;
         sub.plan = plans['Free'];
+        sub.billingPeriod = 'monthly';
         em.persist(sub);
       }
     }
