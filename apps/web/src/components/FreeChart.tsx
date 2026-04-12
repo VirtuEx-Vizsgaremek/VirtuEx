@@ -41,18 +41,22 @@ const FREE_ASSETS = [
   { name: 'NVIDIA Corp.', symbol: 'NVDA', initialPrice: 495, color: '#a855f7' } // purple
 ];
 
+/** Period view buttons — only change the chart's visible range, not the data. */
 const GENERATE_PERIODS = [
   { label: '1Y', days: 365 },
   { label: '2Y', days: 730 },
   { label: '3Y', days: 1095 }
 ];
 
+/** Total days of data generated (always the maximum period). */
+const TOTAL_GEN_DAYS = 1095; // 3Y
+
 const WINDOW_DAYS = 365;
 const LOAD_MORE_THRESHOLD = 20;
 const SIM_INTERVAL_MS = 1000;
 
-// localStorage key per period (generated data is not tied to a real symbol)
-const genStorageKey = (days: number) => `freechart_generated_${days}`;
+// Single localStorage key — one dataset shared across all period views
+const STORAGE_KEY = 'freechart_generated';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -102,9 +106,9 @@ function fmtDate(s: string): string {
   return `${d} ${mo} ${y}`;
 }
 
-function loadCachedRows(days: number): AreaRow[] | null {
+function loadCachedRows(): AreaRow[] | null {
   try {
-    const raw = localStorage.getItem(genStorageKey(days));
+    const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
     return JSON.parse(raw) as AreaRow[];
   } catch {
@@ -112,9 +116,9 @@ function loadCachedRows(days: number): AreaRow[] | null {
   }
 }
 
-function saveCachedRows(days: number, rows: AreaRow[]): void {
+function saveCachedRows(rows: AreaRow[]): void {
   try {
-    localStorage.setItem(genStorageKey(days), JSON.stringify(rows));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(rows));
   } catch {
     // storage full or unavailable — silently ignore
   }
@@ -156,6 +160,29 @@ export default function FreeChart({ selectedSymbol }: Props) {
     type: 'buy' | 'sell';
     result: BuyResult | SellResult;
   } | null>(null);
+
+  // ── Mock (paper) trading — free plan: fixed 10k ────────────────────────────
+  const FREE_MOCK_BALANCE = 10_000;
+  const [mockCash, setMockCash] = useState<number | null>(null);
+  const [mockUnits, setMockUnits] = useState(0);
+  const [mockAvgCost, setMockAvgCost] = useState(0);
+  const [mockBuyInput, setMockBuyInput] = useState('');
+  const [mockSellInput, setMockSellInput] = useState('');
+  const [mockBuyMode, setMockBuyMode] = useState<'usd' | 'units'>('usd');
+  const [mockSellMode, setMockSellMode] = useState<'usd' | 'units'>('units');
+  const [lastTradeInfo, setLastTradeInfo] = useState<{
+    type: 'buy' | 'sell';
+    units: number;
+    price: number;
+    total: number;
+  } | null>(null);
+  const [showMockTradeInfo, setShowMockTradeInfo] = useState(() => {
+    try {
+      return localStorage.getItem('free_mock_trade_info_hidden') !== 'true';
+    } catch {
+      return true;
+    }
+  });
 
   // ── Refs ───────────────────────────────────────────────────────────────────
   const chartContainerRef = useRef<HTMLDivElement>(null);
@@ -477,15 +504,15 @@ export default function FreeChart({ selectedSymbol }: Props) {
   }, []);
 
   // ── Generate mock data ─────────────────────────────────────────────────────
-  // Always generates fresh data for the given period and saves it to localStorage.
+  // Always regenerates the full TOTAL_GEN_DAYS dataset and saves it to localStorage.
   const handleGenerate = useCallback(
-    (days: number) => {
+    () => {
       setIsLive(false);
       setError(null);
       const start = new Date();
-      start.setDate(start.getDate() - days);
+      start.setDate(start.getDate() - TOTAL_GEN_DAYS);
       const candles = generateCandlestickData(
-        days,
+        TOTAL_GEN_DAYS,
         start,
         activeAsset.initialPrice
       );
@@ -493,27 +520,146 @@ export default function FreeChart({ selectedSymbol }: Props) {
         time: c.time,
         value: c.close
       }));
-      saveCachedRows(days, rows);
-      applyGeneratedRows(rows, days);
+      saveCachedRows(rows);
+      applyGeneratedRows(rows, generateDays);
+      // Zoom to the currently selected period view
+      requestAnimationFrame(() => {
+        if (chartRef.current && rows.length > 0) {
+          const lastDate = rows[rows.length - 1].time;
+          const from = new Date(lastDate + 'T00:00:00Z');
+          from.setDate(from.getDate() - generateDays);
+          try {
+            chartRef.current.timeScale().setVisibleRange({
+              from: from.toISOString().slice(0, 10) as any,
+              to: lastDate as any
+            });
+          } catch {
+            /* ignore */
+          }
+        }
+      });
+      // Reset paper-trading portfolio on fresh generate
+      setMockCash(FREE_MOCK_BALANCE);
+      setMockUnits(0);
+      setMockAvgCost(0);
+      setMockBuyInput('');
+      setMockSellInput('');
+      setLastTradeInfo(null);
     },
-    [activeAsset, applyGeneratedRows]
+    [activeAsset, applyGeneratedRows, generateDays] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
-  // ── Load cached or generate for period button click ────────────────────────
-  // Prefers cached data so that existing generated data isn't wiped by
-  // switching periods. Only generates fresh data if no cache exists.
+  // ── Select period: zoom the view to the last N days of the existing dataset ──
+  // If no generated data exists yet, load from cache or generate TOTAL_GEN_DAYS first.
   const handleSelectPeriod = useCallback(
     (days: number) => {
+      setGenerateDays(days);
       setIsLive(false);
       setError(null);
-      const cached = loadCachedRows(days);
+
+      const zoomToLastDays = (rows: AreaRow[]) => {
+        if (!chartRef.current || rows.length === 0) return;
+        const lastDate = rows[rows.length - 1].time;
+        const from = new Date(lastDate + 'T00:00:00Z');
+        from.setDate(from.getDate() - days);
+        try {
+          chartRef.current.timeScale().setVisibleRange({
+            from: from.toISOString().slice(0, 10) as any,
+            to: lastDate as any
+          });
+        } catch {
+          /* ignore */
+        }
+      };
+
+      // Already in generated mode with data — just zoom
+      if (dataMode === 'generated' && activeDataRef.current.length > 0) {
+        zoomToLastDays(activeDataRef.current);
+        return;
+      }
+
+      // Need to load or generate data first
+      const cached = loadCachedRows();
       if (cached && cached.length > 0) {
         applyGeneratedRows(cached, days);
+        requestAnimationFrame(() => zoomToLastDays(cached));
       } else {
-        handleGenerate(days);
+        // Generate fresh full dataset
+        const start = new Date();
+        start.setDate(start.getDate() - TOTAL_GEN_DAYS);
+        const candles = generateCandlestickData(
+          TOTAL_GEN_DAYS,
+          start,
+          activeAsset.initialPrice
+        );
+        const rows: AreaRow[] = candles.map((c) => ({
+          time: c.time,
+          value: c.close
+        }));
+        saveCachedRows(rows);
+        applyGeneratedRows(rows, days);
+        requestAnimationFrame(() => zoomToLastDays(rows));
+        // Reset portfolio only when first entering generated mode
+        setMockCash(FREE_MOCK_BALANCE);
+        setMockUnits(0);
+        setMockAvgCost(0);
+        setMockBuyInput('');
+        setMockSellInput('');
+        setLastTradeInfo(null);
       }
     },
-    [applyGeneratedRows, handleGenerate]
+    [dataMode, activeAsset, applyGeneratedRows] // eslint-disable-line react-hooks/exhaustive-deps
+  );
+
+  // ── Paper-trade helpers (free plan) ───────────────────────────────────────
+  const mockLastPriceRef = useRef(0);
+  useEffect(() => {
+    if (lastPrice !== null) mockLastPriceRef.current = lastPrice;
+  }, [lastPrice]);
+
+  const handleMockBuy = useCallback(
+    (inputValue: number, mode: 'usd' | 'units') => {
+      const price = mockLastPriceRef.current;
+      if (!price || inputValue <= 0 || mockCash === null) return;
+      const spend =
+        mode === 'usd'
+          ? Math.min(inputValue, mockCash)
+          : Math.min(inputValue * price, mockCash);
+      if (spend < 0.01) return;
+      const units = spend / price;
+      const totalUnits = mockUnits + units;
+      const newAvg =
+        totalUnits > 0 ? (mockUnits * mockAvgCost + spend) / totalUnits : price;
+      setMockCash(mockCash - spend);
+      setMockUnits(totalUnits);
+      setMockAvgCost(newAvg);
+      setLastTradeInfo({ type: 'buy', units, price, total: spend });
+      setMockBuyInput('');
+    },
+    [mockCash, mockUnits, mockAvgCost]
+  );
+
+  const handleMockSell = useCallback(
+    (inputValue: number, mode: 'usd' | 'units') => {
+      const price = mockLastPriceRef.current;
+      if (!price || inputValue <= 0 || mockCash === null || mockUnits <= 0)
+        return;
+      const sellUnits =
+        mode === 'units'
+          ? Math.min(inputValue, mockUnits)
+          : Math.min(inputValue / price, mockUnits);
+      const received = sellUnits * price;
+      setMockCash(mockCash + received);
+      setMockUnits(mockUnits - sellUnits);
+      setLastTradeInfo({
+        type: 'sell',
+        units: sellUnits,
+        price,
+        total: received
+      });
+      setMockSellInput('');
+    },
+    [mockCash, mockUnits]
   );
 
   // ── Live sim ───────────────────────────────────────────────────────────────
@@ -535,7 +681,7 @@ export default function FreeChart({ selectedSymbol }: Props) {
       seriesRef.current.update(bar);
       setLastPrice(candle.close);
       // Persist the live-extended data so it survives a pause/resume
-      saveCachedRows(generateDaysRef.current, activeDataRef.current);
+      saveCachedRows(activeDataRef.current);
     }, SIM_INTERVAL_MS);
     return () => clearInterval(id);
   }, [isLive, dataMode]);
@@ -591,9 +737,9 @@ export default function FreeChart({ selectedSymbol }: Props) {
           ))}
         </div>
 
-        {/* Re-generate with current period (always generates fresh + saves cache) */}
+        {/* Re-generate (always generates fresh full dataset + saves cache) */}
         <button
-          onClick={() => handleGenerate(generateDays)}
+          onClick={() => handleGenerate()}
           disabled={dataMode === 'real'}
           title={
             dataMode === 'real'
@@ -801,6 +947,212 @@ export default function FreeChart({ selectedSymbol }: Props) {
           </>
         ) : null}
       </div>
+
+      {/* ── Mock trading info banner (generated mode only) ── */}
+      {dataMode === 'generated' && showMockTradeInfo && (
+        <div className="mx-3 mb-1 px-3 py-2 bg-blue-500/10 border border-blue-500/30 rounded-lg text-xs text-blue-600 dark:text-blue-400 flex items-start justify-between gap-3 shrink-0">
+          <span>
+            <strong>Paper Trading:</strong> You start with $
+            {FREE_MOCK_BALANCE.toLocaleString()} virtual cash that resets each
+            time you generate new data. Buy and sell at the simulated price — no
+            money from the wallet is involved.
+          </span>
+          <div className="flex gap-3 shrink-0 mt-0.5">
+            <button
+              onClick={() => setShowMockTradeInfo(false)}
+              className="underline underline-offset-2 hover:no-underline"
+            >
+              Close
+            </button>
+            <button
+              onClick={() => {
+                setShowMockTradeInfo(false);
+                try {
+                  localStorage.setItem('free_mock_trade_info_hidden', 'true');
+                } catch {}
+              }}
+              className="underline underline-offset-2 hover:no-underline"
+            >
+              Don&apos;t show again
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Paper trading portfolio panel (generated mode only) ── */}
+      {dataMode === 'generated' &&
+        mockCash !== null &&
+        (() => {
+          const price = mockLastPriceRef.current || lastPrice || 0;
+          const holdingsValue = mockUnits * price;
+          const totalValue = mockCash + holdingsValue;
+          const pnl = totalValue - FREE_MOCK_BALANCE;
+          const pnlPct =
+            FREE_MOCK_BALANCE > 0 ? (pnl / FREE_MOCK_BALANCE) * 100 : 0;
+          const holdingsPnl =
+            mockUnits > 0 ? (price - mockAvgCost) * mockUnits : 0;
+          const positive = pnl >= 0;
+          const fmt = (n: number) =>
+            n.toLocaleString('en-US', {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2
+            });
+          const fmtU = (n: number) => n.toFixed(6).replace(/\.?0+$/, '') || '0';
+          return (
+            <div className="mx-3 mb-1 px-3 py-2 bg-card border border-border rounded-lg shrink-0">
+              {/* Portfolio stats */}
+              <div className="flex flex-wrap gap-x-4 gap-y-1 items-center text-xs mb-2">
+                <span className="text-muted-foreground">
+                  Cash:{' '}
+                  <span className="text-foreground font-medium">
+                    ${fmt(mockCash)}
+                  </span>
+                </span>
+                {mockUnits > 0.0001 && (
+                  <>
+                    <span className="text-muted-foreground">
+                      Holdings:{' '}
+                      <span className="text-foreground font-medium">
+                        {fmtU(mockUnits)} units
+                      </span>
+                    </span>
+                    <span className="text-muted-foreground">
+                      Avg cost:{' '}
+                      <span className="text-foreground font-medium">
+                        ${fmt(mockAvgCost)}
+                      </span>
+                    </span>
+                    <span className="text-muted-foreground">
+                      Pos. P&amp;L:{' '}
+                      <span
+                        className={
+                          holdingsPnl >= 0
+                            ? 'text-emerald-500 font-medium'
+                            : 'text-red-400 font-medium'
+                        }
+                      >
+                        {holdingsPnl >= 0 ? '+' : ''}${fmt(holdingsPnl)}
+                      </span>
+                    </span>
+                  </>
+                )}
+                <span className="text-muted-foreground">
+                  Total:{' '}
+                  <span className="text-foreground font-medium">
+                    ${fmt(totalValue)}
+                  </span>
+                </span>
+                <span
+                  className={
+                    positive
+                      ? 'text-emerald-500 font-semibold'
+                      : 'text-red-400 font-semibold'
+                  }
+                >
+                  P&amp;L: {positive ? '+' : ''}${fmt(pnl)} (
+                  {positive ? '+' : ''}
+                  {pnlPct.toFixed(2)}%)
+                </span>
+                <span className="text-muted-foreground ml-auto">
+                  @ ${fmt(price)}
+                </span>
+              </div>
+              {/* Last trade receipt */}
+              {lastTradeInfo && (
+                <div
+                  className={`text-xs mb-2 px-2 py-1 rounded ${lastTradeInfo.type === 'buy' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-red-500/10 text-red-600 dark:text-red-400'}`}
+                >
+                  {lastTradeInfo.type === 'buy'
+                    ? `✓ Bought ${fmtU(lastTradeInfo.units)} units @ $${fmt(lastTradeInfo.price)} = $${fmt(lastTradeInfo.total)}`
+                    : `✓ Sold ${fmtU(lastTradeInfo.units)} units @ $${fmt(lastTradeInfo.price)} = $${fmt(lastTradeInfo.total)}`}
+                </div>
+              )}
+              {/* Trade controls */}
+              <div className="flex flex-wrap gap-2 items-center text-xs">
+                {/* Buy mode toggle */}
+                <div className="flex items-center gap-1 border border-border rounded-lg overflow-hidden">
+                  <button
+                    onClick={() => setMockBuyMode('usd')}
+                    className={`px-2 py-1 text-xs transition-colors ${mockBuyMode === 'usd' ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground hover:bg-muted'}`}
+                  >
+                    $
+                  </button>
+                  <button
+                    onClick={() => setMockBuyMode('units')}
+                    className={`px-2 py-1 text-xs transition-colors ${mockBuyMode === 'units' ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground hover:bg-muted'}`}
+                  >
+                    units
+                  </button>
+                </div>
+                <input
+                  type="number"
+                  min={0}
+                  placeholder={mockBuyMode === 'usd' ? '0.00' : '0.0000'}
+                  value={mockBuyInput}
+                  onChange={(e) => setMockBuyInput(e.target.value)}
+                  className="w-24 bg-transparent border border-border rounded px-2 py-1 text-foreground focus:border-primary outline-none"
+                />
+                <button
+                  onClick={() =>
+                    handleMockBuy(parseFloat(mockBuyInput) || 0, mockBuyMode)
+                  }
+                  disabled={
+                    !mockBuyInput ||
+                    parseFloat(mockBuyInput) <= 0 ||
+                    mockCash <= 0
+                  }
+                  className="px-2.5 py-1 rounded-lg text-white text-xs font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-all bg-[rgb(var(--color-success)/1)] hover:bg-[rgb(var(--color-success)/0.8)]"
+                >
+                  Buy
+                </button>
+                {/* Sell mode toggle */}
+                <div className="flex items-center gap-1 border border-border rounded-lg overflow-hidden ml-2">
+                  <button
+                    onClick={() => setMockSellMode('units')}
+                    className={`px-2 py-1 text-xs transition-colors ${mockSellMode === 'units' ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground hover:bg-muted'}`}
+                  >
+                    units
+                  </button>
+                  <button
+                    onClick={() => setMockSellMode('usd')}
+                    className={`px-2 py-1 text-xs transition-colors ${mockSellMode === 'usd' ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground hover:bg-muted'}`}
+                  >
+                    $
+                  </button>
+                </div>
+                <input
+                  type="number"
+                  min={0}
+                  placeholder={mockSellMode === 'units' ? '0.0000' : '0.00'}
+                  value={mockSellInput}
+                  onChange={(e) => setMockSellInput(e.target.value)}
+                  className="w-24 bg-transparent border border-border rounded px-2 py-1 text-foreground focus:border-primary outline-none"
+                />
+                <button
+                  onClick={() =>
+                    handleMockSell(parseFloat(mockSellInput) || 0, mockSellMode)
+                  }
+                  disabled={
+                    !mockSellInput ||
+                    parseFloat(mockSellInput) <= 0 ||
+                    mockUnits <= 0
+                  }
+                  className="px-2.5 py-1 rounded-lg text-white text-xs font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-all bg-[rgb(var(--color-danger)/1)] hover:bg-[rgb(var(--color-danger)/0.8)]"
+                >
+                  Sell
+                </button>
+                {mockUnits > 0.0001 && (
+                  <button
+                    onClick={() => handleMockSell(mockUnits, 'units')}
+                    className="px-2.5 py-1 rounded-lg border border-border bg-card text-muted-foreground hover:bg-muted text-xs font-medium transition-all"
+                  >
+                    Sell All
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })()}
 
       {/* ── Chart ── */}
       <div ref={chartContainerRef} className="flex-1 min-h-0" />

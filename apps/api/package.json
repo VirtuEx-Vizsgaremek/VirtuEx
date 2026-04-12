@@ -8,6 +8,7 @@
     "build": "tsc && resolve-tspaths",
     "dev": "nodemon -r dotenv/config -r tsconfig-paths/register src/index.ts",
     "seed": "ts-node -r dotenv/config -r tsconfig-paths/register src/seed.ts",
+    "backfill": "ts-node -r dotenv/config -r tsconfig-paths/register src/scripts/backfill_history.ts",
     "db:migrate": "ts-node -r tsconfig-paths/register scripts/run-migrations.ts",
     "lint": "eslint",
     "lint:fix": "eslint --fix",

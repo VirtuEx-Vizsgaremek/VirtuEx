@@ -243,8 +243,46 @@ export default function PremiumChart({
   const simLastDateRef = useRef(new Date());
   const isLiveSimRef = useRef(false); // guards the series-update effect
   const simulatorRef = useRef<Simulator | null>(null);
-  const [showVolume, setShowVolume] = useState(false);
-  const [range3MActive, setRange3MActive] = useState(false);
+  const [showVolume, setShowVolume] = useState(() => {
+    try {
+      return localStorage.getItem('premium_show_volume') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  // ── Warning banners ─────────────────────────────────────────────────────────
+  const [showVolumeWarn, setShowVolumeWarn] = useState(() => {
+    try {
+      return localStorage.getItem('premium_volume_warn_hidden') !== 'true';
+    } catch {
+      return true;
+    }
+  });
+  const [showMockTradeInfo, setShowMockTradeInfo] = useState(() => {
+    try {
+      return localStorage.getItem('premium_mock_trade_info_hidden') !== 'true';
+    } catch {
+      return true;
+    }
+  });
+
+  // ── Mock (paper) trading ────────────────────────────────────────────────────
+  const [startingBalance, setStartingBalance] = useState(100_000);
+  const [startingBalanceInput, setStartingBalanceInput] = useState('100000');
+  const [mockCash, setMockCash] = useState<number | null>(null);
+  const [mockUnits, setMockUnits] = useState(0);
+  const [mockAvgCost, setMockAvgCost] = useState(0);
+  const [mockBuyInput, setMockBuyInput] = useState('');
+  const [mockSellInput, setMockSellInput] = useState('');
+  const [mockBuyMode, setMockBuyMode] = useState<'usd' | 'units'>('usd');
+  const [mockSellMode, setMockSellMode] = useState<'usd' | 'units'>('units');
+  const [lastTradeInfo, setLastTradeInfo] = useState<{
+    type: 'buy' | 'sell';
+    units: number;
+    price: number;
+    total: number;
+  } | null>(null);
 
   /**
    * Saved copy of the last batch-generated mock dataset.
@@ -255,9 +293,14 @@ export default function PremiumChart({
     area: { time: string; value: number }[];
   } | null>(null);
   const [hasSavedMock, setHasSavedMock] = useState(false);
-  const showVolumeRef = useRef(false);
+  const showVolumeRef = useRef(showVolume);
   useEffect(() => {
     showVolumeRef.current = showVolume;
+    try {
+      localStorage.setItem('premium_show_volume', String(showVolume));
+    } catch {
+      /* ignore */
+    }
   }, [showVolume]);
   const volumeSeriesRef = useRef<any>(null);
   const chartTypeRef = useRef(chartType);
@@ -289,6 +332,12 @@ export default function PremiumChart({
   const candleColors = useThemeColors
     ? { up: colors.candleUp, down: colors.candleDown }
     : { up: '#22c55e', down: '#ef4444' };
+
+  // Stable ref so live-sim tick closure always reads the current candle colors
+  const candleColorsRef = useRef(candleColors);
+  useEffect(() => {
+    candleColorsRef.current = candleColors;
+  }, [candleColors.up, candleColors.down]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Keep refs in sync with state
   useEffect(() => {
@@ -605,12 +654,67 @@ export default function PremiumChart({
     // Persist a copy so the user can restore it later without regenerating.
     savedMockRef.current = { candles, area };
     setHasSavedMock(true);
-  }, [mockYears, mockMonths, mockDays, stopLiveSim, onClearSelection]); // chartIntervalRef is a ref, not listed
 
-  // Re-generate mock data when the interval changes (same as real data re-fetch)
-  useEffect(() => {
-    if (dataSource === 'generated') handleGenerateMock();
-  }, [chartInterval]); // eslint-disable-line react-hooks/exhaustive-deps
+    // Reset paper-trading portfolio with the configured starting balance.
+    setMockCash(startingBalance);
+    setMockUnits(0);
+    setMockAvgCost(0);
+    setMockBuyInput('');
+    setMockSellInput('');
+  }, [
+    mockYears,
+    mockMonths,
+    mockDays,
+    stopLiveSim,
+    onClearSelection,
+    startingBalance
+  ]); // chartIntervalRef is a ref, not listed
+
+  // ── Paper-trade helpers ─────────────────────────────────────────────────────
+  const handleMockBuy = useCallback(
+    (inputValue: number, mode: 'usd' | 'units') => {
+      const price = simLastPriceRef.current;
+      if (!price || inputValue <= 0 || mockCash === null) return;
+      const spend =
+        mode === 'usd'
+          ? Math.min(inputValue, mockCash)
+          : Math.min(inputValue * price, mockCash);
+      if (spend < 0.01) return;
+      const units = spend / price;
+      const totalUnits = mockUnits + units;
+      const newAvg =
+        totalUnits > 0 ? (mockUnits * mockAvgCost + spend) / totalUnits : price;
+      setMockCash(mockCash - spend);
+      setMockUnits(totalUnits);
+      setMockAvgCost(newAvg);
+      setLastTradeInfo({ type: 'buy', units, price, total: spend });
+      setMockBuyInput('');
+    },
+    [mockCash, mockUnits, mockAvgCost]
+  );
+
+  const handleMockSell = useCallback(
+    (inputValue: number, mode: 'usd' | 'units') => {
+      const price = simLastPriceRef.current;
+      if (!price || inputValue <= 0 || mockCash === null || mockUnits <= 0)
+        return;
+      const sellUnits =
+        mode === 'units'
+          ? Math.min(inputValue, mockUnits)
+          : Math.min(inputValue / price, mockUnits);
+      const received = sellUnits * price;
+      setMockCash(mockCash + received);
+      setMockUnits(mockUnits - sellUnits);
+      setLastTradeInfo({
+        type: 'sell',
+        units: sellUnits,
+        price,
+        total: received
+      });
+      setMockSellInput('');
+    },
+    [mockCash, mockUnits]
+  );
 
   // Single stable tick function — reads everything from refs so it never goes stale
   const doSimTick = useCallback(() => {
@@ -646,9 +750,9 @@ export default function PremiumChart({
           time,
           value: candle.volume ?? 0,
           color:
-            candle.close >= candle.open
-              ? 'rgba(34,197,94,0.45)'
-              : 'rgba(239,68,68,0.45)'
+            (candle.close >= candle.open
+              ? candleColorsRef.current.up
+              : candleColorsRef.current.down) + '73'
         });
       } catch {
         /* series may have been replaced */
@@ -674,25 +778,6 @@ export default function PremiumChart({
   const handleToggleChartType = () => {
     setChartType((prev) => (prev === 'area' ? 'candle' : 'area'));
   };
-
-  /** Snaps the visible range to the last ~3 months of data. */
-  const handleRange3M = useCallback(() => {
-    if (!chartRef.current) return;
-    const data = activeDataRef.current;
-    if (data.length === 0) return;
-    const end = data[data.length - 1].time as string;
-    const d = new Date(end);
-    d.setMonth(d.getMonth() - 3);
-    const start = d.toISOString().split('T')[0];
-    try {
-      chartRef.current
-        .timeScale()
-        .setVisibleRange({ from: start as any, to: end as any });
-      setRange3MActive(true);
-    } catch {
-      /* ignore */
-    }
-  }, []);
 
   // ========== Chart Initialization ==========
   useEffect(() => {
@@ -923,8 +1008,7 @@ export default function PremiumChart({
       const volData = candleData.map((c: any) => ({
         time: c.time,
         value: c.volume ?? 0,
-        color:
-          c.close >= c.open ? 'rgba(34,197,94,0.45)' : 'rgba(239,68,68,0.45)'
+        color: (c.close >= c.open ? candleColors.up : candleColors.down) + '73' // 73 ≈ 45% opacity
       }));
       const seen = new Map<string, any>();
       for (const bar of volData) seen.set(bar.time as string, bar);
@@ -934,7 +1018,15 @@ export default function PremiumChart({
       volSeries.setData(cleanVol);
       volumeSeriesRef.current = volSeries;
     }
-  }, [chartType, isClient, activeData, theme, colors, showVolume]);
+  }, [
+    chartType,
+    isClient,
+    activeData,
+    theme,
+    colors,
+    showVolume,
+    useThemeColors
+  ]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ========== Theme Update Effect ==========
   useEffect(() => {
@@ -961,12 +1053,12 @@ export default function PremiumChart({
     }
   }, [symbol]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ========== Re-fetch / re-generate on interval change ==========
+  // ========== Re-fetch on interval change (real data only) ==========
   useEffect(() => {
     if (dataSource === 'realtime' && symbol) {
       loadInitialData(symbol, chartInterval);
     }
-    // generated case is handled by the effect inside the mock handlers section
+    // In generated mode, interval changes don't regenerate — the existing dataset is kept.
   }, [chartInterval]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ========== Crosshair toggle ==========
@@ -1012,45 +1104,20 @@ export default function PremiumChart({
   // ========== Shared interval button renderer ==========
   const intervalButtons = (size: 'sm' | 'md') => {
     const base = size === 'sm' ? 'px-2 py-1 text-xs' : 'px-3 py-2 text-sm';
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const elements: any[] = [];
-    for (const iv of CHART_INTERVALS) {
-      if (iv === '1Y') {
-        // Insert 3M view-range button just before 1Y
-        elements.push(
-          <button
-            key="3M"
-            onClick={handleRange3M}
-            title="Zoom to last 3 months"
-            className={`${base} rounded-lg font-medium transition-all ${
-              range3MActive
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-card border border-border text-muted-foreground hover:bg-muted'
-            }`}
-          >
-            3M
-          </button>
-        );
-      }
-      elements.push(
-        <button
-          key={iv}
-          onClick={() => {
-            setChartInterval(iv);
-            setRange3MActive(false);
-          }}
-          disabled={isLoading}
-          className={`${base} rounded-lg font-medium transition-all disabled:opacity-50 ${
-            chartInterval === iv && !range3MActive
-              ? 'bg-primary text-primary-foreground'
-              : 'bg-card border border-border text-muted-foreground hover:bg-muted'
-          }`}
-        >
-          {iv}
-        </button>
-      );
-    }
-    return elements;
+    return CHART_INTERVALS.map((iv) => (
+      <button
+        key={iv}
+        onClick={() => setChartInterval(iv)}
+        disabled={isLoading}
+        className={`${base} rounded-lg font-medium transition-all disabled:opacity-50 ${
+          chartInterval === iv
+            ? 'bg-primary text-primary-foreground'
+            : 'bg-card border border-border text-muted-foreground hover:bg-muted'
+        }`}
+      >
+        {iv}
+      </button>
+    ));
   };
 
   // ========== Render ==========
@@ -1185,23 +1252,19 @@ export default function PremiumChart({
         {/* Interval buttons */}
         <div className="flex gap-0.5">{intervalButtons('sm')}</div>
 
-        {/* Volume (mobile) */}
-        <button
-          onClick={() => setShowVolume((v) => !v)}
-          disabled={dataSource !== 'generated'}
-          className={`px-2 py-1 text-xs rounded-lg border transition-all disabled:opacity-40 ${
-            showVolume
-              ? 'border-primary/50 bg-primary/10 text-primary'
-              : 'border-border bg-card text-muted-foreground'
-          }`}
-        >
-          Vol
-        </button>
-
-        {/* Source badge */}
-        <div className="px-2 py-1 text-xs bg-card border border-border rounded-lg text-muted-foreground">
-          {dataSource === 'realtime' ? symbol : 'Mock'}
-        </div>
+        {/* Volume (mobile) — only shown for generated data */}
+        {dataSource === 'generated' && (
+          <button
+            onClick={() => setShowVolume((v) => !v)}
+            className={`px-2 py-1 text-xs rounded-lg border transition-all ${
+              showVolume
+                ? 'border-primary/50 bg-primary/10 text-primary'
+                : 'border-border bg-card text-muted-foreground'
+            }`}
+          >
+            Vol
+          </button>
+        )}
 
         {/* Color legend + toggle */}
         <div className="flex items-center gap-1.5 px-2 py-1 bg-card border border-border rounded-lg">
@@ -1382,33 +1445,20 @@ export default function PremiumChart({
         {/* Interval buttons */}
         <div className="flex gap-1">{intervalButtons('md')}</div>
 
-        {/* Volume toggle — only available for generated data */}
-        <button
-          onClick={() => setShowVolume((v) => !v)}
-          title={
-            dataSource !== 'generated'
-              ? 'Volume only available for generated data'
-              : showVolume
-                ? 'Hide volume'
-                : 'Show volume'
-          }
-          disabled={dataSource !== 'generated'}
-          className={`px-3 py-2 text-sm rounded-lg border transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
-            showVolume
-              ? 'border-primary/50 bg-primary/10 text-primary'
-              : 'border-border bg-card text-muted-foreground hover:bg-muted'
-          }`}
-        >
-          Volume
-        </button>
-
-        {/* Source indicator */}
-        <div className="flex items-center px-3 py-2 text-sm bg-card border border-border rounded-lg">
-          <span className="text-muted-foreground">Source:</span>
-          <span className="ml-2 font-semibold text-foreground">
-            {dataSource === 'realtime' ? `Real (${symbol})` : 'Generated'}
-          </span>
-        </div>
+        {/* Volume toggle — only shown for generated data */}
+        {dataSource === 'generated' && (
+          <button
+            onClick={() => setShowVolume((v) => !v)}
+            title={showVolume ? 'Hide volume' : 'Show volume'}
+            className={`px-3 py-2 text-sm rounded-lg border transition-all ${
+              showVolume
+                ? 'border-primary/50 bg-primary/10 text-primary'
+                : 'border-border bg-card text-muted-foreground hover:bg-muted'
+            }`}
+          >
+            Volume
+          </button>
+        )}
 
         {/* Color legend */}
         <div className="flex items-center gap-4 px-3 py-2 text-sm bg-card border border-border rounded-lg">
@@ -1570,6 +1620,47 @@ export default function PremiumChart({
               />
               <span className="text-muted-foreground">d</span>
             </label>
+          </div>
+
+          {/* Starting balance for paper trading */}
+          <div className="flex items-center gap-2 bg-card border border-border rounded-lg px-3 py-1.5">
+            <span className="text-xs text-muted-foreground">Starting $</span>
+            <button
+              onClick={() => {
+                const v = Math.max(1, startingBalance - 1000);
+                setStartingBalance(v);
+                setStartingBalanceInput(String(v));
+              }}
+              className="w-5 h-5 flex items-center justify-center rounded border border-border bg-muted hover:bg-muted/70 text-foreground transition-colors text-xs"
+            >
+              −
+            </button>
+            <input
+              type="number"
+              min={1}
+              max={1_000_000}
+              value={startingBalanceInput}
+              onChange={(e) => setStartingBalanceInput(e.target.value)}
+              onBlur={(e) => {
+                const v = Math.min(
+                  1_000_000,
+                  Math.max(1, parseInt(e.target.value, 10) || 100_000)
+                );
+                setStartingBalance(v);
+                setStartingBalanceInput(String(v));
+              }}
+              className="w-20 text-xs text-center bg-transparent border-b border-border focus:border-primary outline-none text-foreground"
+            />
+            <button
+              onClick={() => {
+                const v = Math.min(1_000_000, startingBalance + 1000);
+                setStartingBalance(v);
+                setStartingBalanceInput(String(v));
+              }}
+              className="w-5 h-5 flex items-center justify-center rounded border border-border bg-muted hover:bg-muted/70 text-foreground transition-colors text-xs"
+            >
+              +
+            </button>
           </div>
 
           {/* Generate static data */}
@@ -1749,6 +1840,243 @@ export default function PremiumChart({
           </button>
         </div>
       )}
+
+      {/* ── Volume info warning (real data only) ── */}
+      {dataSource !== 'generated' && showVolumeWarn && (
+        <div className="mx-3 mb-2 px-3 py-2 bg-amber-500/10 border border-amber-500/30 rounded-lg text-xs text-amber-600 dark:text-amber-400 flex items-start justify-between gap-3 shrink-0">
+          <span>
+            Volume data is only available for generated (mock) data. Switch to
+            mock mode to enable the Volume histogram.
+          </span>
+          <div className="flex gap-3 shrink-0 mt-0.5">
+            <button
+              onClick={() => setShowVolumeWarn(false)}
+              className="underline underline-offset-2 hover:no-underline"
+            >
+              Close
+            </button>
+            <button
+              onClick={() => {
+                setShowVolumeWarn(false);
+                try {
+                  localStorage.setItem('premium_volume_warn_hidden', 'true');
+                } catch {}
+              }}
+              className="underline underline-offset-2 hover:no-underline"
+            >
+              Don&apos;t show again
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Mock trading info banner (generated mode only) ── */}
+      {dataSource === 'generated' && showMockTradeInfo && (
+        <div className="mx-3 mb-2 px-3 py-2 bg-blue-500/10 border border-blue-500/30 rounded-lg text-xs text-blue-600 dark:text-blue-400 flex items-start justify-between gap-3 shrink-0">
+          <span>
+            <strong>Paper Trading:</strong> You start with a virtual balance
+            that resets each time you generate new data. Buy and sell at the
+            simulated price — no money from the wallet is involved.
+          </span>
+          <div className="flex gap-3 shrink-0 mt-0.5">
+            <button
+              onClick={() => setShowMockTradeInfo(false)}
+              className="underline underline-offset-2 hover:no-underline"
+            >
+              Close
+            </button>
+            <button
+              onClick={() => {
+                setShowMockTradeInfo(false);
+                try {
+                  localStorage.setItem(
+                    'premium_mock_trade_info_hidden',
+                    'true'
+                  );
+                } catch {}
+              }}
+              className="underline underline-offset-2 hover:no-underline"
+            >
+              Don&apos;t show again
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Paper trading portfolio panel (generated mode only) ── */}
+      {dataSource === 'generated' &&
+        mockCash !== null &&
+        (() => {
+          const price = simLastPriceRef.current;
+          const holdingsValue = mockUnits * price;
+          const totalValue = mockCash + holdingsValue;
+          const pnl = totalValue - startingBalance;
+          const pnlPct =
+            startingBalance > 0 ? (pnl / startingBalance) * 100 : 0;
+          const holdingsPnl =
+            mockUnits > 0 ? (price - mockAvgCost) * mockUnits : 0;
+          const positive = pnl >= 0;
+          const fmt = (n: number) =>
+            n.toLocaleString('en-US', {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2
+            });
+          const fmtU = (n: number) => n.toFixed(6).replace(/\.?0+$/, '') || '0';
+          return (
+            <div className="mx-3 mb-2 px-3 py-2 bg-card border border-border rounded-lg shrink-0">
+              {/* Portfolio stats row */}
+              <div className="flex flex-wrap gap-x-4 gap-y-1 items-center text-xs mb-2">
+                <span className="text-muted-foreground">
+                  Cash:{' '}
+                  <span className="text-foreground font-medium">
+                    ${fmt(mockCash)}
+                  </span>
+                </span>
+                {mockUnits > 0.0001 && (
+                  <>
+                    <span className="text-muted-foreground">
+                      Holdings:{' '}
+                      <span className="text-foreground font-medium">
+                        {fmtU(mockUnits)} units
+                      </span>
+                    </span>
+                    <span className="text-muted-foreground">
+                      Avg cost:{' '}
+                      <span className="text-foreground font-medium">
+                        ${fmt(mockAvgCost)}
+                      </span>
+                    </span>
+                    <span className="text-muted-foreground">
+                      Pos. P&amp;L:{' '}
+                      <span
+                        className={
+                          holdingsPnl >= 0
+                            ? 'text-emerald-500 font-medium'
+                            : 'text-red-400 font-medium'
+                        }
+                      >
+                        {holdingsPnl >= 0 ? '+' : ''}${fmt(holdingsPnl)}
+                      </span>
+                    </span>
+                  </>
+                )}
+                <span className="text-muted-foreground">
+                  Total:{' '}
+                  <span className="text-foreground font-medium">
+                    ${fmt(totalValue)}
+                  </span>
+                </span>
+                <span
+                  className={
+                    positive
+                      ? 'text-emerald-500 font-semibold'
+                      : 'text-red-400 font-semibold'
+                  }
+                >
+                  Overall P&amp;L: {positive ? '+' : ''}${fmt(pnl)} (
+                  {positive ? '+' : ''}
+                  {pnlPct.toFixed(2)}%)
+                </span>
+                <span className="text-muted-foreground ml-auto">
+                  @ ${fmt(price)}
+                </span>
+              </div>
+              {/* Last trade receipt */}
+              {lastTradeInfo && (
+                <div
+                  className={`text-xs mb-2 px-2 py-1 rounded ${lastTradeInfo.type === 'buy' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-red-500/10 text-red-600 dark:text-red-400'}`}
+                >
+                  {lastTradeInfo.type === 'buy'
+                    ? `✓ Bought ${fmtU(lastTradeInfo.units)} units @ $${fmt(lastTradeInfo.price)} = $${fmt(lastTradeInfo.total)}`
+                    : `✓ Sold ${fmtU(lastTradeInfo.units)} units @ $${fmt(lastTradeInfo.price)} = $${fmt(lastTradeInfo.total)}`}
+                </div>
+              )}
+              {/* Trade controls row */}
+              <div className="flex flex-wrap gap-2 items-center text-xs">
+                {/* Buy */}
+                <div className="flex items-center gap-1 border border-border rounded-lg overflow-hidden">
+                  <button
+                    onClick={() => setMockBuyMode('usd')}
+                    className={`px-2 py-1 text-xs transition-colors ${mockBuyMode === 'usd' ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground hover:bg-muted'}`}
+                  >
+                    $
+                  </button>
+                  <button
+                    onClick={() => setMockBuyMode('units')}
+                    className={`px-2 py-1 text-xs transition-colors ${mockBuyMode === 'units' ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground hover:bg-muted'}`}
+                  >
+                    units
+                  </button>
+                </div>
+                <input
+                  type="number"
+                  min={0}
+                  placeholder={mockBuyMode === 'usd' ? '0.00' : '0.0000'}
+                  value={mockBuyInput}
+                  onChange={(e) => setMockBuyInput(e.target.value)}
+                  className="w-24 bg-transparent border border-border rounded px-2 py-1 text-foreground focus:border-primary outline-none"
+                />
+                <button
+                  onClick={() =>
+                    handleMockBuy(parseFloat(mockBuyInput) || 0, mockBuyMode)
+                  }
+                  disabled={
+                    !mockBuyInput ||
+                    parseFloat(mockBuyInput) <= 0 ||
+                    mockCash <= 0
+                  }
+                  className="px-2.5 py-1 rounded-lg text-white text-xs font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-all bg-[rgb(var(--color-success)/1)] hover:bg-[rgb(var(--color-success)/0.8)]"
+                >
+                  Buy
+                </button>
+                {/* Sell */}
+                <div className="flex items-center gap-1 border border-border rounded-lg overflow-hidden ml-2">
+                  <button
+                    onClick={() => setMockSellMode('units')}
+                    className={`px-2 py-1 text-xs transition-colors ${mockSellMode === 'units' ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground hover:bg-muted'}`}
+                  >
+                    units
+                  </button>
+                  <button
+                    onClick={() => setMockSellMode('usd')}
+                    className={`px-2 py-1 text-xs transition-colors ${mockSellMode === 'usd' ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground hover:bg-muted'}`}
+                  >
+                    $
+                  </button>
+                </div>
+                <input
+                  type="number"
+                  min={0}
+                  placeholder={mockSellMode === 'units' ? '0.0000' : '0.00'}
+                  value={mockSellInput}
+                  onChange={(e) => setMockSellInput(e.target.value)}
+                  className="w-24 bg-transparent border border-border rounded px-2 py-1 text-foreground focus:border-primary outline-none"
+                />
+                <button
+                  onClick={() =>
+                    handleMockSell(parseFloat(mockSellInput) || 0, mockSellMode)
+                  }
+                  disabled={
+                    !mockSellInput ||
+                    parseFloat(mockSellInput) <= 0 ||
+                    mockUnits <= 0
+                  }
+                  className="px-2.5 py-1 rounded-lg text-white text-xs font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-all bg-[rgb(var(--color-danger)/1)] hover:bg-[rgb(var(--color-danger)/0.8)]"
+                >
+                  Sell
+                </button>
+                {mockUnits > 0.0001 && (
+                  <button
+                    onClick={() => handleMockSell(mockUnits, 'units')}
+                    className="px-2.5 py-1 rounded-lg border border-border bg-card text-muted-foreground hover:bg-muted text-xs font-medium transition-all"
+                  >
+                    Sell All
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })()}
 
       {/* Error message */}
       {error && (
