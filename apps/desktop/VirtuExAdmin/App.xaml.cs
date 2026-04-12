@@ -1,6 +1,7 @@
 ﻿using System.Configuration;
 using System.Data;
 using System.Windows;
+using System.Windows.Markup;
 using System.Windows.Navigation;
 using System.Windows.Threading;
 using Microsoft.Extensions.Configuration;
@@ -26,66 +27,76 @@ namespace VirtuExAdmin;
 /// <summary>
 /// Interaction logic for App.xaml
 /// </summary>
-public partial class App : Application {
-    private static readonly IHost _host = Host.CreateDefaultBuilder()
-        .ConfigureAppConfiguration(c => {
-            _ = c.SetBasePath(AppContext.BaseDirectory);
-        }).ConfigureServices((_2, services) => {
-            // Singletons
-            _ = services.AddSingleton<ApiClient>();
-            _ = services.AddSingleton<UserService>();
-            _ = services.AddSingleton<SettingsService>();
-            _ = services.AddSingleton<CurrencyNavigationState>();
-        
-            _ = services.AddNavigationViewPageProvider();
-            _ = services.AddSingleton<INavigationService, NavigationService>();
-            
-            // ViewModels
-            _ = services.AddTransient<AuthViewModel>();
-            
-            _ = services.AddTransient<AccountPageViewModel>();
-            _ = services.AddTransient<CurrenciesPageViewModel>();
-            _ = services.AddTransient<AuditLogPageViewModel>();
-            _ = services.AddTransient<SettingsViewModel>();
-            _ = services.AddTransient<TransactionsPageViewModel>();
-        
-            // Windows
-            _ = services.AddSingleton<AuthWindow>();
-            _ = services.AddSingleton<MainWindow>();
-            
-            // Pages
-            _ = services.AddScoped<AccountPage>();
-            _ = services.AddScoped<AuditLogPage>();
-            _ = services.AddScoped<CurrenciesPage>();
-            _ = services.AddScoped<DetailedCurrencyPage>();
-            _ = services.AddScoped<SettingsPage>();
-            _ = services.AddScoped<TransactionsPage>();
-            _ = services.AddScoped<UsersPage>();
-            _ = services.AddScoped<WebPage>();
-        }).Build();
+public partial class App : Application, IQueryAmbient
+{
+    private static readonly IHost _host;
 
-    public App() {
+    static App()
+    {
+        _host = Host.CreateDefaultBuilder()
+            .ConfigureAppConfiguration(c =>
+            {
+                _ = c.SetBasePath(AppContext.BaseDirectory);
+            }).ConfigureServices((_2, services) => {
+                // Singletons
+                _ = services.AddSingleton<ApiClient>();
+                _ = services.AddSingleton<UserService>();
+
+                _ = services.AddNavigationViewPageProvider();
+                _ = services.AddSingleton<INavigationService, NavigationService>();
+
+                // ViewModels
+                _ = services.AddTransient<AuthViewModel>();
+
+                _ = services.AddTransient<AccountPageViewModel>();
+                _ = services.AddTransient<CurrenciesPageViewModel>();
+
+                // Windows
+                _ = services.AddSingleton<AuthWindow>();
+                _ = services.AddSingleton<MainWindow>();
+
+                // Pages
+                _ = services.AddScoped<AccountPage>();
+                _ = services.AddScoped<AuditLogPage>();
+                _ = services.AddScoped<CurrenciesPage>();
+                _ = services.AddScoped<DetailedCurrencyPage>();
+                _ = services.AddScoped<SettingsPage>();
+                _ = services.AddScoped<TransactionsPage>();
+                _ = services.AddScoped<UsersPage>();
+                _ = services.AddScoped<WebPage>();
+            }).Build();
+    }
+
+    public App()
+    {
         // TODO: Get User Auth
         Current.MainWindow = _host.Services.GetRequiredService<AuthWindow>();
         Current.MainWindow.Show();
     }
-    
-    public static T GetRequiredService<T>() where T : class {
+
+    public static T GetRequiredService<T>() where T : class
+    {
         return _host.Services.GetRequiredService<T>();
     }
-    
-    private void OnStartup(object sender, StartupEventArgs e) {
+
+    public static IServiceProvider Services => _host.Services;
+
+    private void OnStartup(object sender, StartupEventArgs e)
+    {
         _host.Start();
     }
 
-    private void OnExit(object sender, ExitEventArgs e) {
+    private void OnExit(object sender, ExitEventArgs e)
+    {
         _host.StopAsync().Wait();
         _host.Dispose();
     }
-    
-    private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e) {
-        var msgBox = new Wpf.Ui.Controls.MessageBox {
-            Title   = "Very Big Hiba",
+
+    private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
+    {
+        var msgBox = new Wpf.Ui.Controls.MessageBox
+        {
+            Title = "Very Big Hiba",
             Content = e.Exception,
             IsPrimaryButtonEnabled = true,
             IsCloseButtonEnabled = true,
@@ -93,9 +104,7 @@ public partial class App : Application {
             CloseButtonText = "Close",
         };
         _ = msgBox.ShowDialogAsync();
-        
-        Console.Error.WriteLine(e.Exception);
-        
+
         e.Handled = true;
     }
 }
