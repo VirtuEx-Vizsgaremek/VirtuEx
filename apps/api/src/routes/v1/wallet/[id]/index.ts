@@ -2,10 +2,12 @@ import { Request, Response } from '@/util/handler';
 import { orm } from '@/util/orm';
 
 import { Wallet } from '@/entities/wallet.entity';
-import { Asset } from '@/entities/asset.entity';
 
 import Status from '@/enum/status';
+import Permissions from '@/enum/permissions';
 import { CurrencyType } from '@/enum/currency_type';
+
+import { getWalletAssetsWithPrices } from '@/util/wallet';
 
 import { z } from 'zod';
 
@@ -37,6 +39,8 @@ export const get = async (
     const user = await req.getUser();
     const db = (await orm).em.fork();
     const { id } = req.params;
+    const isAdmin =
+      (user.permissions & Permissions.Admin) === Permissions.Admin;
 
     // Convert string ID to BigInt for database query
     const walletId = BigInt(id);
@@ -50,56 +54,13 @@ export const get = async (
       return res.error(Status.NotFound, 'Wallet not found');
     }
 
-    if (wallet.user.id !== user.id) {
+    if (!isAdmin && wallet.user.id !== user.id) {
       return res.error(Status.Forbidden, 'Access denied');
     }
 
-    const assets = await db.find(Asset, { wallet }, { populate: ['currency'] });
+    const walletAssets = await getWalletAssetsWithPrices(db, wallet);
 
-    // Batch-load the latest close price for all non-fiat currencies in one query
-    const nonFiatIds = assets
-      .filter((a) => a.currency.type !== CurrencyType.Fiat)
-      .map((a) => a.currency.id);
-
-    const priceMap = new Map<bigint, number>();
-    if (nonFiatIds.length > 0) {
-      const rows = await db
-        .getKnex()
-        .raw<{ rows: { currency_id: string; close: string }[] }>(
-          `SELECT DISTINCT ON (currency_id) currency_id, close
-         FROM currency_history
-         WHERE currency_id = ANY(?)
-           AND close > 0
-         ORDER BY currency_id, timestamp DESC`,
-          [nonFiatIds.map(String)]
-        );
-      for (const row of rows.rows) {
-        priceMap.set(BigInt(row.currency_id), Number(row.close) / 100);
-      }
-    }
-
-    const formattedAssets = assets.map((asset) => {
-      const price =
-        asset.currency.type === CurrencyType.Fiat
-          ? 1
-          : (priceMap.get(asset.currency.id) ?? 0);
-
-      return {
-        id: asset.id.toString(),
-        currency: asset.currency.name,
-        symbol: asset.currency.symbol,
-        amount: asset.amount.toString(),
-        type: asset.currency.type,
-        precision: asset.currency.precision,
-        price
-      };
-    });
-
-    return res.status(Status.Ok).json({
-      wallet_id: wallet.id.toString(),
-      total_assets: assets.length,
-      assets: formattedAssets
-    });
+    return res.status(Status.Ok).json(walletAssets);
   } catch (error) {
     console.error('Error fetching wallet balance:', error);
 

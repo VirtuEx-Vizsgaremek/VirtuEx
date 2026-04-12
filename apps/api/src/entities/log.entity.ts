@@ -21,7 +21,15 @@ export interface ActionSell {
   amount: bigint;
 }
 
-type ActionData = ActionNone | ActionBuy | ActionSell;
+export interface ActionAdminCredit {
+  action: Action.AdminCredit;
+  currency: bigint;
+  amount: bigint;
+  admin_user_id?: bigint;
+  reason?: string;
+}
+
+type ActionData = ActionNone | ActionBuy | ActionSell | ActionAdminCredit;
 
 @Entity()
 export class AuditLog extends BaseEntity {

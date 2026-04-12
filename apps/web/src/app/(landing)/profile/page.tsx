@@ -30,6 +30,14 @@ export default async function ProfilePage() {
   const isPremium = planName !== 'Free';
   const credits = subData?.monthly_ai_credits ?? 0;
   const expiresAt: string | null = subData?.expires_at ?? null;
+  const billingPeriodLabel =
+    subData?.billing_period === 'yearly' ? 'Yearly' : 'Monthly';
+  const pendingPlanName: string | null = subData?.pending_plan_name ?? null;
+  const pendingEffectiveRaw: string | null =
+    subData?.pending_effective_at ?? subData?.expires_at ?? null;
+  const pendingEffective = pendingEffectiveRaw
+    ? new Date(pendingEffectiveRaw).toLocaleDateString('hu-HU')
+    : null;
 
   const user = [
     {
@@ -44,6 +52,9 @@ export default async function ProfilePage() {
         : null,
       plan: planName,
       credits,
+      billingPeriod: billingPeriodLabel,
+      pendingPlan: pendingPlanName,
+      pendingEffective,
       password: 'hashed_password_here'
     }
   ];
@@ -65,9 +76,21 @@ export default async function ProfilePage() {
           <span className="text-xs text-muted-foreground">
             Credits: {user.credits}/mo
           </span>
+          <span className="text-xs text-muted-foreground">
+            Billing: {user.billingPeriod}
+          </span>
           {user.expire && (
             <span className="text-xs text-muted-foreground">
               Expires: {user.expire}
+            </span>
+          )}
+          {user.pendingPlan && (
+            <span className="text-xs text-muted-foreground">
+              <span className="mr-2 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+                Scheduled
+              </span>
+              Will change to {user.pendingPlan}
+              {user.pendingEffective ? ` on ${user.pendingEffective}` : ''}
             </span>
           )}
         </div>

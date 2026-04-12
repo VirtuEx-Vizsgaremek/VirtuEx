@@ -44,7 +44,7 @@ export const get = async (
     const sub = await db.findOne(
       Subscription,
       { user },
-      { populate: ['plan'] }
+      { populate: ['plan', 'pendingPlan'] }
     );
 
     if (!sub) {
@@ -98,12 +98,20 @@ export const post = async (
       sub = new Subscription();
       sub.user = user;
       sub.plan = plan;
+      sub.billingPeriod = 'monthly';
+      sub.pendingPlan = null;
+      sub.pendingBillingPeriod = null;
+      sub.pendingEffectiveAt = null;
       sub.startedAt = new Date();
       sub.expiresAt =
         plan.price > 0 ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) : null;
       db.persist(sub);
     } else {
       sub.plan = plan;
+      sub.billingPeriod = 'monthly';
+      sub.pendingPlan = null;
+      sub.pendingBillingPeriod = null;
+      sub.pendingEffectiveAt = null;
       sub.startedAt = new Date();
       sub.expiresAt =
         plan.price > 0 ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) : null;

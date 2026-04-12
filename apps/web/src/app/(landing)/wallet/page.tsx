@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 import {
   Card,
@@ -19,39 +19,104 @@ import {
   ItemMedia,
   ItemTitle
 } from '@/components/ui/item';
+import { Button } from '@/components/ui/button';
 import SideNav from '@/components/sidenav';
 import { useRouter } from 'next/navigation';
-import { getMyWallet, getMyWalletHistory } from '@/lib/actions';
+import { getMyWallet, getMyWalletHistory, topupMyWallet } from '@/lib/actions';
 
 export default function WalletPage() {
   const [walletData, setWalletData] = useState<any>(null);
   const [transactionsData, setTransactionsData] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [topupLoading, setTopupLoading] = useState<boolean>(false);
+  const [topupNextAt, setTopupNextAt] = useState<number | null>(null);
+  const [topupRemainingMs, setTopupRemainingMs] = useState<number | null>(null);
+  const [topupMessage, setTopupMessage] = useState<string | null>(null);
   const router = useRouter();
 
-  useEffect(() => {
-    async function loadWallet() {
-      try {
-        const [wallet, transactions] = await Promise.all([
-          getMyWallet(),
-          getMyWalletHistory()
-        ]);
-        setWalletData(wallet);
-        setTransactionsData(transactions);
-      } catch (err: any) {
-        if (err.message === 'Not authenticated') {
-          router.push('/auth/login');
-          return;
-        }
-        setError(err.message);
-      } finally {
-        setLoading(false);
+  const refreshWallet = useCallback(async () => {
+    try {
+      const [wallet, transactions] = await Promise.all([
+        getMyWallet(),
+        getMyWalletHistory()
+      ]);
+      setWalletData(wallet);
+      setTransactionsData(transactions);
+    } catch (err: any) {
+      if (err.message === 'Not authenticated') {
+        router.push('/auth/login');
+        return;
       }
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
-
-    loadWallet();
   }, [router]);
+
+  useEffect(() => {
+    refreshWallet();
+  }, [refreshWallet]);
+
+  useEffect(() => {
+    if (!topupNextAt) return;
+
+    const updateRemaining = () => {
+      const remaining = Math.max(0, topupNextAt - Date.now());
+      setTopupRemainingMs(remaining);
+
+      if (remaining <= 0) {
+        setTopupNextAt(null);
+        setTopupRemainingMs(null);
+      }
+    };
+
+    updateRemaining();
+    const timer = setInterval(updateRemaining, 1000);
+
+    return () => clearInterval(timer);
+  }, [topupNextAt]);
+
+  const formatCountdown = (ms: number) => {
+    const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+    const days = Math.floor(totalSeconds / 86400);
+    const hours = Math.floor((totalSeconds % 86400) / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    const pad = (value: number) => value.toString().padStart(2, '0');
+
+    return `${days} days ${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+  };
+
+  const handleTopup = async () => {
+    setTopupLoading(true);
+    setTopupMessage(null);
+
+    try {
+      const result = await topupMyWallet();
+
+      if (result.status === 401) {
+        router.push('/auth/login');
+        return;
+      }
+
+      if (result.ok && result.data?.next_topup_at) {
+        setTopupNextAt(result.data.next_topup_at);
+        await refreshWallet();
+      } else if (result.status === 429 && result.next_topup_at) {
+        setTopupNextAt(result.next_topup_at);
+      }
+
+      if (!result.ok) {
+        setTopupMessage(result.message ?? 'Top-up failed.');
+      }
+    } catch (err) {
+      console.error('Top-up failed:', err);
+      setTopupMessage('Top-up failed.');
+    } finally {
+      setTopupLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -94,6 +159,8 @@ export default function WalletPage() {
     maximumFractionDigits: 2
   }).format(totalBalance);
 
+  const isCooldownActive = (topupRemainingMs ?? 0) > 0;
+
   return (
     <div>
       <div className="max-w-[95vw] lg:max-w-[80vw] mx-auto my-4 md:my-10 px-2 md:px-4">
@@ -116,6 +183,24 @@ export default function WalletPage() {
                           <ItemDescription className="text-base md:text-lg font-mono text-primary bg-primary/10 px-2 py-0.5 rounded">
                             {formattedBalance}
                           </ItemDescription>
+                        </div>
+                        <div className="mt-4 flex flex-col sm:flex-row sm:items-center gap-3">
+                          <Button
+                            onClick={handleTopup}
+                            disabled={topupLoading || isCooldownActive}
+                          >
+                            {topupLoading ? 'Processing...' : 'Top up 1000 USD'}
+                          </Button>
+                          <div className="text-xs text-muted-foreground">
+                            {isCooldownActive && topupRemainingMs !== null
+                              ? `Available in: ${formatCountdown(topupRemainingMs)}`
+                              : 'Available now'}
+                          </div>
+                          {topupMessage && (
+                            <div className="text-xs text-destructive">
+                              {topupMessage}
+                            </div>
+                          )}
                         </div>
                       </ItemContent>
                     </div>
