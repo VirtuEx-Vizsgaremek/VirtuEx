@@ -4,5 +4,6 @@ export enum Action {
   Sell,
   Ban,
   UnBan,
-  Restrict
+  Restrict,
+  AdminCredit
 }

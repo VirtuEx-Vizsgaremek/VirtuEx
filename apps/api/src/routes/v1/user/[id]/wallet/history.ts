@@ -1,13 +1,14 @@
 import { Request, Response } from '@/util/handler';
 import { orm } from '@/util/orm';
 
-import { Wallet } from '@/entities/wallet.entity';
+import { User } from '@/entities/user.entity';
 
-import Status from '@/enum/status';
 import Permissions from '@/enum/permissions';
-import { z } from 'zod';
+import Status from '@/enum/status';
 
 import { getWalletHistory } from '@/util/wallet';
+
+import { z } from 'zod';
 
 export const schemas = {
   get: {
@@ -36,33 +37,38 @@ export const get = async (
   res: Response<z.infer<typeof schemas.get.res>>
 ) => {
   try {
-    const user = await req.getUser();
-    const db = (await orm).em.fork();
-    const { id } = req.params;
+    const requester = await req.getUser();
     const isAdmin =
-      (user.permissions & Permissions.Admin) === Permissions.Admin;
+      (requester.permissions & Permissions.Admin) === Permissions.Admin;
 
-    // Convert string ID to BigInt for database query
-    const walletId = BigInt(id);
-    const wallet = await db.findOne(
-      Wallet,
-      { id: walletId },
-      { populate: ['user'] }
+    if (!isAdmin) {
+      return res.error(Status.Forbidden, 'Admin access required');
+    }
+
+    const { id } = req.params;
+    const db = (await orm).em.fork();
+
+    const user = await db.findOne(
+      User,
+      { id: BigInt(id) },
+      {
+        populate: ['wallet']
+      }
     );
 
-    if (!wallet) {
+    if (!user) {
+      return res.error(Status.NotFound, 'User not found');
+    }
+
+    if (!user.wallet) {
       return res.error(Status.NotFound, 'Wallet not found');
     }
 
-    if (!isAdmin && wallet.user.id !== user.id) {
-      return res.error(Status.Forbidden, 'Access denied');
-    }
-
-    const walletHistory = await getWalletHistory(db, wallet);
+    const walletHistory = await getWalletHistory(db, user.wallet);
 
     return res.status(Status.Ok).json(walletHistory);
   } catch (error) {
-    console.error('Error fetching wallet transactions:', error);
+    console.error('Error fetching wallet history:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return res.error(Status.Unauthorized, 'Invalid or missing token');
@@ -70,7 +76,7 @@ export const get = async (
 
     return res.error(
       Status.InternalServerError,
-      'Failed to fetch wallet transactions'
+      'Failed to fetch wallet history'
     );
   }
 };

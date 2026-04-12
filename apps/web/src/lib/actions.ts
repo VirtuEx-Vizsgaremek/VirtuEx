@@ -427,6 +427,91 @@ export const getMyWalletHistory = async () => {
   return response.json();
 };
 
+export type TopupResult = {
+  ok: boolean;
+  status: number;
+  data: {
+    credited: string;
+    balance: string;
+    next_topup_at: number;
+    token?: string;
+  } | null;
+  error: string | number | null;
+  message: string | null;
+  next_topup_at?: number;
+  remaining_ms?: number;
+  raw: unknown;
+};
+
+export const topupMyWallet = async (): Promise<TopupResult> => {
+  const cookieStore = await cookies();
+  const token = cookieStore.get('vtx_token')?.value;
+
+  if (!token) {
+    return {
+      ok: false,
+      status: 401,
+      data: null,
+      error: 'Not authenticated',
+      message: 'Not authenticated',
+      raw: null
+    };
+  }
+
+  const response = await fetch(`${API_URL}/v1/wallet/@me/topup`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    }
+  });
+
+  const payload = await response.json().catch(() => null);
+
+  if (response.status === 429) {
+    return {
+      ok: false,
+      status: response.status,
+      data: null,
+      error: payload?.error ?? null,
+      message: payload?.message ?? null,
+      next_topup_at: payload?.next_topup_at,
+      remaining_ms: payload?.remaining_ms,
+      raw: payload
+    };
+  }
+
+  if (!response.ok) {
+    return {
+      ok: false,
+      status: response.status,
+      data: null,
+      error: payload?.error ?? null,
+      message: payload?.message ?? 'Failed to top up',
+      raw: payload
+    };
+  }
+
+  if (payload?.token) {
+    cookieStore.set('vtx_token', payload.token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
+      path: '/'
+    });
+  }
+
+  return {
+    ok: true,
+    status: response.status,
+    data: payload,
+    error: null,
+    message: null,
+    raw: payload
+  };
+};
+
 export const getMySubscription = async () => {
   const cookieStore = await cookies();
   const token = cookieStore.get('vtx_token')?.value;
