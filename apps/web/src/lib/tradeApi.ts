@@ -186,6 +186,42 @@ export async function fetchCurrencies(): Promise<Currency[]> {
 }
 
 /**
+ * Fetches the user's balance for a given ticker symbol from their wallet.
+ * Returns the human-readable amount string (e.g. "1.50000000") or null on error.
+ */
+export async function fetchSymbolBalance(
+  token: string,
+  symbol: string
+): Promise<string | null> {
+  try {
+    // Step 1: get the authenticated user's wallet ID
+    const userRes = await fetch(`${API_URL}/v1/user/@me`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!userRes.ok) return null;
+    const user = await userRes.json();
+    const walletId = user.wallet;
+    if (!walletId) return null;
+
+    // Step 2: get all assets in that wallet
+    const assetsRes = await fetch(`${API_URL}/v1/wallet/${walletId}/asset`);
+    if (!assetsRes.ok) return null;
+    const assets: Array<{ symbol: string; amount: string; precision: number }> =
+      await assetsRes.json();
+
+    const asset = assets.find(
+      (a) => a.symbol.toUpperCase() === symbol.toUpperCase()
+    );
+    if (!asset) return null;
+
+    const divisor = Math.pow(10, asset.precision);
+    return (parseInt(asset.amount, 10) / divisor).toFixed(asset.precision);
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Looks up a currency ID by ticker symbol (case-insensitive).
  * Returns null if the symbol is not found in the currency list.
  */

@@ -8,6 +8,7 @@ import {
   createChart
 } from 'lightweight-charts';
 import { Lock } from 'lucide-react';
+import Link from 'next/link';
 import { useTheme } from '@/contexts/ThemeContext';
 import { CHART_THEMES } from '@/lib/chartThemes';
 import { cn } from '@/lib/utils';
@@ -49,15 +50,16 @@ const GENERATE_PERIODS = [
   { label: '3Y', days: 1095 }
 ];
 
-/** Total days of data generated (always the maximum period). */
-const TOTAL_GEN_DAYS = 1095; // 3Y
-
 const WINDOW_DAYS = 365;
 const LOAD_MORE_THRESHOLD = 20;
 const SIM_INTERVAL_MS = 1000;
 
-// Single localStorage key — one dataset shared across all period views
-const STORAGE_KEY = 'freechart_generated';
+// Per-period localStorage keys — each period saves its own independent dataset
+const STORAGE_KEYS: Record<string, string> = {
+  '1Y': 'freechart_generated_1Y',
+  '2Y': 'freechart_generated_2Y',
+  '3Y': 'freechart_generated_3Y'
+};
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -107,21 +109,23 @@ function fmtDate(s: string): string {
   return `${d} ${mo} ${y}`;
 }
 
-function loadCachedRows(): AreaRow[] | null {
+function loadCachedPeriod(label: string): AreaRow[] | null {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw) as AreaRow[];
+    const key = STORAGE_KEYS[label];
+    if (!key) return null;
+    const raw = localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as AreaRow[]) : null;
   } catch {
     return null;
   }
 }
 
-function saveCachedRows(rows: AreaRow[]): void {
+function saveCachedPeriod(label: string, rows: AreaRow[]): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(rows));
+    const key = STORAGE_KEYS[label];
+    if (key) localStorage.setItem(key, JSON.stringify(rows));
   } catch {
-    // storage full or unavailable — silently ignore
+    /* storage full or unavailable */
   }
 }
 
@@ -139,6 +143,7 @@ export default function FreeChart({ selectedSymbol }: Props) {
   const [isClient, setIsClient] = useState(false);
   const [dataMode, setDataMode] = useState<DataMode>('real');
   const [generateDays, setGenerateDays] = useState(365);
+  const [activePeriodLabel, setActivePeriodLabel] = useState('1Y');
   const [isLive, setIsLive] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -505,15 +510,17 @@ export default function FreeChart({ selectedSymbol }: Props) {
   }, []);
 
   // ── Generate mock data ─────────────────────────────────────────────────────
-  // Always regenerates the full TOTAL_GEN_DAYS dataset and saves it to localStorage.
+  // Regenerates only the currently active period's dataset and saves it.
   const handleGenerate = useCallback(
     () => {
       setIsLive(false);
       setError(null);
+      const label = activePeriodLabelRef.current;
+      const days = generateDaysRef.current;
       const start = new Date();
-      start.setDate(start.getDate() - TOTAL_GEN_DAYS);
+      start.setDate(start.getDate() - days);
       const candles = generateCandlestickData(
-        TOTAL_GEN_DAYS,
+        days,
         start,
         activeAsset.initialPrice
       );
@@ -521,24 +528,8 @@ export default function FreeChart({ selectedSymbol }: Props) {
         time: c.time,
         value: c.close
       }));
-      saveCachedRows(rows);
-      applyGeneratedRows(rows, generateDays);
-      // Zoom to the currently selected period view
-      requestAnimationFrame(() => {
-        if (chartRef.current && rows.length > 0) {
-          const lastDate = rows[rows.length - 1].time;
-          const from = new Date(lastDate + 'T00:00:00Z');
-          from.setDate(from.getDate() - generateDays);
-          try {
-            chartRef.current.timeScale().setVisibleRange({
-              from: from.toISOString().slice(0, 10) as any,
-              to: lastDate as any
-            });
-          } catch {
-            /* ignore */
-          }
-        }
-      });
+      saveCachedPeriod(label, rows);
+      applyGeneratedRows(rows, days);
       // Reset paper-trading portfolio on fresh generate
       setMockCash(FREE_MOCK_BALANCE);
       setMockUnits(0);
@@ -547,49 +538,28 @@ export default function FreeChart({ selectedSymbol }: Props) {
       setMockSellInput('');
       setLastTradeInfo(null);
     },
-    [activeAsset, applyGeneratedRows, generateDays] // eslint-disable-line react-hooks/exhaustive-deps
+    [activeAsset, applyGeneratedRows] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
-  // ── Select period: zoom the view to the last N days of the existing dataset ──
-  // If no generated data exists yet, load from cache or generate TOTAL_GEN_DAYS first.
+  // ── Select period: switch to a period-specific dataset ────────────────────
+  // Each period (1Y / 2Y / 3Y) stores its own independent dataset in localStorage.
+  // Switching periods loads that period's cached data; if none exists, generates fresh.
   const handleSelectPeriod = useCallback(
-    (days: number) => {
+    (days: number, label: string) => {
       setGenerateDays(days);
+      setActivePeriodLabel(label);
       setIsLive(false);
       setError(null);
 
-      const zoomToLastDays = (rows: AreaRow[]) => {
-        if (!chartRef.current || rows.length === 0) return;
-        const lastDate = rows[rows.length - 1].time;
-        const from = new Date(lastDate + 'T00:00:00Z');
-        from.setDate(from.getDate() - days);
-        try {
-          chartRef.current.timeScale().setVisibleRange({
-            from: from.toISOString().slice(0, 10) as any,
-            to: lastDate as any
-          });
-        } catch {
-          /* ignore */
-        }
-      };
-
-      // Already in generated mode with data — just zoom
-      if (dataMode === 'generated' && activeDataRef.current.length > 0) {
-        zoomToLastDays(activeDataRef.current);
-        return;
-      }
-
-      // Need to load or generate data first
-      const cached = loadCachedRows();
+      const cached = loadCachedPeriod(label);
       if (cached && cached.length > 0) {
         applyGeneratedRows(cached, days);
-        requestAnimationFrame(() => zoomToLastDays(cached));
       } else {
-        // Generate fresh full dataset
+        // No cached data for this period — generate fresh
         const start = new Date();
-        start.setDate(start.getDate() - TOTAL_GEN_DAYS);
+        start.setDate(start.getDate() - days);
         const candles = generateCandlestickData(
-          TOTAL_GEN_DAYS,
+          days,
           start,
           activeAsset.initialPrice
         );
@@ -597,10 +567,9 @@ export default function FreeChart({ selectedSymbol }: Props) {
           time: c.time,
           value: c.close
         }));
-        saveCachedRows(rows);
+        saveCachedPeriod(label, rows);
         applyGeneratedRows(rows, days);
-        requestAnimationFrame(() => zoomToLastDays(rows));
-        // Reset portfolio only when first entering generated mode
+        // Reset portfolio when entering a period for the first time
         setMockCash(FREE_MOCK_BALANCE);
         setMockUnits(0);
         setMockAvgCost(0);
@@ -609,7 +578,7 @@ export default function FreeChart({ selectedSymbol }: Props) {
         setLastTradeInfo(null);
       }
     },
-    [dataMode, activeAsset, applyGeneratedRows] // eslint-disable-line react-hooks/exhaustive-deps
+    [activeAsset, applyGeneratedRows] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   // ── Paper-trade helpers (free plan) ───────────────────────────────────────
@@ -664,11 +633,15 @@ export default function FreeChart({ selectedSymbol }: Props) {
   );
 
   // ── Live sim ───────────────────────────────────────────────────────────────
-  // Keep a ref to generateDays so the interval closure can access the current value
+  // Keep refs so the interval closure always reads current values
   const generateDaysRef = useRef(generateDays);
+  const activePeriodLabelRef = useRef(activePeriodLabel);
   useEffect(() => {
     generateDaysRef.current = generateDays;
   }, [generateDays]);
+  useEffect(() => {
+    activePeriodLabelRef.current = activePeriodLabel;
+  }, [activePeriodLabel]);
 
   useEffect(() => {
     if (!isLive || dataMode !== 'generated') return;
@@ -681,8 +654,8 @@ export default function FreeChart({ selectedSymbol }: Props) {
       activeDataRef.current = [...activeDataRef.current, bar];
       seriesRef.current.update(bar);
       setLastPrice(candle.close);
-      // Persist the live-extended data so it survives a pause/resume
-      saveCachedRows(activeDataRef.current);
+      // Persist live-extended data to the active period's key
+      saveCachedPeriod(activePeriodLabelRef.current, activeDataRef.current);
     }, SIM_INTERVAL_MS);
     return () => clearInterval(id);
   }, [isLive, dataMode]);
@@ -724,10 +697,10 @@ export default function FreeChart({ selectedSymbol }: Props) {
           {GENERATE_PERIODS.map((p) => (
             <button
               key={p.label}
-              onClick={() => handleSelectPeriod(p.days)}
+              onClick={() => handleSelectPeriod(p.days, p.label)}
               className={cn(
                 'px-2.5 py-1.5 text-xs rounded-lg font-medium transition-all',
-                dataMode === 'generated' && generateDays === p.days
+                dataMode === 'generated' && activePeriodLabel === p.label
                   ? 'bg-primary text-primary-foreground'
                   : 'bg-card border border-border text-muted-foreground hover:bg-muted'
               )}
@@ -1178,9 +1151,12 @@ export default function FreeChart({ selectedSymbol }: Props) {
             {label}
           </span>
         ))}
-        <button className="ml-auto px-3 py-1 text-xs font-medium rounded-lg border border-border bg-card text-muted-foreground hover:bg-muted transition-all">
+        <Link
+          href="/subscription"
+          className="ml-auto px-3 py-1 text-xs font-medium rounded-lg border border-primary/50 bg-primary/10 text-primary hover:bg-primary/20 transition-all"
+        >
           Upgrade
-        </button>
+        </Link>
       </div>
 
       {/* ── Trade modal ── */}

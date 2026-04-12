@@ -6,34 +6,20 @@
  *
  * Sections:
  * 1. Hero - Eye-catching headline with value proposition
- * 2. Features - Card-based feature highlights (Real-Time Data, AI Assistant, Smart Wallet)
+ * 2. Features - Card-based feature highlights
  * 3. Pricing - Pricing tiers and subscription options
- * 4. FAQ - Frequently asked questions section
- * 5. CTA - Call-to-action to get started on /market page
- *
- * Design:
- * - Gradient text for emphasis (Tailwind bg-gradient-to-r)
- * - Responsive grid layouts (mobile: 1 col, desktop: 3 cols)
- * - Card components with hover effects
- * - Icons from lucide-react library
- *
- * Navigation:
- * - Links to /market for premium trading experience
- * - Navbar and Footer from ConditionalLayout
- * - Smooth scroll to sections via anchor links
+ * 4. CTA - Call-to-action to get started on /market page
  */
 
-// UI Components and Icons
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Bot, Check, TrendingUp, Wallet, X } from 'lucide-react';
-
-//TODO Connect the links to their respective pages
+import { BarChart2, Check, TrendingUp, Wallet, X } from 'lucide-react';
+import Link from 'next/link';
 
 export default function Home() {
   return (
     <div className="min-h-screen">
-      {/* Hero Section - Main landing page headline */}
+      {/* Hero Section */}
       <main className="container mx-auto px-6 py-16 text-center max-w-5xl">
         <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold mb-6 leading-tight">
           Master the Markets <br />
@@ -45,12 +31,12 @@ export default function Home() {
           Trade with live market data in a safe sandbox environment
         </p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
-          <a
+          <Link
             href="/market"
             className="w-full sm:w-auto px-8 py-3 rounded-full bg-primary text-primary-foreground font-semibold text-sm hover:bg-primary/90 transition-all shadow-lg"
           >
             Start Trading
-          </a>
+          </Link>
           <a
             href="#features"
             className="w-full sm:w-auto px-8 py-3 rounded-full border border-border text-foreground font-semibold text-sm hover:bg-muted transition-all"
@@ -60,7 +46,7 @@ export default function Home() {
         </div>
       </main>
 
-      {/* Features Section - Showcase key platform features */}
+      {/* Features Section */}
       <section id="features" className="py-16 md:py-24 bg-muted/30">
         <div className="container mx-auto px-6 max-w-6xl">
           <div className="text-center mb-16">
@@ -73,6 +59,7 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+            {/* Real-Time Data */}
             <Card className="p-8 bg-card border border-border hover:border-primary transition-colors duration-300 group">
               <div className="w-14 h-14 bg-primary/10 rounded-lg flex items-center justify-center mb-6 text-primary group-hover:scale-110 transition">
                 <TrendingUp className="w-6 h-6" />
@@ -82,27 +69,31 @@ export default function Home() {
               </CardHeader>
               <CardContent className="p-0">
                 <p className="text-muted-foreground">
-                  Trade with live market data from CoinMarketCap. Experience the
-                  volatility of the real market in a safe sandbox.
+                  Trade with live market data powered by Yahoo Finance.
+                  Experience the volatility of real stocks and assets in a
+                  completely safe sandbox environment.
                 </p>
               </CardContent>
             </Card>
 
+            {/* TradingView Charts */}
             <Card className="p-8 bg-card border border-border hover:border-primary transition-colors duration-300 group">
               <div className="w-14 h-14 bg-primary/10 rounded-lg flex items-center justify-center mb-6 text-primary group-hover:scale-110 transition">
-                <Bot className="w-6 h-6" />
+                <BarChart2 className="w-6 h-6" />
               </div>
               <CardHeader className="p-0 mb-3">
-                <CardTitle className="text-xl">AI Trading Assistant</CardTitle>
+                <CardTitle className="text-xl">TradingView Charts</CardTitle>
               </CardHeader>
               <CardContent className="p-0">
                 <p className="text-muted-foreground">
-                  Get simulated market analysis. Use your credits to ask our AI
-                  chatbot for strategy advice and trend predictions.
+                  Analyse the market with professional-grade TradingView charts.
+                  Switch between area and candlestick views, explore historical
+                  price data, and practice reading patterns like a pro.
                 </p>
               </CardContent>
             </Card>
 
+            {/* Smart Wallet */}
             <Card className="p-8 bg-card border border-border hover:border-primary transition-colors duration-300 group">
               <div className="w-14 h-14 bg-primary/10 rounded-lg flex items-center justify-center mb-6 text-primary group-hover:scale-110 transition">
                 <Wallet className="w-6 h-6" />
@@ -112,8 +103,9 @@ export default function Home() {
               </CardHeader>
               <CardContent className="p-0">
                 <p className="text-muted-foreground">
-                  Manage your assets with a realistic wallet integration (Stripe
-                  API). Deposit, withdraw, and swap instantly.
+                  Manage a multi-asset virtual wallet with realistic precision.
+                  Top up your USD balance, hold multiple assets, track every
+                  transaction, and swap between positions instantly.
                 </p>
               </CardContent>
             </Card>
@@ -121,7 +113,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Pricing Section - Display subscription plans */}
+      {/* Pricing Section */}
       <section id="pricing" className="py-16 md:py-24 relative">
         <div className="container mx-auto px-6 max-w-6xl">
           <div className="text-center mb-16">
@@ -146,29 +138,38 @@ export default function Home() {
               </div>
               <ul className="space-y-4 mb-8 flex-1 text-foreground">
                 <li className="flex items-center">
-                  <Check className="w-5 h-5 text-green-500 mr-3" /> Basic Chart
-                  View
+                  <Check className="w-5 h-5 text-green-500 mr-3 shrink-0" />
+                  Basic Area Chart
                 </li>
                 <li className="flex items-center">
-                  <Check className="w-5 h-5 text-green-500 mr-3" /> Spot Trading
+                  <Check className="w-5 h-5 text-green-500 mr-3 shrink-0" />
+                  Paper Trading Simulation
                 </li>
                 <li className="flex items-center">
-                  <Check className="w-5 h-5 text-green-500 mr-3" /> 5 AI Credits
+                  <Check className="w-5 h-5 text-green-500 mr-3 shrink-0" />3
+                  Sample Assets
                 </li>
                 <li className="flex items-center">
-                  <Check className="w-5 h-5 text-green-500 mr-3" /> Max 10
-                  Assets
+                  <Check className="w-5 h-5 text-green-500 mr-3 shrink-0" />
+                  Max 10 Assets in Wallet
                 </li>
                 <li className="flex items-center opacity-50">
-                  <X className="w-5 h-5 text-red-500 mr-3" /> No Stop-Loss
+                  <X className="w-5 h-5 text-red-500 mr-3 shrink-0" />
+                  No TradingView Charts
+                </li>
+                <li className="flex items-center opacity-50">
+                  <X className="w-5 h-5 text-red-500 mr-3 shrink-0" />
+                  No Real-time Market Data
                 </li>
               </ul>
-              <Button variant="outline" className="w-full">
-                Get Started
-              </Button>
+              <Link href="/market">
+                <Button variant="outline" className="w-full">
+                  Get Started
+                </Button>
+              </Link>
             </Card>
 
-            {/* Standard Plan - Most Popular */}
+            {/* Standard Plan */}
             <Card className="p-8 bg-card border-2 border-primary relative flex flex-col">
               <div className="absolute top-0 right-0 bg-primary text-primary-foreground text-xs font-bold px-3 py-1 rounded-bl-lg rounded-tr-lg">
                 POPULAR
@@ -186,28 +187,36 @@ export default function Home() {
               </div>
               <ul className="space-y-4 mb-8 flex-1 text-foreground">
                 <li className="flex items-center">
-                  <Check className="w-5 h-5 text-accent mr-3" />
-                  Real-time Trading
+                  <Check className="w-5 h-5 text-accent mr-3 shrink-0" />
+                  TradingView Advanced Charts
                 </li>
                 <li className="flex items-center">
-                  <Check className="w-5 h-5 text-accent mr-3" /> 30 AI Credits
+                  <Check className="w-5 h-5 text-accent mr-3 shrink-0" />
+                  Real-time Market Data
                 </li>
                 <li className="flex items-center">
-                  <Check className="w-5 h-5 text-accent mr-3" /> 2FA Security
+                  <Check className="w-5 h-5 text-accent mr-3 shrink-0" />
+                  Up to 50 Assets in Wallet
                 </li>
                 <li className="flex items-center">
-                  <Check className="w-5 h-5 text-accent mr-3" /> Social OAuth
-                  Login
+                  <Check className="w-5 h-5 text-accent mr-3 shrink-0" />
+                  Buy, Sell &amp; Exchange Orders
                 </li>
                 <li className="flex items-center">
-                  <Check className="w-5 h-5 text-accent mr-3" />
+                  <Check className="w-5 h-5 text-accent mr-3 shrink-0" />
+                  2FA Account Security
+                </li>
+                <li className="flex items-center">
+                  <Check className="w-5 h-5 text-accent mr-3 shrink-0" />
                   Standard Support
                 </li>
               </ul>
-              <Button className="w-full shadow-lg">Subscribe Now</Button>
+              <Link href="/subscription">
+                <Button className="w-full shadow-lg">Subscribe Now</Button>
+              </Link>
             </Card>
 
-            {/* Professional Plan - Advanced Features */}
+            {/* Professional Plan */}
             <Card className="p-8 bg-card border border-border flex flex-col">
               <div className="mb-4">
                 <span className="text-accent text-sm uppercase tracking-wider">
@@ -222,31 +231,41 @@ export default function Home() {
               </div>
               <ul className="space-y-4 mb-8 flex-1 text-foreground">
                 <li className="flex items-center">
-                  <Check className="w-5 h-5 text-accent mr-3" />
+                  <Check className="w-5 h-5 text-accent mr-3 shrink-0" />
                   <strong>Everything in Standard</strong>
                 </li>
                 <li className="flex items-center">
-                  <Check className="w-5 h-5 text-accent mr-3" />
-                  Unlimited Portfolio
+                  <Check className="w-5 h-5 text-accent mr-3 shrink-0" />
+                  Unlimited Assets in Wallet
                 </li>
                 <li className="flex items-center">
-                  <Check className="w-5 h-5 text-accent mr-3" />
-                  TradingView Charts
+                  <Check className="w-5 h-5 text-accent mr-3 shrink-0" />
+                  Advanced Chart Indicators
                 </li>
                 <li className="flex items-center">
-                  <Check className="w-5 h-5 text-accent mr-3" />
-                  Stop-Loss Function
+                  <Check className="w-5 h-5 text-accent mr-3 shrink-0" />
+                  Stop-Loss Orders
+                  <span className="ml-2 text-xs text-muted-foreground font-medium px-1.5 py-0.5 rounded bg-muted border border-border">
+                    Soon
+                  </span>
                 </li>
                 <li className="flex items-center">
-                  <Check className="w-5 h-5 text-accent mr-3" /> 100 AI Credits
+                  <Check className="w-5 h-5 text-accent mr-3 shrink-0" />
+                  Trade History Export
+                </li>
+                <li className="flex items-center">
+                  <Check className="w-5 h-5 text-accent mr-3 shrink-0" />
+                  24/7 Priority Support
                 </li>
               </ul>
-              <Button
-                variant="outline"
-                className="w-full hover:border-accent hover:text-accent transition-colors"
-              >
-                Go Pro
-              </Button>
+              <Link href="/subscription">
+                <Button
+                  variant="outline"
+                  className="w-full hover:border-accent hover:text-accent transition-colors"
+                >
+                  Go Pro
+                </Button>
+              </Link>
             </Card>
           </div>
         </div>

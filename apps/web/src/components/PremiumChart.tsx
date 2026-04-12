@@ -155,6 +155,49 @@ const formatChartTime = (
 };
 
 // ---------------------------------------------------------------------------
+// Mock-data aggregation
+// ---------------------------------------------------------------------------
+
+/**
+ * Aggregates 1-day generated candles into coarser intervals so the mock chart
+ * behaves like real data: 1W = 7 daily candles merged, 1M = 30, 1Y = 365.
+ */
+function aggregateDailyCandles(
+  daily: CandleRow[],
+  interval: ChartInterval
+): { candles: CandleRow[]; area: { time: string; value: number }[] } {
+  const STEP: Record<ChartInterval, number> = {
+    '1D': 1,
+    '1W': 7,
+    '1M': 30,
+    '1Y': 365
+  };
+  const step = STEP[interval] ?? 1;
+  if (step <= 1) {
+    return {
+      candles: daily,
+      area: daily.map((c) => ({ time: c.time, value: c.close }))
+    };
+  }
+  const result: CandleRow[] = [];
+  for (let i = 0; i < daily.length; i += step) {
+    const chunk = daily.slice(i, i + step);
+    result.push({
+      time: chunk[0].time,
+      open: chunk[0].open,
+      high: Math.max(...chunk.map((c) => c.high)),
+      low: Math.min(...chunk.map((c) => c.low)),
+      close: chunk[chunk.length - 1].close,
+      volume: chunk.reduce((sum, c) => sum + (c.volume ?? 0), 0)
+    });
+  }
+  return {
+    candles: result,
+    area: result.map((c) => ({ time: c.time, value: c.close }))
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
@@ -209,7 +252,6 @@ export default function PremiumChart({
   const symbolRef = useRef(symbol);
 
   // ========== State ==========
-  const [isCrosshairVisible, setIsCrosshairVisible] = useState(true);
   const [chartInterval, setChartInterval] = useState<ChartInterval>('1D');
 
   // Both chart types must share the same price path so that switching between
@@ -223,8 +265,20 @@ export default function PremiumChart({
   });
   const [candleData, setCandleData] = useState<CandleRow[]>(_initCandles);
   const [areaData, setAreaData] = useState(_initArea);
+  // Base 1D mock candles — intervals aggregate from this; initialised with
+  // the startup data so interval buttons work before the first Generate.
+  const baseDailyMockRef = useRef<{ candles: CandleRow[] } | null>({
+    candles: _initCandles
+  });
 
-  const [chartType, setChartType] = useState<chartType>('area');
+  const [chartType, setChartType] = useState<chartType>(() => {
+    try {
+      const saved = localStorage.getItem('premium_chart_type');
+      return saved === 'candle' ? 'candle' : 'area';
+    } catch {
+      return 'area';
+    }
+  });
   const [dataSource, setDataSource] = useState<dataSource>('generated');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -234,6 +288,8 @@ export default function PremiumChart({
 
   // ========== Mock generator panel state ==========
   const [showMockPanel, setShowMockPanel] = useState(false);
+  const [showMobileMore, setShowMobileMore] = useState(false);
+  const [showMobileMockPanel, setShowMobileMockPanel] = useState(false);
   const [mockYears, setMockYears] = useState(1);
   const [mockMonths, setMockMonths] = useState(0);
   const [mockDays, setMockDays] = useState(0);
@@ -308,6 +364,11 @@ export default function PremiumChart({
   const chartTypeRef = useRef(chartType);
   useEffect(() => {
     chartTypeRef.current = chartType;
+    try {
+      localStorage.setItem('premium_chart_type', chartType);
+    } catch {
+      /* ignore */
+    }
   }, [chartType]);
 
   const [tradeMode, setTradeMode] = useState<
@@ -617,34 +678,34 @@ export default function PremiumChart({
 
   const handleGenerateMock = useCallback(() => {
     stopLiveSim();
-    const iv = chartIntervalRef.current;
-    const stepDays = INTERVAL_STEP[iv];
+    // Always generate at 1D resolution — interval buttons aggregate from this.
     const totalDays = Math.max(1, mockYears * 365 + mockMonths * 30 + mockDays);
-    const totalCandles = Math.max(1, Math.ceil(totalDays / stepDays));
-
     const startDate = new Date();
-    startDate.setTime(
-      startDate.getTime() - totalCandles * stepDays * 86_400_000
-    );
+    startDate.setTime(startDate.getTime() - totalDays * 86_400_000);
 
-    const candles = generateCandlestickData(
-      totalCandles,
-      startDate,
-      100,
-      stepDays
-    );
-    // Derive area data from the same simulation so both chart types share
-    // an identical price path — prevents a visual jump when the live sim
-    // continues from candle close prices but area data ended elsewhere.
-    const area = candles.map((c) => ({ time: c.time, value: c.close }));
+    const baseCandles = generateCandlestickData(totalDays, startDate, 100, 1);
 
-    // Seed live-sim refs so Live can continue from the last generated bar
-    if (candles.length > 0) {
-      const last = candles[candles.length - 1];
+    // Seed live-sim refs from the last 1D bar
+    if (baseCandles.length > 0) {
+      const last = baseCandles[baseCandles.length - 1];
       simLastPriceRef.current = last.close;
       simLastDateRef.current = new Date(last.time + 'T00:00:00Z');
       simulatorRef.current = createSimulator(last.close);
     }
+
+    // Aggregate to the currently selected interval for display
+    const { candles, area } = aggregateDailyCandles(
+      baseCandles,
+      chartIntervalRef.current
+    );
+
+    // Save base 1D data for re-aggregation on interval changes
+    baseDailyMockRef.current = { candles: baseCandles };
+    savedMockRef.current = {
+      candles: baseCandles,
+      area: baseCandles.map((c) => ({ time: c.time, value: c.close }))
+    };
+    setHasSavedMock(true);
 
     skipAnimationRef.current = false;
     setCandleData(candles);
@@ -655,10 +716,6 @@ export default function PremiumChart({
     hasMoreLeftRef.current = true;
     onClearSelection?.();
     setError(null);
-
-    // Persist a copy so the user can restore it later without regenerating.
-    savedMockRef.current = { candles, area };
-    setHasSavedMock(true);
 
     // Reset paper-trading portfolio with the configured starting balance.
     setMockCash(startingBalance);
@@ -806,7 +863,7 @@ export default function PremiumChart({
       timeScale: { borderColor: colors.borderColor },
       rightPriceScale: { borderColor: colors.borderColor },
       crosshair: { mode: CrosshairMode.Normal },
-      trackingMode: { exitMode: TrackingModeExitMode.OnTouchEnd }
+      trackingMode: { exitMode: TrackingModeExitMode.OnNextTap }
     });
 
     chartRef.current = chart;
@@ -1058,28 +1115,23 @@ export default function PremiumChart({
     }
   }, [symbol]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ========== Re-fetch on interval change (real data only) ==========
+  // ========== Re-fetch / re-aggregate on interval change ==========
   useEffect(() => {
     if (dataSource === 'realtime' && symbol) {
       loadInitialData(symbol, chartInterval);
+    } else if (dataSource === 'generated' && baseDailyMockRef.current) {
+      // Aggregate the 1D base data to the new interval — mirrors how real data
+      // re-fetches at a coarser granularity when interval changes.
+      stopLiveSim();
+      const { candles, area } = aggregateDailyCandles(
+        baseDailyMockRef.current.candles,
+        chartInterval
+      );
+      skipAnimationRef.current = false;
+      setCandleData(candles);
+      setAreaData(area);
     }
-    // In generated mode, interval changes don't regenerate — the existing dataset is kept.
   }, [chartInterval]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // ========== Crosshair toggle ==========
-  useEffect(() => {
-    if (!chartRef.current || !isClient) return;
-    chartRef.current.applyOptions({
-      crosshair: {
-        mode: isCrosshairVisible ? CrosshairMode.Normal : CrosshairMode.Hidden
-      },
-      trackingMode: {
-        exitMode: isCrosshairVisible
-          ? TrackingModeExitMode.OnTouchEnd
-          : TrackingModeExitMode.OnNextTap
-      }
-    });
-  }, [isCrosshairVisible, isClient]);
 
   // ========== Currency IDs for trade modal ==========
   useEffect(() => {
@@ -1129,98 +1181,21 @@ export default function PremiumChart({
   // ========== Render ==========
   return (
     <div className="flex h-full min-h-0 flex-col">
-      {/* ── Mobile toolbar ── */}
-      <div className="flex md:hidden items-center gap-1.5 px-2 py-1.5 shrink-0 border-b border-border">
-        {/* Crosshair */}
-        <button
-          onClick={() => setIsCrosshairVisible((v) => !v)}
-          title={isCrosshairVisible ? 'Hide crosshair' : 'Show crosshair'}
-          className={`p-2 rounded-lg border transition-all ${
-            isCrosshairVisible
-              ? 'border-primary/50 bg-primary/10 text-primary'
-              : 'border-border bg-card text-muted-foreground'
-          }`}
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <circle cx="12" cy="12" r="3" />
-            <line x1="12" y1="2" x2="12" y2="7" />
-            <line x1="12" y1="17" x2="12" y2="22" />
-            <line x1="2" y1="12" x2="7" y2="12" />
-            <line x1="17" y1="12" x2="22" y2="12" />
-          </svg>
-        </button>
+      {/* ── Mobile top bar ── */}
+      <div className="relative flex md:hidden items-center gap-1 px-2 py-1.5 border-b border-border shrink-0">
+        {/* Interval pills — horizontally scrollable */}
+        <div className="flex gap-0.5 overflow-x-auto flex-1 no-scrollbar">
+          {intervalButtons('sm')}
+        </div>
 
-        {/* Restore saved mock (mobile) */}
-        {hasSavedMock && dataSource !== 'generated' && (
-          <button
-            onClick={() => {
-              if (!savedMockRef.current) return;
-              stopLiveSim();
-              skipAnimationRef.current = false;
-              setCandleData(savedMockRef.current.candles);
-              setAreaData(savedMockRef.current.area);
-              setDataSource('generated');
-              loadedStartRef.current = null;
-              loadedEndRef.current = null;
-              hasMoreLeftRef.current = true;
-              onClearSelection?.();
-              setError(null);
-              const last =
-                savedMockRef.current.candles[
-                  savedMockRef.current.candles.length - 1
-                ];
-              if (last) {
-                simLastPriceRef.current = last.close;
-                simLastDateRef.current = new Date(last.time + 'T00:00:00Z');
-                simulatorRef.current = createSimulator(last.close);
-              }
-            }}
-            title="Restore mock data"
-            className="px-2 py-1 text-xs rounded-lg border border-amber-500/40 bg-amber-500/10 text-amber-500"
-          >
-            Mock
-          </button>
-        )}
-
-        {/* Regenerate (mobile: just generates with current settings) */}
-        <button
-          onClick={handleGenerateMock}
-          disabled={isLoading}
-          title="Generate mock data"
-          className="p-2 rounded-lg bg-primary text-primary-foreground disabled:opacity-50 transition-all"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <polyline points="1 4 1 10 7 10" />
-            <path d="M3.51 15a9 9 0 1 0 .49-3.17" />
-          </svg>
-        </button>
+        <div className="w-px h-5 bg-border mx-1 shrink-0" />
 
         {/* Chart type toggle */}
         <button
           onClick={handleToggleChartType}
           disabled={isLoading}
           title={`Switch to ${chartType === 'area' ? 'Candlestick' : 'Area'} chart`}
-          className="p-2 rounded-lg border border-primary/30 bg-primary/10 text-primary disabled:opacity-50 transition-all"
+          className="p-2 rounded-lg border border-primary/30 bg-primary/10 text-primary disabled:opacity-50 transition-all shrink-0"
         >
           {chartType === 'area' ? (
             <svg
@@ -1255,136 +1230,23 @@ export default function PremiumChart({
           )}
         </button>
 
-        {/* Interval buttons */}
-        <div className="flex gap-0.5">{intervalButtons('sm')}</div>
-
-        {/* Volume (mobile) — only shown for generated data */}
-        {dataSource === 'generated' && (
-          <button
-            onClick={() => setShowVolume((v) => !v)}
-            className={`px-2 py-1 text-xs rounded-lg border transition-all ${
-              showVolume
-                ? 'border-primary/50 bg-primary/10 text-primary'
-                : 'border-border bg-card text-muted-foreground'
-            }`}
-          >
-            Vol
-          </button>
-        )}
-
-        {/* Color legend + toggle */}
-        <div className="flex items-center gap-1.5 px-2 py-1 bg-card border border-border rounded-lg">
-          <div
-            className="w-2.5 h-2.5 rounded-sm"
-            style={{ backgroundColor: candleColors.up }}
-          />
-          <div
-            className="w-2.5 h-2.5 rounded-sm"
-            style={{ backgroundColor: candleColors.down }}
-          />
-        </div>
+        {/* More (⋯) button */}
         <button
-          onClick={() => setUseThemeColors(!useThemeColors)}
-          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${useThemeColors ? 'bg-[rgb(var(--color-success)/1)]' : 'bg-[#94a3b8]'}`}
-        >
-          <span
-            className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${useThemeColors ? 'translate-x-5' : 'translate-x-1'}`}
-          />
-        </button>
-
-        {/* Buy / Sell / Exchange */}
-        <div className="ml-auto flex items-center gap-1.5">
-          <button
-            onClick={() => setTradeMode('buy')}
-            disabled={
-              !isClient ||
-              !symbol ||
-              dataSource !== 'realtime' ||
-              isLoading ||
-              !isLoggedIn
-            }
-            title={
-              !isClient
-                ? 'Loading…'
-                : !isLoggedIn
-                  ? 'Sign in to trade'
-                  : !symbol
-                    ? 'Select an asset first'
-                    : dataSource !== 'realtime'
-                      ? 'Switch to real data first'
-                      : 'Buy'
-            }
-            className="px-3 py-1.5 text-xs rounded-lg text-white font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-all bg-[rgb(var(--color-success)/1)] hover:bg-[rgb(var(--color-success)/0.75)]"
-          >
-            Buy
-          </button>
-          <button
-            onClick={() => setTradeMode('sell')}
-            disabled={
-              !isClient ||
-              !symbol ||
-              dataSource !== 'realtime' ||
-              isLoading ||
-              !isLoggedIn
-            }
-            title={
-              !isClient
-                ? 'Loading…'
-                : !isLoggedIn
-                  ? 'Sign in to trade'
-                  : !symbol
-                    ? 'Select an asset first'
-                    : dataSource !== 'realtime'
-                      ? 'Switch to real data first'
-                      : 'Sell'
-            }
-            className="px-3 py-1.5 text-xs rounded-lg text-white font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-all bg-[rgb(var(--color-danger)/1)] hover:bg-[rgb(var(--color-danger)/0.75)]"
-          >
-            Sell
-          </button>
-          <button
-            onClick={() => setTradeMode('exchange')}
-            disabled={
-              !isClient ||
-              !symbol ||
-              dataSource !== 'realtime' ||
-              isLoading ||
-              !isLoggedIn
-            }
-            title={
-              !isClient
-                ? 'Loading…'
-                : !isLoggedIn
-                  ? 'Sign in to trade'
-                  : !symbol
-                    ? 'Select an asset first'
-                    : dataSource !== 'realtime'
-                      ? 'Switch to real data first'
-                      : 'Exchange for another asset'
-            }
-            className="px-3 py-1.5 text-xs rounded-lg text-white font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-all bg-primary hover:bg-primary/75"
-          >
-            Exchange
-          </button>
-        </div>
-      </div>
-
-      {/* ── Desktop toolbar ── */}
-      <div className="hidden md:flex m-3 flex-wrap gap-2 shrink-0">
-        {/* Crosshair */}
-        <button
-          onClick={() => setIsCrosshairVisible((v) => !v)}
-          title={isCrosshairVisible ? 'Hide crosshair' : 'Show crosshair'}
-          className={`px-3 py-2 text-sm rounded-lg border transition-all flex items-center gap-2 ${
-            isCrosshairVisible
+          onClick={() => {
+            if (showMobileMore) setShowMobileMockPanel(false);
+            setShowMobileMore((v) => !v);
+          }}
+          title="More options"
+          className={`p-2 rounded-lg border transition-all shrink-0 ${
+            showMobileMore
               ? 'border-primary/50 bg-primary/10 text-primary'
-              : 'border-border bg-card text-muted-foreground hover:bg-muted'
+              : 'border-border bg-card text-muted-foreground'
           }`}
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            width="14"
-            height="14"
+            width="16"
+            height="16"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -1392,15 +1254,351 @@ export default function PremiumChart({
             strokeLinecap="round"
             strokeLinejoin="round"
           >
-            <circle cx="12" cy="12" r="3" />
-            <line x1="12" y1="2" x2="12" y2="7" />
-            <line x1="12" y1="17" x2="12" y2="22" />
-            <line x1="2" y1="12" x2="7" y2="12" />
-            <line x1="17" y1="12" x2="22" y2="12" />
+            <circle cx="12" cy="5" r="1" />
+            <circle cx="12" cy="12" r="1" />
+            <circle cx="12" cy="19" r="1" />
           </svg>
-          Crosshair
         </button>
+      </div>
 
+      {/* ── Mobile crosshair hint ── */}
+      <p className="flex md:hidden items-center px-3 py-0.5 text-[10px] text-muted-foreground shrink-0 bg-muted/30 border-b border-border/50">
+        Hold &amp; drag to show crosshair · Tap again to dismiss
+      </p>
+
+      {/* ── Mobile more panel ── */}
+      {showMobileMore && (
+        <div className="flex md:hidden flex-wrap items-center gap-2 px-3 py-2 border-b border-border bg-card/60 shrink-0">
+          {/* Mock Data toggle — opens the config panel */}
+          <button
+            onClick={() => setShowMobileMockPanel((v) => !v)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border transition-all ${
+              showMobileMockPanel
+                ? 'border-primary/50 bg-primary/10 text-primary'
+                : 'border-border bg-card text-muted-foreground'
+            }`}
+          >
+            Mock Data
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="10"
+              height="10"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              {showMobileMockPanel ? (
+                <polyline points="18 15 12 9 6 15" />
+              ) : (
+                <polyline points="6 9 12 15 18 9" />
+              )}
+            </svg>
+          </button>
+
+          {/* Restore saved mock */}
+          {hasSavedMock && dataSource !== 'generated' && (
+            <button
+              onClick={() => {
+                if (!savedMockRef.current) return;
+                stopLiveSim();
+                const base = savedMockRef.current.candles;
+                baseDailyMockRef.current = { candles: base };
+                const { candles, area } = aggregateDailyCandles(
+                  base,
+                  chartIntervalRef.current
+                );
+                skipAnimationRef.current = false;
+                setCandleData(candles);
+                setAreaData(area);
+                setDataSource('generated');
+                loadedStartRef.current = null;
+                loadedEndRef.current = null;
+                hasMoreLeftRef.current = true;
+                onClearSelection?.();
+                setError(null);
+                const last = base[base.length - 1];
+                if (last) {
+                  simLastPriceRef.current = last.close;
+                  simLastDateRef.current = new Date(last.time + 'T00:00:00Z');
+                  simulatorRef.current = createSimulator(last.close);
+                }
+                setShowMobileMore(false);
+              }}
+              className="px-3 py-1.5 text-xs rounded-lg border border-amber-500/40 bg-amber-500/10 text-amber-500"
+            >
+              Restore Mock
+            </button>
+          )}
+
+          {/* Volume toggle (generated only) */}
+          {dataSource === 'generated' && (
+            <button
+              onClick={() => setShowVolume((v) => !v)}
+              className={`px-3 py-1.5 text-xs rounded-lg border transition-all ${
+                showVolume
+                  ? 'border-primary/50 bg-primary/10 text-primary'
+                  : 'border-border bg-card text-muted-foreground'
+              }`}
+            >
+              {showVolume ? 'Hide Vol' : 'Show Vol'}
+            </button>
+          )}
+
+          {/* Color legend + theme toggle */}
+          <div className="flex items-center gap-2 px-2 py-1 bg-card border border-border rounded-lg">
+            <div
+              className="w-2.5 h-2.5 rounded-sm"
+              style={{ backgroundColor: candleColors.up }}
+            />
+            <div
+              className="w-2.5 h-2.5 rounded-sm"
+              style={{ backgroundColor: candleColors.down }}
+            />
+            <button
+              onClick={() => setUseThemeColors(!useThemeColors)}
+              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${useThemeColors ? 'bg-[rgb(var(--color-success)/1)]' : 'bg-[#94a3b8]'}`}
+            >
+              <span
+                className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${useThemeColors ? 'translate-x-5' : 'translate-x-1'}`}
+              />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Mobile mock config panel ── */}
+      {showMobileMockPanel && (
+        <div className="flex md:hidden flex-col gap-2 px-3 py-2 border-b border-border bg-muted/20 shrink-0">
+          {/* Range inputs */}
+          <div className="flex items-center gap-2 bg-card border border-border rounded-lg px-2.5 py-1.5">
+            <span className="text-xs text-muted-foreground shrink-0">
+              Range
+            </span>
+            <label className="flex items-center gap-1 text-xs">
+              <input
+                type="number"
+                min={0}
+                max={100}
+                value={mockYears}
+                onChange={(e) => setMockYears(Math.max(0, +e.target.value))}
+                className="w-8 bg-transparent text-foreground text-center outline-none border-b border-border focus:border-primary"
+              />
+              <span className="text-muted-foreground">yr</span>
+            </label>
+            <label className="flex items-center gap-1 text-xs">
+              <input
+                type="number"
+                min={0}
+                max={11}
+                value={mockMonths}
+                onChange={(e) => setMockMonths(Math.max(0, +e.target.value))}
+                className="w-8 bg-transparent text-foreground text-center outline-none border-b border-border focus:border-primary"
+              />
+              <span className="text-muted-foreground">mo</span>
+            </label>
+            <label className="flex items-center gap-1 text-xs">
+              <input
+                type="number"
+                min={0}
+                max={365}
+                value={mockDays}
+                onChange={(e) => setMockDays(Math.max(0, +e.target.value))}
+                className="w-8 bg-transparent text-foreground text-center outline-none border-b border-border focus:border-primary"
+              />
+              <span className="text-muted-foreground">d</span>
+            </label>
+          </div>
+
+          {/* Starting balance */}
+          <div className="flex items-center gap-2 bg-card border border-border rounded-lg px-2.5 py-1.5">
+            <span className="text-xs text-muted-foreground shrink-0">
+              Start $
+            </span>
+            <button
+              onClick={() => {
+                const v = Math.max(1, startingBalance - 1000);
+                setStartingBalance(v);
+                setStartingBalanceInput(String(v));
+              }}
+              className="w-5 h-5 flex items-center justify-center rounded border border-border bg-muted text-foreground text-xs"
+            >
+              −
+            </button>
+            <input
+              type="number"
+              min={1}
+              max={1_000_000}
+              value={startingBalanceInput}
+              onChange={(e) => setStartingBalanceInput(e.target.value)}
+              onBlur={(e) => {
+                const v = Math.min(
+                  1_000_000,
+                  Math.max(1, parseInt(e.target.value, 10) || 100_000)
+                );
+                setStartingBalance(v);
+                setStartingBalanceInput(String(v));
+              }}
+              className="flex-1 min-w-0 text-xs text-center bg-transparent border-b border-border focus:border-primary outline-none text-foreground"
+            />
+            <button
+              onClick={() => {
+                const v = Math.min(1_000_000, startingBalance + 1000);
+                setStartingBalance(v);
+                setStartingBalanceInput(String(v));
+              }}
+              className="w-5 h-5 flex items-center justify-center rounded border border-border bg-muted text-foreground text-xs"
+            >
+              +
+            </button>
+          </div>
+
+          {/* Speed control */}
+          <div className="flex items-center gap-2 bg-card border border-border rounded-lg px-2.5 py-1.5">
+            <span className="text-xs text-muted-foreground shrink-0">
+              Speed
+            </span>
+            <input
+              type="range"
+              min={50}
+              max={2000}
+              step={50}
+              value={simSpeed}
+              onChange={(e) => setSimSpeed(+e.target.value)}
+              className="flex-1 accent-primary"
+            />
+            <button
+              onClick={() => setSimSpeed((v) => Math.max(50, v - 50))}
+              className="w-5 h-5 flex items-center justify-center rounded border border-border bg-muted text-foreground"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="8"
+                height="8"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+            </button>
+            <input
+              type="number"
+              min={50}
+              max={2000}
+              step={50}
+              value={simSpeed}
+              onChange={(e) => {
+                const v = parseInt(e.target.value, 10);
+                if (!isNaN(v)) setSimSpeed(Math.min(2000, Math.max(50, v)));
+              }}
+              onBlur={(e) => {
+                const v = parseInt(e.target.value, 10);
+                setSimSpeed(isNaN(v) ? 300 : Math.min(2000, Math.max(50, v)));
+              }}
+              className="w-12 text-xs text-center bg-transparent border-b border-border focus:border-primary outline-none text-foreground"
+            />
+            <span className="text-xs text-muted-foreground shrink-0">ms</span>
+            <button
+              onClick={() => setSimSpeed((v) => Math.min(2000, v + 50))}
+              className="w-5 h-5 flex items-center justify-center rounded border border-border bg-muted text-foreground"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="8"
+                height="8"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Generate + Live controls */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                handleGenerateMock();
+                setShowMobileMockPanel(false);
+                setShowMobileMore(false);
+              }}
+              disabled={isLoading}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg bg-primary text-primary-foreground disabled:opacity-50 transition-all"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <polyline points="1 4 1 10 7 10" />
+                <path d="M3.51 15a9 9 0 1 0 .49-3.17" />
+              </svg>
+              Generate
+            </button>
+
+            {isLiveSimulating ? (
+              <button
+                onClick={stopLiveSim}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg font-medium text-white bg-[rgb(var(--color-danger)/1)] transition-all"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="10"
+                  height="10"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
+                  <rect x="4" y="4" width="16" height="16" />
+                </svg>
+                Stop
+              </button>
+            ) : (
+              <button
+                onClick={startLiveSim}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg font-medium text-white bg-[rgb(var(--color-success)/1)] transition-all"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="10"
+                  height="10"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
+                  <polygon points="5 3 19 12 5 21 5 3" />
+                </svg>
+                Live
+              </button>
+            )}
+
+            {isLiveSimulating && (
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span className="w-2 h-2 rounded-full bg-[rgb(var(--color-danger)/1)] animate-pulse" />
+                Simulating…
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Desktop toolbar ── */}
+      <div className="hidden md:flex m-3 flex-wrap gap-2 shrink-0">
         {/* Mock generator toggle */}
         <button
           onClick={() => setShowMockPanel((v) => !v)}
@@ -1437,19 +1635,22 @@ export default function PremiumChart({
             onClick={() => {
               if (!savedMockRef.current) return;
               stopLiveSim();
+              const base = savedMockRef.current.candles;
+              baseDailyMockRef.current = { candles: base };
+              const { candles, area } = aggregateDailyCandles(
+                base,
+                chartIntervalRef.current
+              );
               skipAnimationRef.current = false;
-              setCandleData(savedMockRef.current.candles);
-              setAreaData(savedMockRef.current.area);
+              setCandleData(candles);
+              setAreaData(area);
               setDataSource('generated');
               loadedStartRef.current = null;
               loadedEndRef.current = null;
               hasMoreLeftRef.current = true;
               onClearSelection?.();
               setError(null);
-              const last =
-                savedMockRef.current.candles[
-                  savedMockRef.current.candles.length - 1
-                ];
+              const last = base[base.length - 1];
               if (last) {
                 simLastPriceRef.current = last.close;
                 simLastDateRef.current = new Date(last.time + 'T00:00:00Z');
@@ -2234,6 +2435,57 @@ export default function PremiumChart({
               />
             );
           })()}
+      </div>
+
+      {/* ── Mobile bottom trade bar ── */}
+      <div className="flex md:hidden shrink-0 border-t border-border">
+        <button
+          onClick={() => {
+            if (!isLoggedIn) {
+              setShowAuthDialog(true);
+              return;
+            }
+            setTradeMode('buy');
+          }}
+          disabled={
+            !isClient || !symbol || dataSource !== 'realtime' || isLoading
+          }
+          className="flex-1 py-3.5 text-sm font-semibold text-white disabled:opacity-40 disabled:cursor-not-allowed transition-all bg-[rgb(var(--color-success)/1)] hover:bg-[rgb(var(--color-success)/0.85)] active:bg-[rgb(var(--color-success)/0.7)]"
+        >
+          Buy
+        </button>
+        <div className="w-px bg-border shrink-0" />
+        <button
+          onClick={() => {
+            if (!isLoggedIn) {
+              setShowAuthDialog(true);
+              return;
+            }
+            setTradeMode('sell');
+          }}
+          disabled={
+            !isClient || !symbol || dataSource !== 'realtime' || isLoading
+          }
+          className="flex-1 py-3.5 text-sm font-semibold text-white disabled:opacity-40 disabled:cursor-not-allowed transition-all bg-[rgb(var(--color-danger)/1)] hover:bg-[rgb(var(--color-danger)/0.85)] active:bg-[rgb(var(--color-danger)/0.7)]"
+        >
+          Sell
+        </button>
+        <div className="w-px bg-border shrink-0" />
+        <button
+          onClick={() => {
+            if (!isLoggedIn) {
+              setShowAuthDialog(true);
+              return;
+            }
+            setTradeMode('exchange');
+          }}
+          disabled={
+            !isClient || !symbol || dataSource !== 'realtime' || isLoading
+          }
+          className="flex-1 py-3.5 text-sm font-semibold text-white disabled:opacity-40 disabled:cursor-not-allowed transition-all bg-primary hover:bg-primary/85 active:bg-primary/70"
+        >
+          Exchange
+        </button>
       </div>
 
       {/* Trade modal */}

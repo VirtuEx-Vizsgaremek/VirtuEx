@@ -16,28 +16,44 @@ import {
   UserPlus,
   Wallet
 } from 'lucide-react';
-import { useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 
 type MarketNavbarProps = {
   show: boolean;
   onCloseAction: () => void;
-  isPremium: boolean;
-  onTogglePremiumAction: () => void;
   isLoggedIn?: boolean;
 };
 
 export default function MarketNavbar({
   show,
   onCloseAction,
-  isPremium,
-  onTogglePremiumAction,
   isLoggedIn = false
 }: MarketNavbarProps) {
   const { theme, toggleTheme, colorTheme, setColorTheme } = useTheme();
   const isDark = theme === 'dark';
   const pathname = usePathname();
   const themeMenuRef = useRef<HTMLDivElement>(null);
+  const [themeMenuOpen, setThemeMenuOpen] = useState(false);
+
+  // Close the color theme menu when clicking outside of it
+  useEffect(() => {
+    if (!themeMenuOpen) return;
+    const handleClick = (e: Event) => {
+      if (
+        themeMenuRef.current &&
+        !themeMenuRef.current.contains(e.target as Node)
+      ) {
+        setThemeMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    document.addEventListener('touchstart', handleClick);
+    return () => {
+      document.removeEventListener('mousedown', handleClick);
+      document.removeEventListener('touchstart', handleClick);
+    };
+  }, [themeMenuOpen]);
 
   function isActive(href: string) {
     return pathname === href;
@@ -115,8 +131,8 @@ export default function MarketNavbar({
                       Premium
                     </Link>
                     <Link
-                      href="/#about"
-                      className={navLinkClass('/#about')}
+                      href="/about"
+                      className={navLinkClass('/about')}
                       title="About Us"
                       onClick={onCloseAction}
                     >
@@ -139,30 +155,36 @@ export default function MarketNavbar({
               </button>
 
               {/* Color theme picker */}
-              <div className="relative group" ref={themeMenuRef}>
+              <div className="relative" ref={themeMenuRef}>
                 <button
-                  className="p-2 rounded-full hover:bg-muted transition-colors"
+                  onClick={() => setThemeMenuOpen((v) => !v)}
+                  className={`p-2 rounded-full transition-colors ${themeMenuOpen ? 'bg-muted' : 'hover:bg-muted'}`}
                   title="Change Color Theme"
                 >
                   <Palette size={16} />
                 </button>
-                <div className="absolute right-0 top-11 bg-card border border-border rounded-lg shadow-xl p-1.5 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 min-w-44 z-1100">
-                  {(Object.keys(THEME_NAMES) as ChartColorTheme[]).map(
-                    (key) => (
-                      <button
-                        key={key}
-                        onClick={() => setColorTheme(key)}
-                        className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
-                          colorTheme === key
-                            ? 'bg-primary text-primary-foreground'
-                            : 'hover:bg-muted'
-                        }`}
-                      >
-                        {THEME_NAMES[key]}
-                      </button>
-                    )
-                  )}
-                </div>
+                {themeMenuOpen && (
+                  <div className="absolute right-0 top-11 bg-card border border-border rounded-lg shadow-xl p-1.5 min-w-44 z-[1100]">
+                    {(Object.keys(THEME_NAMES) as ChartColorTheme[]).map(
+                      (key) => (
+                        <button
+                          key={key}
+                          onClick={() => {
+                            setColorTheme(key);
+                            setThemeMenuOpen(false);
+                          }}
+                          className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
+                            colorTheme === key
+                              ? 'bg-primary text-primary-foreground'
+                              : 'hover:bg-muted'
+                          }`}
+                        >
+                          {THEME_NAMES[key]}
+                        </button>
+                      )
+                    )}
+                  </div>
+                )}
               </div>
 
               {isLoggedIn ? (
@@ -218,19 +240,6 @@ export default function MarketNavbar({
                   </Button>
                 </>
               )}
-
-              {/* Advanced / Simple chart toggle */}
-              <button
-                onClick={onTogglePremiumAction}
-                className="px-4 py-1.5 text-xs bg-primary text-primary-foreground rounded-full hover:bg-primary/80 transition-all font-medium"
-                title={
-                  isPremium
-                    ? 'Switch to Simple chart'
-                    : 'Switch to Advanced chart'
-                }
-              >
-                {isPremium ? 'Advanced' : 'Simple'}
-              </button>
             </div>
           </div>
         </nav>

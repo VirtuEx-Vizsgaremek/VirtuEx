@@ -178,7 +178,7 @@ export default function NavbarClient({ isLoggedIn }: Props) {
       <Link href="/subscription" className={navLinkClass('/subscription')}>
         Premium
       </Link>
-      <Link href="/#about" className={navLinkClass('/#about')}>
+      <Link href="/about" className={navLinkClass('/about')}>
         About Us
       </Link>
     </>
@@ -271,7 +271,7 @@ export default function NavbarClient({ isLoggedIn }: Props) {
         Premium
       </Link>
       <Link
-        href="/#about"
+        href="/about"
         className="text-foreground hover:text-primary transition-colors text-sm font-medium py-1"
       >
         About Us
@@ -416,7 +416,7 @@ export default function NavbarClient({ isLoggedIn }: Props) {
                 >
                   Premium
                 </Link>
-                <Link href="/#about" className={navLinkClass('/#about')}>
+                <Link href="/about" className={navLinkClass('/about')}>
                   About Us
                 </Link>
               </>
@@ -543,7 +543,7 @@ export default function NavbarClient({ isLoggedIn }: Props) {
                   Premium
                 </Link>
                 <Link
-                  href="/#about"
+                  href="/about"
                   className="text-foreground hover:text-primary transition-colors text-sm font-medium py-1"
                 >
                   About Us

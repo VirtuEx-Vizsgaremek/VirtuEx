@@ -256,37 +256,37 @@ export default function Subscription() {
                     <li className="flex items-start gap-3">
                       <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
                       <span className="text-sm md:text-base text-foreground">
-                        Basic Chart View
+                        Basic Area Chart
                       </span>
                     </li>
                     <li className="flex items-start gap-3">
                       <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
                       <span className="text-sm md:text-base text-foreground">
-                        Spot Trading
+                        Paper Trading Simulation
                       </span>
                     </li>
                     <li className="flex items-start gap-3">
                       <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
                       <span className="text-sm md:text-base text-foreground">
-                        5 AI Credits/month
+                        3 Sample Assets
                       </span>
                     </li>
                     <li className="flex items-start gap-3">
                       <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
                       <span className="text-sm md:text-base text-foreground">
-                        Max 10 Assets
+                        Max 10 Assets in Wallet
                       </span>
                     </li>
                     <li className="flex items-start gap-3">
                       <X className="w-5 h-5 text-red-500/50 flex-shrink-0 mt-0.5" />
                       <span className="text-sm md:text-base text-muted-foreground opacity-60">
-                        Stop-Loss Function
+                        No TradingView Charts
                       </span>
                     </li>
                     <li className="flex items-start gap-3">
                       <X className="w-5 h-5 text-red-500/50 flex-shrink-0 mt-0.5" />
                       <span className="text-sm md:text-base text-muted-foreground opacity-60">
-                        24/7 Priority Support
+                        No Real-time Market Data
                       </span>
                     </li>
                   </ul>
@@ -334,25 +334,25 @@ export default function Subscription() {
                     <li className="flex items-start gap-3">
                       <Check className="w-5 h-5 text-accent flex-shrink-0 mt-0.5" />
                       <span className="text-sm md:text-base text-foreground">
-                        Real-time Trading
+                        TradingView Advanced Charts
                       </span>
                     </li>
                     <li className="flex items-start gap-3">
                       <Check className="w-5 h-5 text-accent flex-shrink-0 mt-0.5" />
                       <span className="text-sm md:text-base text-foreground">
-                        30 AI Credits/month
+                        Real-time Market Data
                       </span>
                     </li>
                     <li className="flex items-start gap-3">
                       <Check className="w-5 h-5 text-accent flex-shrink-0 mt-0.5" />
                       <span className="text-sm md:text-base text-foreground">
-                        2FA Security
+                        Up to 50 Assets in Wallet
                       </span>
                     </li>
                     <li className="flex items-start gap-3">
                       <Check className="w-5 h-5 text-accent flex-shrink-0 mt-0.5" />
                       <span className="text-sm md:text-base text-foreground">
-                        Social OAuth Login
+                        2FA Account Security
                       </span>
                     </li>
                     <li className="flex items-start gap-3">
@@ -401,25 +401,28 @@ export default function Subscription() {
                     <li className="flex items-start gap-3">
                       <Check className="w-5 h-5 text-accent flex-shrink-0 mt-0.5" />
                       <span className="text-sm md:text-base text-foreground">
-                        Unlimited Portfolio
+                        Unlimited Assets in Wallet
                       </span>
                     </li>
                     <li className="flex items-start gap-3">
                       <Check className="w-5 h-5 text-accent flex-shrink-0 mt-0.5" />
                       <span className="text-sm md:text-base text-foreground">
-                        TradingView Charts
+                        Advanced Chart Indicators
                       </span>
                     </li>
                     <li className="flex items-start gap-3">
                       <Check className="w-5 h-5 text-accent flex-shrink-0 mt-0.5" />
                       <span className="text-sm md:text-base text-foreground">
-                        Stop-Loss Function
+                        Stop-Loss Orders{' '}
+                        <span className="text-xs text-muted-foreground font-medium px-1.5 py-0.5 rounded bg-muted border border-border">
+                          Soon
+                        </span>
                       </span>
                     </li>
                     <li className="flex items-start gap-3">
                       <Check className="w-5 h-5 text-accent flex-shrink-0 mt-0.5" />
                       <span className="text-sm md:text-base text-foreground">
-                        100 AI Credits/month
+                        Trade History Export (CSV)
                       </span>
                     </li>
                     <li className="flex items-start gap-3">

@@ -28,6 +28,7 @@ import {
   Currency,
   exchangeAsset,
   ExchangeResult,
+  fetchSymbolBalance,
   sellAsset,
   SellResult
 } from '@/lib/tradeApi';
@@ -139,6 +140,9 @@ export default function TradeModal({
 
   const inputRef = useRef<HTMLInputElement>(null);
 
+  /** Current balance of the from-asset — fetched once on mount for exchange mode. */
+  const [fromBalance, setFromBalance] = useState<string | null>(null);
+
   // ── Side effects ──────────────────────────────────────────────────────────
 
   // Focus the amount input as soon as the modal mounts
@@ -160,6 +164,14 @@ export default function TradeModal({
     setAmount('');
     setError(null);
   }, [buyInputMode]);
+
+  // Fetch the user's balance for the from-asset when in exchange mode
+  useEffect(() => {
+    if (!isExchange || !token || !symbol) return;
+    fetchSymbolBalance(token, symbol)
+      .then((bal) => setFromBalance(bal))
+      .catch(() => {});
+  }, [isExchange, token, symbol]);
 
   // ── Derived values ────────────────────────────────────────────────────────
   const parsedAmount = parseFloat(amount);
@@ -378,6 +390,16 @@ export default function TradeModal({
                   </option>
                 ))}
             </select>
+          </div>
+        )}
+
+        {/* ── Available balance — exchange mode only ── */}
+        {isExchange && (
+          <div className="flex items-center justify-between text-sm text-muted-foreground mb-4 px-3 py-2 rounded-lg bg-muted/40 border border-border">
+            <span>Available</span>
+            <span className="text-foreground font-medium tabular-nums">
+              {fromBalance !== null ? `${fromBalance} ${symbol}` : '—'}
+            </span>
           </div>
         )}
 
