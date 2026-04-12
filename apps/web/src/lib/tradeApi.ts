@@ -38,7 +38,19 @@ export interface SellResult {
   price_per_unit: string; // execution price (cents string)
 }
 
-export type TradeResult = BuyResult | SellResult;
+/** Successful response from POST /v1/trade/@exchange */
+export interface ExchangeResult {
+  order_id: string;
+  status: string;
+  sold: string; // precision-scaled units deducted from from_asset
+  sold_exact: string; // full decimal string, e.g. "1.00"
+  received: string; // precision-scaled units credited to to_asset
+  received_exact: string; // full decimal string, e.g. "0.85123456"
+  from_price_per_unit: string; // USD cents per unit of from_currency
+  to_price_per_unit: string; // USD cents per unit of to_currency
+}
+
+export type TradeResult = BuyResult | SellResult | ExchangeResult;
 
 /** Raw error shape returned by the backend on non-2xx responses. */
 export interface TradeError {
@@ -116,6 +128,28 @@ export async function sellAsset(
   amount: string
 ): Promise<SellResult> {
   return request<SellResult>('/v1/trade/@sell', token, {
+    from_currency_id: fromCurrencyId,
+    to_currency_id: toCurrencyId,
+    amount
+  });
+}
+
+/**
+ * Place a direct exchange order (asset → asset, bridged through USD internally).
+ *
+ * @param token           JWT access token
+ * @param fromCurrencyId  ID of the currency being exchanged away (e.g. AAPL)
+ * @param toCurrencyId    ID of the currency being received (e.g. GOOGL)
+ * @param amount          Units of from_currency to exchange, precision-scaled integer string
+ *                        e.g. precision=2, 1 share → "100"
+ */
+export async function exchangeAsset(
+  token: string,
+  fromCurrencyId: string,
+  toCurrencyId: string,
+  amount: string
+): Promise<ExchangeResult> {
+  return request<ExchangeResult>('/v1/trade/@exchange', token, {
     from_currency_id: fromCurrencyId,
     to_currency_id: toCurrencyId,
     amount

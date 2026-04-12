@@ -34,10 +34,12 @@ import {
   fetchCurrency
 } from '@/lib/marketApi';
 import {
-  BuyResult,
+  type BuyResult,
+  type Currency,
+  type ExchangeResult,
   fetchCurrencies,
   fetchCurrencyId,
-  SellResult
+  type SellResult
 } from '@/lib/tradeApi';
 import { getToken } from '@/lib/actions';
 import {
@@ -308,16 +310,19 @@ export default function PremiumChart({
     chartTypeRef.current = chartType;
   }, [chartType]);
 
-  const [tradeMode, setTradeMode] = useState<'buy' | 'sell' | null>(null);
+  const [tradeMode, setTradeMode] = useState<
+    'buy' | 'sell' | 'exchange' | null
+  >(null);
   const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [tradeNotification, setTradeNotification] = useState<{
-    type: 'buy' | 'sell';
-    result: BuyResult | SellResult;
+    type: 'buy' | 'sell' | 'exchange';
+    result: BuyResult | SellResult | ExchangeResult;
   } | null>(null);
 
   const [usdCurrencyId, setUsdCurrencyId] = useState<string | null>(null);
   const [symbolCurrencyId, setSymbolCurrencyId] = useState<string | null>(null);
   const [symbolPrecision, setSymbolPrecision] = useState<number>(8);
+  const [allCurrencies, setAllCurrencies] = useState<Currency[]>([]);
 
   const [useThemeColors, setUseThemeColors] = useState<boolean>(true);
   useEffect(() => {
@@ -1090,6 +1095,7 @@ export default function PremiumChart({
 
     fetchCurrencies()
       .then((currencies) => {
+        setAllCurrencies(currencies);
         const match = currencies.find(
           (c) => c.symbol.toUpperCase() === symbol.toUpperCase()
         );
@@ -1286,7 +1292,7 @@ export default function PremiumChart({
           />
         </button>
 
-        {/* Buy / Sell */}
+        {/* Buy / Sell / Exchange */}
         <div className="ml-auto flex items-center gap-1.5">
           <button
             onClick={() => setTradeMode('buy')}
@@ -1335,6 +1341,30 @@ export default function PremiumChart({
             className="px-3 py-1.5 text-xs rounded-lg text-white font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-all bg-[rgb(var(--color-danger)/1)] hover:bg-[rgb(var(--color-danger)/0.75)]"
           >
             Sell
+          </button>
+          <button
+            onClick={() => setTradeMode('exchange')}
+            disabled={
+              !isClient ||
+              !symbol ||
+              dataSource !== 'realtime' ||
+              isLoading ||
+              !isLoggedIn
+            }
+            title={
+              !isClient
+                ? 'Loading…'
+                : !isLoggedIn
+                  ? 'Sign in to trade'
+                  : !symbol
+                    ? 'Select an asset first'
+                    : dataSource !== 'realtime'
+                      ? 'Switch to real data first'
+                      : 'Exchange for another asset'
+            }
+            className="px-3 py-1.5 text-xs rounded-lg text-white font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-all bg-primary hover:bg-primary/75"
+          >
+            Exchange
           </button>
         </div>
       </div>
@@ -1499,7 +1529,7 @@ export default function PremiumChart({
           <span className="text-xs text-muted-foreground">Theme</span>
         </div>
 
-        {/* Buy / Sell */}
+        {/* Buy / Sell / Exchange */}
         <div className="ml-auto flex items-center gap-2">
           <button
             onClick={() => {
@@ -1546,6 +1576,29 @@ export default function PremiumChart({
             className="px-4 py-2 text-sm rounded-lg text-white disabled:opacity-40 disabled:cursor-not-allowed transition-all bg-[rgb(var(--color-danger)/1)] hover:bg-[rgb(var(--color-danger)/0.75)]"
           >
             Sell
+          </button>
+          <button
+            onClick={() => {
+              if (!isLoggedIn) setShowAuthDialog(true);
+              else setTradeMode('exchange');
+            }}
+            disabled={
+              !isClient || !symbol || dataSource !== 'realtime' || isLoading
+            }
+            title={
+              !isClient
+                ? 'Loading…'
+                : !symbol
+                  ? 'Select an asset first'
+                  : dataSource !== 'realtime'
+                    ? 'Switch to real data first'
+                    : !isLoggedIn
+                      ? 'Sign in to exchange'
+                      : 'Exchange for another asset'
+            }
+            className="px-4 py-2 text-sm rounded-lg text-white disabled:opacity-40 disabled:cursor-not-allowed transition-all bg-primary hover:bg-primary/75"
+          >
+            Exchange
           </button>
         </div>
 
@@ -1797,15 +1850,21 @@ export default function PremiumChart({
             backgroundColor:
               tradeNotification.type === 'buy'
                 ? 'rgb(var(--color-success) / 0.12)'
-                : 'rgb(var(--color-danger) / 0.12)',
+                : tradeNotification.type === 'exchange'
+                  ? 'rgb(var(--color-primary) / 0.12)'
+                  : 'rgb(var(--color-danger) / 0.12)',
             borderColor:
               tradeNotification.type === 'buy'
                 ? 'rgb(var(--color-success) / 0.35)'
-                : 'rgb(var(--color-danger) / 0.35)',
+                : tradeNotification.type === 'exchange'
+                  ? 'rgb(var(--color-primary) / 0.35)'
+                  : 'rgb(var(--color-danger) / 0.35)',
             color:
               tradeNotification.type === 'buy'
                 ? 'rgb(var(--color-success))'
-                : 'rgb(var(--color-danger))'
+                : tradeNotification.type === 'exchange'
+                  ? 'rgb(var(--color-primary))'
+                  : 'rgb(var(--color-danger))'
           }}
         >
           <span>
@@ -1820,16 +1879,34 @@ export default function PremiumChart({
                         ).toFixed(symbolPrecision);
                   return `✓ Bought ${symbol} — received ${exact} ${symbol}`;
                 })()
-              : (() => {
-                  const r = tradeNotification.result as SellResult;
-                  const dollars = (
-                    parseInt(r.received, 10) / 100
-                  ).toLocaleString('en-US', {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2
-                  });
-                  return `✓ Sold ${symbol} — received $${dollars} USD`;
-                })()}
+              : tradeNotification.type === 'exchange'
+                ? (() => {
+                    const r = tradeNotification.result as ExchangeResult;
+                    const target = allCurrencies.find(
+                      (c) =>
+                        parseInt(c.id, 10) ===
+                        Math.round(
+                          Number(r.received) /
+                            Math.pow(
+                              10,
+                              allCurrencies.find((x) => x.id === c.id)
+                                ?.precision ?? 8
+                            )
+                        )
+                    );
+                    const toSymbol = target?.symbol ?? '?';
+                    return `✓ Exchanged ${r.sold_exact} ${symbol} → ${r.received_exact} ${toSymbol}`;
+                  })()
+                : (() => {
+                    const r = tradeNotification.result as SellResult;
+                    const dollars = (
+                      parseInt(r.received, 10) / 100
+                    ).toLocaleString('en-US', {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2
+                    });
+                    return `✓ Sold ${symbol} — received $${dollars} USD`;
+                  })()}
           </span>
           <button
             onClick={() => setTradeNotification(null)}
@@ -2182,6 +2259,9 @@ export default function PremiumChart({
                 : 0
           }
           targetPrecision={symbolPrecision}
+          availableCurrencies={
+            tradeMode === 'exchange' ? allCurrencies : undefined
+          }
           token={token ?? ''}
           onClose={() => setTradeMode(null)}
           onSuccess={(result) => {

@@ -21,6 +21,7 @@ import {
   fetchCurrencies,
   fetchCurrencyId,
   type BuyResult,
+  type ExchangeResult,
   type SellResult
 } from '@/lib/tradeApi';
 import TradeModal from '@/components/TradeModal';
@@ -158,7 +159,7 @@ export default function FreeChart({ selectedSymbol }: Props) {
   // Trade notification
   const [tradeNotif, setTradeNotif] = useState<{
     type: 'buy' | 'sell';
-    result: BuyResult | SellResult;
+    result: BuyResult | SellResult | ExchangeResult;
   } | null>(null);
 
   // ── Mock (paper) trading — free plan: fixed 10k ────────────────────────────
