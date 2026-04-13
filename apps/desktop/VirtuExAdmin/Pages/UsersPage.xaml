@@ -268,7 +268,7 @@
 
                                 <WrapPanel Grid.Column="1" HorizontalAlignment="Right">
                                     <ui:Button Content="Reset password" Appearance="Secondary" Margin="0,0,8,8" />
-                                    <ui:Button Content="Delete 2FA" Appearance="Danger" Margin="0,0,0,8" />
+                                     
                                 </WrapPanel>
                             </Grid>
                         </Border>

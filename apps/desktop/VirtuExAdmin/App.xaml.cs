@@ -41,6 +41,9 @@ public partial class App : Application, IQueryAmbient
                 // Singletons
                 _ = services.AddSingleton<ApiClient>();
                 _ = services.AddSingleton<UserService>();
+                _ = services.AddSingleton<SettingsService>();
+                _ = services.AddSingleton<CurrencyNavigationState>();
+
 
                 _ = services.AddNavigationViewPageProvider();
                 _ = services.AddSingleton<INavigationService, NavigationService>();
@@ -50,6 +53,10 @@ public partial class App : Application, IQueryAmbient
 
                 _ = services.AddTransient<AccountPageViewModel>();
                 _ = services.AddTransient<CurrenciesPageViewModel>();
+                _ = services.AddTransient<AuditLogPageViewModel>();
+                _ = services.AddTransient<SettingsViewModel>();
+                _ = services.AddTransient<TransactionsPageViewModel>();
+
 
                 // Windows
                 _ = services.AddSingleton<AuthWindow>();
