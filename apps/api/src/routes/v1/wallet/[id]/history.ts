@@ -2,10 +2,12 @@ import { Request, Response } from '@/util/handler';
 import { orm } from '@/util/orm';
 
 import { Wallet } from '@/entities/wallet.entity';
-import { Transaction } from '@/entities/transaction.entity';
 
 import Status from '@/enum/status';
+import Permissions from '@/enum/permissions';
 import { z } from 'zod';
+
+import { getWalletHistory } from '@/util/wallet';
 
 export const schemas = {
   get: {
@@ -37,6 +39,8 @@ export const get = async (
     const user = await req.getUser();
     const db = (await orm).em.fork();
     const { id } = req.params;
+    const isAdmin =
+      (user.permissions & Permissions.Admin) === Permissions.Admin;
 
     // Convert string ID to BigInt for database query
     const walletId = BigInt(id);
@@ -50,36 +54,13 @@ export const get = async (
       return res.error(Status.NotFound, 'Wallet not found');
     }
 
-    if (wallet.user.id !== user.id) {
+    if (!isAdmin && wallet.user.id !== user.id) {
       return res.error(Status.Forbidden, 'Access denied');
     }
 
-    const transactions = await db.find(
-      Transaction,
-      { asset: { wallet } },
-      {
-        populate: ['asset', 'asset.currency'],
-        orderBy: { createdAt: 'DESC' }
-      }
-    );
+    const walletHistory = await getWalletHistory(db, wallet);
 
-    const formattedTransactions = transactions.map((tx) => ({
-      id: tx.id.toString(),
-      asset_id: tx.asset.id.toString(),
-      currency: tx.asset.currency.name,
-      symbol: tx.asset.currency.symbol,
-      amount: tx.amount.toString(),
-      direction: tx.direction,
-      status: tx.status,
-      created_at: tx.createdAt,
-      updated_at: tx.updatedAt
-    }));
-
-    return res.status(Status.Ok).json({
-      wallet_id: wallet.id.toString(),
-      total_transactions: transactions.length,
-      transactions: formattedTransactions
-    });
+    return res.status(Status.Ok).json(walletHistory);
   } catch (error) {
     console.error('Error fetching wallet transactions:', error);
 

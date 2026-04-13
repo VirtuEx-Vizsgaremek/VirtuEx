@@ -1,22 +1,8 @@
 /**
  * Footer Component
  *
- * Application footer displayed on all non-market pages (via ConditionalLayout).
+ * Application footer displayed on all non-market pages (via the landing layout).
  * Contains branding, navigation links, legal information, and social links.
- *
- * Structure:
- * - Brand section with logo and description
- * - Product links (features, pricing, etc.)
- * - Company information links
- * - Legal links (privacy, terms, etc.)
- * - Newsletter signup section
- * - Social media links
- *
- * Features:
- * - Responsive grid layout (1 column mobile, 4 columns desktop)
- * - GitHub link to project repository
- * - Newsletter subscription form
- * - Links to /market page for getting started
  */
 
 'use client';
@@ -33,9 +19,6 @@ export default function Footer() {
           {/* Brand & Description */}
           <div className="md:col-span-1">
             <div className="flex items-center gap-2 mb-4">
-              {/* <span className="text-xl font-bold text-foreground">
-                  Virtu<span className="text-accent">Ex</span>
-                </span> */}
               <img
                 src="VirtuEx_logo-bg-gl-cr.svg"
                 alt="Logo"
@@ -43,8 +26,8 @@ export default function Footer() {
               />
             </div>
             <p className="text-muted-foreground text-sm mb-4">
-              Master cryptocurrency trading in a risk-free environment with
-              real-time market data.
+              Master trading in a risk-free environment with real-time market
+              data.
             </p>
             <div className="flex space-x-4">
               <a
@@ -53,7 +36,6 @@ export default function Footer() {
                 rel="noopener noreferrer"
                 className="text-muted-foreground hover:text-primary transition-colors"
               >
-                {/* <Github className="w-6 h-6" /> */}
                 <SiGithub />
               </a>
             </div>
@@ -65,10 +47,7 @@ export default function Footer() {
             <ul className="space-y-2">
               <li>
                 <Link
-                  href="#features"
-                  onClick={() =>
-                    window.scrollTo({ top: 0, behavior: 'smooth' })
-                  }
+                  href="/#features"
                   className="text-muted-foreground hover:text-primary transition-colors text-sm"
                 >
                   Features
@@ -76,10 +55,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link
-                  href="#pricing"
-                  onClick={() =>
-                    window.scrollTo({ top: 0, behavior: 'smooth' })
-                  }
+                  href="/#pricing"
                   className="text-muted-foreground hover:text-primary transition-colors text-sm"
                 >
                   Pricing
@@ -87,24 +63,10 @@ export default function Footer() {
               </li>
               <li>
                 <Link
-                  href="#wallet"
-                  onClick={() =>
-                    window.scrollTo({ top: 0, behavior: 'smooth' })
-                  }
+                  href="/market"
                   className="text-muted-foreground hover:text-primary transition-colors text-sm"
                 >
-                  Wallet
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="#"
-                  className="text-muted-foreground hover:text-primary transition-colors text-sm"
-                  onClick={() =>
-                    window.scrollTo({ top: 0, behavior: 'smooth' })
-                  }
-                >
-                  AI Assistant
+                  Market
                 </Link>
               </li>
             </ul>
@@ -116,7 +78,7 @@ export default function Footer() {
             <ul className="space-y-2">
               <li>
                 <Link
-                  href="#"
+                  href="/about"
                   className="text-muted-foreground hover:text-primary transition-colors text-sm"
                 >
                   About Us
@@ -124,7 +86,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link
-                  href="#"
+                  href="/team"
                   className="text-muted-foreground hover:text-primary transition-colors text-sm"
                 >
                   Team
@@ -132,7 +94,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link
-                  href="#"
+                  href="/contact"
                   className="text-muted-foreground hover:text-primary transition-colors text-sm"
                 >
                   Contact
@@ -147,7 +109,7 @@ export default function Footer() {
             <ul className="space-y-2">
               <li>
                 <Link
-                  href="#"
+                  href="/legal/privacy-policy"
                   className="text-muted-foreground hover:text-primary transition-colors text-sm"
                 >
                   Privacy Policy
@@ -155,7 +117,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link
-                  href="#"
+                  href="/legal/terms-of-service"
                   className="text-muted-foreground hover:text-primary transition-colors text-sm"
                 >
                   Terms of Service
@@ -163,7 +125,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link
-                  href="#"
+                  href="/legal/cookie-policy"
                   className="text-muted-foreground hover:text-primary transition-colors text-sm"
                 >
                   Cookie Policy
@@ -171,7 +133,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link
-                  href="#"
+                  href="/legal/disclaimer"
                   className="text-muted-foreground hover:text-primary transition-colors text-sm"
                 >
                   Disclaimer
@@ -181,7 +143,7 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* Footer Bottom Bar - Copyright & Scroll to Top */}
+        {/* Footer Bottom Bar */}
         <div className="pt-8 border-t border-border flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-muted-foreground text-sm">
             &copy; 2025 VirtuEx Team. All rights reserved.

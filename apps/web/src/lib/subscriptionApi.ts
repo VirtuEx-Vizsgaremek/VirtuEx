@@ -1,6 +1,6 @@
 import { getToken } from '@/lib/actions';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_URL = process.env.API_URL ?? 'http://localhost:3001';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -69,10 +69,35 @@ export async function fetchMe(): Promise<MeResponse | null> {
 /**
  * Convenience wrapper: fetch only the current user's canonical plan key.
  *
- * @returns One of `"Free"`, `"Standard"`, `"Pro"`, or `null` when unknown.
+ * Uses the dedicated `/v1/user/@me/subscription` endpoint rather than the
+ * `@me` join field, which can be unreliable when the subscription relation
+ * isn't populated.
+ *
+ * - Returns `null`    → not logged in (no token)
+ * - Returns `"Free"`  → logged in but no subscription record (404) or
+ *                        plan name is unrecognised
+ * - Returns `"Standard"` / `"Pro"` → active paid subscription
  */
 export async function fetchCurrentPlan(): Promise<PlanKey | null> {
-  const me = await fetchMe();
-  if (!me?.subscription_plan) return null;
-  return normalisePlanName(me.subscription_plan);
+  const token = await getToken();
+  if (!token) return null; // not authenticated
+
+  const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+  try {
+    const res = await fetch(`${API_URL}/v1/user/@me/subscription`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: 'no-store'
+    });
+    // 404 = authenticated but no subscription row → Free tier
+    if (res.status === 404) return 'Free';
+    // 401/403 = token invalid
+    if (res.status === 401 || res.status === 403) return null;
+    // Other non-2xx = server error → fall back to null (unknown)
+    if (!res.ok) return null;
+
+    const data = await res.json();
+    return normalisePlanName(data.plan_name) ?? 'Free';
+  } catch {
+    return null; // network error / API unreachable
+  }
 }

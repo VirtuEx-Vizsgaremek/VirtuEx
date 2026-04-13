@@ -1,57 +1,38 @@
 /**
  * Chart Crosshair Overlay Component
  *
- * Displays price data and market information when user hovers over chart points.
- * Shows different data formats based on chart type (OHLC for candlestick, simple price for area).
+ * Displays price data and market information when the user touches or hovers
+ * over chart data points. Supports a collapsible two-row layout so it doesn't
+ * cover the chart on small screens.
  *
- * Features:
- * - Displays asset logo and name (or "Generated" for mock data)
- * - Shows time/date of hovered data point (formatted by TradingView.tsx)
- * - Shows OHLC values for candlestick charts or simple price for area charts
- * - Displays price change with color-coded direction indicator (▲/▼)
- * - Interactive interval button to switch time periods
- * - Positioned at top-left of chart with semi-transparent backdrop
- *
- * Data Flow:
- * TradingView.tsx -> [formatChartTime + calculateChange] -> ChartOverlay props
+ * Layout:
+ *   Row 1 (always visible): Logo · Name · Date · Interval · [toggle btn]
+ *   Row 2 (collapsible):    O/H/L/C  or  single value  · change indicator
  */
 
+'use client';
+
+import { useState } from 'react';
 import StockLogo from './StockLogo';
 
-/**
- * Props for ChartOverlay component
- * Receives formatted/calculated data from TradingView component
- */
 interface ChartOverlayProps {
-  // Chart type determines which price data to display
-  type: 'ohlc' | 'simple'; // 'ohlc' for candlestick, 'simple' for area chart
-
-  // Price and symbol data from hovered chart point
+  type: 'ohlc' | 'simple';
   data: {
-    symbol: string; // Stock ticker symbol (e.g., "AAPL")
-    assetName: string; // Company name or "generated" for mock data
-    time?: string; // Formatted date string from formatChartTime() utility
-    // OHLC values (only for candlestick charts)
-    open?: number; // Opening price
-    high?: number; // Highest price
-    low?: number; // Lowest price
-    close?: number; // Closing price
-    // Area value (only for area charts)
-    value?: number; // Single price value
+    symbol: string;
+    assetName: string;
+    time?: string;
+    open?: number;
+    high?: number;
+    low?: number;
+    close?: number;
+    value?: number;
   };
-
-  // Time period and change metrics (calculated by chartCalculations.ts functions)
-  interval: number; // Time period in days (e.g., 1, 7, 30)
-  changeAmount: number; // Absolute price change (from calculateChange/calculateOHLCChange/calculateAreaChange)
-  changePercent: number; // Percentage change (from calculation functions)
-  isPositive: boolean; // True if price increased, false if decreased
-
-  // Color scheme (from CHART_THEMES)
-  upColor: string; // Color for positive change (e.g., green)
-  downColor: string; // Color for negative change (e.g., red)
-
-  // Event handler for interval button
-  onIntervalClick: () => void; // Called when user clicks interval button to switch chart period
+  interval: string;
+  changeAmount: number;
+  changePercent: number;
+  isPositive: boolean;
+  upColor: string;
+  downColor: string;
 }
 
 const ChartOverlay = ({
@@ -62,87 +43,124 @@ const ChartOverlay = ({
   isPositive,
   upColor,
   downColor,
-  interval,
-  onIntervalClick
+  interval
 }: ChartOverlayProps) => {
-  // Choose color based on direction of price movement
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const indicatorColor = isPositive ? upColor : downColor;
 
   return (
-    // Fixed position overlay at top-left of chart
-    // pointer-events-none prevents blocking chart interactions, except on button (pointer-events-auto)
-    <div className="absolute top-2 left-2 flex gap-4 items-center text-sm font-mono bg-card/95 backdrop-blur-sm border border-border p-3 rounded-lg shadow-lg pointer-events-none z-10">
-      {/* Asset Logo and Name Section */}
-      {/* Shows stock company name and logo, or "Generated" for mock data */}
-      {data.assetName === 'generated' ? (
-        <span className="text-muted-foreground h-min">Generated</span>
-      ) : (
-        <>
-          <StockLogo ticker={data.symbol} />
-          <span className="text-muted-foreground">{data.assetName}</span>
-        </>
-      )}
-
-      {/* Time/Date Display */}
-      {/* Shows the date of the hovered data point (formatted by formatChartTime in TradingView) */}
-      {data.time && <span className="text-muted-foreground">{data.time}</span>}
-
-      {/* Interval Button */}
-      {/* Clickable button to switch chart time period (1D, 7D, 30D, etc.) */}
-      <button
-        className="pointer-events-auto text-foreground hover:font-bold"
-        onClick={onIntervalClick}
-      >
-        {interval}D
-      </button>
-
-      {/* OHLC Data Display for Candlestick Charts */}
-      {/* Shows Open, High, Low, Close prices from candlestick data */}
-      {type === 'ohlc' && (
-        <>
-          <span className="text-muted-foreground">
-            O{' '}
-            <span className="text-foreground font-semibold">
-              {data.open?.toFixed(2)}
+    <div
+      className="absolute top-2 left-2 z-10 font-mono bg-card/95 backdrop-blur-sm border border-border rounded-lg shadow-lg"
+      style={{ maxWidth: 'calc(100vw - 4rem)' }}
+    >
+      {/* ── Row 1: identity + date + interval + collapse toggle ── */}
+      <div className="flex items-center gap-2 px-2.5 py-1.5 text-xs">
+        {/* Logo + name */}
+        {data.assetName === 'generated' ? (
+          <span className="text-muted-foreground shrink-0">Generated</span>
+        ) : (
+          <div className="flex items-center gap-1.5 shrink-0">
+            <StockLogo ticker={data.symbol} />
+            <span className="text-muted-foreground truncate max-w-[7rem]">
+              {data.assetName}
             </span>
-          </span>
-          <span className="text-muted-foreground">
-            H{' '}
-            <span className="text-foreground font-semibold">
-              {data.high?.toFixed(2)}
-            </span>
-          </span>
-          <span className="text-muted-foreground">
-            L{' '}
-            <span className="text-foreground font-semibold">
-              {data.low?.toFixed(2)}
-            </span>
-          </span>
-          <span className="text-muted-foreground">
-            C{' '}
-            <span className="text-foreground font-semibold">
-              {data.close?.toFixed(2)}
-            </span>
-          </span>
-        </>
-      )}
+          </div>
+        )}
 
-      {/* Simple Price Display for Area Charts */}
-      {/* Shows single price value for area chart data */}
-      {type === 'simple' && (
-        <span className="text-foreground font-bold">
-          {data.value?.toFixed(2)}
+        {/* Date */}
+        {data.time && (
+          <span className="text-muted-foreground shrink-0">{data.time}</span>
+        )}
+
+        {/* Interval */}
+        <span className="text-muted-foreground font-medium shrink-0">
+          {interval}
         </span>
-      )}
 
-      {/* Price Change Indicator */}
-      {/* Colored indicator showing price movement with direction arrow and percentage */}
-      {/* Color comes from theme: green (up) or red (down) */}
-      <span style={{ color: indicatorColor }} className="font-semibold">
-        {isPositive ? '▲' : '▼'} {Math.abs(changeAmount).toFixed(2)} (
-        {isPositive ? '+' : ''}
-        {changePercent.toFixed(2)}%)
-      </span>
+        {/* When collapsed: show compact change indicator inline */}
+        {isCollapsed && (
+          <span
+            style={{ color: indicatorColor }}
+            className="font-semibold shrink-0 ml-1"
+          >
+            {isPositive ? '▲' : '▼'} {Math.abs(changeAmount).toFixed(2)} (
+            {isPositive ? '+' : ''}
+            {changePercent.toFixed(2)}%)
+          </span>
+        )}
+
+        {/* Toggle button */}
+        <button
+          onClick={() => setIsCollapsed((v) => !v)}
+          className="ml-auto shrink-0 text-muted-foreground hover:text-foreground transition-colors pointer-events-auto"
+          title={isCollapsed ? 'Expand' : 'Collapse'}
+          aria-label={isCollapsed ? 'Expand overlay' : 'Collapse overlay'}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            {isCollapsed ? (
+              <polyline points="6 9 12 15 18 9" />
+            ) : (
+              <polyline points="18 15 12 9 6 15" />
+            )}
+          </svg>
+        </button>
+      </div>
+
+      {/* ── Row 2: price data + change indicator ── */}
+      {!isCollapsed && (
+        <div className="flex items-center flex-wrap gap-x-3 gap-y-0.5 px-2.5 pb-1.5 text-xs">
+          {type === 'ohlc' && (
+            <>
+              <span className="text-muted-foreground">
+                O{' '}
+                <span className="text-foreground font-semibold">
+                  {data.open?.toFixed(2)}
+                </span>
+              </span>
+              <span className="text-muted-foreground">
+                H{' '}
+                <span className="text-foreground font-semibold">
+                  {data.high?.toFixed(2)}
+                </span>
+              </span>
+              <span className="text-muted-foreground">
+                L{' '}
+                <span className="text-foreground font-semibold">
+                  {data.low?.toFixed(2)}
+                </span>
+              </span>
+              <span className="text-muted-foreground">
+                C{' '}
+                <span className="text-foreground font-semibold">
+                  {data.close?.toFixed(2)}
+                </span>
+              </span>
+            </>
+          )}
+
+          {type === 'simple' && (
+            <span className="text-foreground font-bold">
+              {data.value?.toFixed(2)}
+            </span>
+          )}
+
+          <span style={{ color: indicatorColor }} className="font-semibold">
+            {isPositive ? '▲' : '▼'} {Math.abs(changeAmount).toFixed(2)} (
+            {isPositive ? '+' : ''}
+            {changePercent.toFixed(2)}%)
+          </span>
+        </div>
+      )}
     </div>
   );
 };

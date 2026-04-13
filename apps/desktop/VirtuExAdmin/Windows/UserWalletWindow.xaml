@@ -1,0 +1,93 @@
+﻿<ui:FluentWindow x:Class="VirtuExAdmin.Windows.UserWalletWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+        mc:Ignorable="d"
+        Title="Wallet"
+        Width="920"
+        Height="720"
+        MinWidth="760"
+        MinHeight="600"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResize"
+        ExtendsContentIntoTitleBar="True"
+        WindowCornerPreference="Default"
+        WindowBackdropType="Mica"
+        ui:Design.Background="{DynamicResource ApplicationBackgroundBrush}"
+        ui:Design.Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+        Foreground="{DynamicResource TextFillColorPrimaryBrush}">
+
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="16" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="16" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="16" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0">
+            <TextBlock x:Name="TitleText" FontSize="18" FontWeight="SemiBold" />
+            <TextBlock x:Name="LoadingText" Margin="0,6,0,0" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+        </StackPanel>
+
+        <!-- Estimated Balance card -->
+        <Border Grid.Row="2"
+                Background="{DynamicResource ControlFillColorDefaultBrush}"
+                BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8"
+                Padding="16">
+            <StackPanel>
+                <TextBlock Text="Estimated Balance" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                <TextBlock x:Name="EstimatedBalanceText" FontSize="28" FontWeight="SemiBold" Margin="0,6,0,0" Text="$0.00" />
+            </StackPanel>
+        </Border>
+
+        <!-- Assets -->
+        <StackPanel Grid.Row="4">
+            <TextBlock Text="Your Assets" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8" />
+            <DataGrid x:Name="AssetsGrid"
+                      AutoGenerateColumns="False"
+                      CanUserAddRows="False"
+                      IsReadOnly="True"
+                      HeadersVisibility="Column"
+                      GridLinesVisibility="None">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Asset" Binding="{Binding Asset}" Width="2*" />
+                    <DataGridTextColumn Header="Price (USD)" Binding="{Binding PriceUsd}" Width="*" />
+                    <DataGridTextColumn Header="Balance" Binding="{Binding Balance}" Width="*" />
+                    <DataGridTextColumn Header="Value (USD)" Binding="{Binding ValueUsd}" Width="*" />
+                </DataGrid.Columns>
+            </DataGrid>
+        </StackPanel>
+
+        <!-- History -->
+        <StackPanel Grid.Row="6">
+            <TextBlock Text="Transaction History" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8" />
+            <DataGrid x:Name="HistoryGrid"
+                      AutoGenerateColumns="False"
+                      CanUserAddRows="False"
+                      IsReadOnly="True"
+                      HeadersVisibility="Column"
+                      GridLinesVisibility="None">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Asset" Binding="{Binding Symbol}" Width="*" />
+                    <DataGridTextColumn Header="Type" Binding="{Binding Direction}" Width="*" />
+                    <DataGridTextColumn Header="Amount" Binding="{Binding Amount}" Width="*" />
+                    <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="*" />
+                    <DataGridTextColumn Header="Date" Binding="{Binding Date}" Width="*" />
+                </DataGrid.Columns>
+            </DataGrid>
+        </StackPanel>
+
+        <StackPanel Grid.Row="7" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+            <ui:Button Content="Close" Appearance="Secondary" Width="100" Click="Close_Click" />
+        </StackPanel>
+    </Grid>
+</ui:FluentWindow>

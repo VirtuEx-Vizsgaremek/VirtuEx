@@ -5,6 +5,8 @@
  * When a stock is clicked, it notifies the parent component to update the chart.
  *
  * Features:
+ * - Search field to filter by symbol or company name
+ * - Category filters: All, Stocks, ETFs, Crypto
  * - Scrollable list of all available stocks from stocks.ts
  * - Visual indication of currently selected stock
  * - Smooth hover and selection animations
@@ -17,49 +19,69 @@
 
 'use client';
 
-import tickerToDomain, { tickerToName } from '@/lib/stocks';
-import { X } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import tickerToDomain, { tickerToName, tickerToType } from '@/lib/stocks';
+import { X, Search, Lock } from 'lucide-react';
 import StockLogo from './StockLogo';
 import { Card } from './ui/card';
+import { Input } from './ui/input';
+
+type FilterType = 'all' | 'stock' | 'etf' | 'crypto';
+
+/** Symbols accessible on the free plan. Everything else is locked. */
+const FREE_SYMBOLS = ['AAPL', 'GOOGL', 'NVDA'];
+
+const FILTER_LABELS: { value: FilterType; label: string }[] = [
+  { value: 'all', label: 'All' },
+  { value: 'stock', label: 'Stocks' },
+  { value: 'etf', label: 'ETFs' },
+  { value: 'crypto', label: 'Crypto' }
+];
 
 /**
  * Props interface for the Sidenav component
- * Defines the data contract between parent and child component
  */
 interface SidenavProps {
-  selectedSymbol: string; // Current stock symbol being displayed in chart
-  onSelectSymbol: (symbol: string) => void; // Function to call when user clicks a stock
+  selectedSymbol: string;
+  onSelectSymbol: (symbol: string) => void;
   showAssetNav: boolean;
   onClose: () => void;
+  /** When true, only FREE_SYMBOLS are selectable; everything else is grayed out. */
+  freePlan?: boolean;
 }
 
-/**
- * Sidenav Component
- * Renders a sidebar with selectable stock list
- *
- * @param selectedSymbol - Currently active stock symbol (passed from parent)
- * @param onSelectSymbol - Callback to update parent's state when stock is clicked
- */
 export default function SideNav({
   selectedSymbol,
   onSelectSymbol,
   showAssetNav,
-  onClose
+  onClose,
+  freePlan = false
 }: SidenavProps) {
-  /**
-   * Convert stock ticker object to array format for easier rendering
-   *
-   * Process:
-   * 1. Object.keys() extracts all stock symbols ['AAPL', 'TSLA', ...]
-   * 2. .map() transforms each symbol into an object with symbol and full name
-   * 3. Creates array: [{ symbol: 'AAPL', name: 'Apple Inc.' }, ...]
-   *
-   * Why? Arrays are easier to iterate over in JSX than objects
-   */
-  const stocks = Object.keys(tickerToDomain).map((symbol) => ({
-    symbol, // Stock ticker symbol (e.g., "AAPL")
-    name: tickerToName[symbol] || symbol // Full company name (e.g., "Apple Inc."), fallback to symbol
-  }));
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeFilter, setActiveFilter] = useState<FilterType>('all');
+
+  const allStocks = useMemo(
+    () =>
+      Object.keys(tickerToDomain).map((symbol) => ({
+        symbol,
+        name: tickerToName[symbol] || symbol,
+        type: tickerToType[symbol] ?? 'stock'
+      })),
+    []
+  );
+
+  const filteredStocks = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    return allStocks.filter((stock) => {
+      const matchesFilter =
+        activeFilter === 'all' || stock.type === activeFilter;
+      const matchesSearch =
+        query === '' ||
+        stock.symbol.toLowerCase().includes(query) ||
+        stock.name.toLowerCase().includes(query);
+      return matchesFilter && matchesSearch;
+    });
+  }, [allStocks, searchQuery, activeFilter]);
 
   return (
     <div
@@ -82,12 +104,45 @@ export default function SideNav({
         </div>
 
         <Card className="w-full h-full flex flex-col rounded-none! rounded-r-2xl!">
-          <div className="p-4 border-b">
+          {/* Header */}
+          <div className="p-4 border-b space-y-3">
             <h2 className="text-xs font-bold text-muted-foreground uppercase">
               Select Asset
             </h2>
+
+            {/* Search */}
+            <div className="relative">
+              <Search
+                size={14}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
+              />
+              <Input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search assets..."
+                className="pl-8 h-8 text-sm"
+              />
+            </div>
+
+            {/* Filters */}
+            <div className="flex gap-1">
+              {FILTER_LABELS.map(({ value, label }) => (
+                <button
+                  key={value}
+                  onClick={() => setActiveFilter(value)}
+                  className={`flex-1 text-xs py-1 rounded-md font-medium transition-colors ${
+                    activeFilter === value
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
 
+          {/* Asset list */}
           <div
             className="flex-1 overflow-y-auto p-2"
             style={{
@@ -113,38 +168,69 @@ export default function SideNav({
                 opacity: 0.8;
               }
             `}</style>
-            <ul className="space-y-1">
-              {stocks.map((stock) => {
-                const isSelected = selectedSymbol === stock.symbol;
 
-                return (
-                  <li key={stock.symbol}>
-                    <button
-                      onClick={() => onSelectSymbol(stock.symbol)}
-                      className={`w-full text-left px-3 py-2 rounded-lg transition-all flex items-center gap-3 ${
-                        isSelected
-                          ? 'bg-primary/10 text-primary font-semibold'
-                          : 'hover:bg-muted text-foreground'
-                      }`}
-                    >
-                      <StockLogo ticker={stock.symbol} />
+            {filteredStocks.length === 0 ? (
+              <p className="text-center text-sm text-muted-foreground py-8">
+                No assets found.
+              </p>
+            ) : (
+              <ul className="space-y-1">
+                {filteredStocks.map((stock) => {
+                  const isSelected = selectedSymbol === stock.symbol;
+                  const isLocked =
+                    freePlan && !FREE_SYMBOLS.includes(stock.symbol);
 
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium">{stock.symbol}</div>
-
-                        <div className="text-xs text-muted-foreground truncate">
-                          {stock.name}
+                  if (isLocked) {
+                    return (
+                      <li key={stock.symbol}>
+                        <div
+                          title="Upgrade to Pro to unlock"
+                          className="w-full text-left px-3 py-2 rounded-lg flex items-center gap-3 opacity-40 cursor-not-allowed select-none"
+                        >
+                          <StockLogo ticker={stock.symbol} />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium">{stock.symbol}</div>
+                            <div className="text-xs text-muted-foreground truncate">
+                              {stock.name}
+                            </div>
+                          </div>
+                          <Lock
+                            size={12}
+                            className="shrink-0 text-muted-foreground"
+                          />
                         </div>
-                      </div>
+                      </li>
+                    );
+                  }
 
-                      {isSelected && (
-                        <div className="w-2 h-2 bg-primary rounded-full" />
-                      )}
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
+                  return (
+                    <li key={stock.symbol}>
+                      <button
+                        onClick={() => onSelectSymbol(stock.symbol)}
+                        className={`w-full text-left px-3 py-2 rounded-lg transition-all flex items-center gap-3 ${
+                          isSelected
+                            ? 'bg-primary/10 text-primary font-semibold'
+                            : 'hover:bg-muted text-foreground'
+                        }`}
+                      >
+                        <StockLogo ticker={stock.symbol} />
+
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium">{stock.symbol}</div>
+                          <div className="text-xs text-muted-foreground truncate">
+                            {stock.name}
+                          </div>
+                        </div>
+
+                        {isSelected && (
+                          <div className="w-2 h-2 bg-primary rounded-full" />
+                        )}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </div>
         </Card>
       </div>

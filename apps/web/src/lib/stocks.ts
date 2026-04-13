@@ -145,8 +145,8 @@ export const tickerToDomain: Record<string, string> = {
   SPY: 'ssga.com',
 
   // Crypto
-  'BINANCE:BTCUSDT': 'bitcoin.org',
-  'BINANCE:ETHUSDT': 'ethereum.org'
+  'BTC-USD': 'bitcoin.org',
+  'ETH-USD': 'ethereum.org'
 };
 
 /**
@@ -291,6 +291,127 @@ export const tickerToName: Record<string, string> = {
   // Crypto
   'BINANCE:BTCUSDT': 'Bitcoin (BTC/USDT)',
   'BINANCE:ETHUSDT': 'Ethereum (ETH/USDT)'
+};
+
+/**
+ * Map stock tickers to their asset type
+ *
+ * Purpose:
+ * - Used to filter assets by category in the AssetNav sidebar
+ *
+ * Structure:
+ * - Key: Stock ticker symbol (e.g., "AAPL")
+ * - Value: Asset type ('stock' | 'etf' | 'crypto')
+ */
+export const tickerToType: Record<string, 'stock' | 'etf' | 'crypto'> = {
+  // Big Tech
+  AAPL: 'stock',
+  MSFT: 'stock',
+  GOOGL: 'stock',
+  AMZN: 'stock',
+  TSLA: 'stock',
+  NVDA: 'stock',
+  META: 'stock',
+  NFLX: 'stock',
+  AMD: 'stock',
+  INTC: 'stock',
+  UBER: 'stock',
+  ABNB: 'stock',
+  ADBE: 'stock',
+  CRM: 'stock',
+  ORCL: 'stock',
+  CSCO: 'stock',
+  IBM: 'stock',
+  QCOM: 'stock',
+  TXN: 'stock',
+  AVGO: 'stock',
+  SHOP: 'stock',
+  SQ: 'stock',
+  PYPL: 'stock',
+  SPOT: 'stock',
+  SNAP: 'stock',
+  TWTR: 'stock',
+  RBLX: 'stock',
+  ROKU: 'stock',
+  // Financial Services
+  JPM: 'stock',
+  BAC: 'stock',
+  WFC: 'stock',
+  GS: 'stock',
+  MS: 'stock',
+  C: 'stock',
+  BLK: 'stock',
+  SCHW: 'stock',
+  AXP: 'stock',
+  V: 'stock',
+  MA: 'stock',
+  COF: 'stock',
+  // Healthcare & Pharma
+  JNJ: 'stock',
+  UNH: 'stock',
+  PFE: 'stock',
+  ABBV: 'stock',
+  TMO: 'stock',
+  ABT: 'stock',
+  MRK: 'stock',
+  LLY: 'stock',
+  BMY: 'stock',
+  AMGN: 'stock',
+  GILD: 'stock',
+  CVS: 'stock',
+  // Consumer Goods & Retail
+  WMT: 'stock',
+  HD: 'stock',
+  PG: 'stock',
+  KO: 'stock',
+  PEP: 'stock',
+  COST: 'stock',
+  NKE: 'stock',
+  MCD: 'stock',
+  SBUX: 'stock',
+  TGT: 'stock',
+  LOW: 'stock',
+  TJX: 'stock',
+  DIS: 'stock',
+  // Energy
+  XOM: 'stock',
+  CVX: 'stock',
+  COP: 'stock',
+  SLB: 'stock',
+  EOG: 'stock',
+  // Automotive
+  F: 'stock',
+  GM: 'stock',
+  RIVN: 'stock',
+  LCID: 'stock',
+  // Industrial & Manufacturing
+  BA: 'stock',
+  CAT: 'stock',
+  GE: 'stock',
+  MMM: 'stock',
+  HON: 'stock',
+  UPS: 'stock',
+  RTX: 'stock',
+  // Telecom
+  T: 'stock',
+  VZ: 'stock',
+  TMUS: 'stock',
+  // Real Estate & Construction
+  AMT: 'stock',
+  PLD: 'stock',
+  // Consumer Discretionary
+  BKNG: 'stock',
+  EXPE: 'stock',
+  // Materials & Chemicals
+  LIN: 'stock',
+  APD: 'stock',
+  // ETFs
+  VOO: 'etf',
+  QQQ: 'etf',
+  SPY: 'etf',
+  // Crypto
+  'BINANCE:BTCUSDT': 'crypto',
+  'BINANCE:ETHUSDT': 'crypto'
 };
 
 export default tickerToDomain;

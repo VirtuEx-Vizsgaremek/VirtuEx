@@ -22,19 +22,28 @@
  * - token prop: JWT forwarded from TradingView, resolved via the `getToken` server action
  */
 
-import { buyAsset, BuyResult, sellAsset, SellResult } from '@/lib/tradeApi';
+import {
+  buyAsset,
+  BuyResult,
+  Currency,
+  exchangeAsset,
+  ExchangeResult,
+  fetchSymbolBalance,
+  sellAsset,
+  SellResult
+} from '@/lib/tradeApi';
 import { useEffect, useRef, useState } from 'react';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface TradeModalProps {
-  /** Whether this is a buy or sell action — controls labels, colors, and input units. */
-  mode: 'buy' | 'sell';
+  /** Whether this is a buy, sell, or exchange action — controls labels, colors, and input units. */
+  mode: 'buy' | 'sell' | 'exchange';
   /** Ticker symbol displayed in the header, e.g. "AAPL". */
   symbol: string;
-  /** Currency ID of the asset being spent (buy mode) or sold (sell mode). */
+  /** Currency ID of the asset being spent (buy) or sold / exchanged away (sell / exchange). */
   fromCurrencyId: string;
-  /** Currency ID of the asset being received. */
+  /** Currency ID of the asset being received (buy / sell). Ignored in exchange mode (user selects in modal). */
   toCurrencyId: string;
   /**
    * Latest known price in dollars — used only for the live preview estimate.
@@ -45,14 +54,20 @@ interface TradeModalProps {
   /**
    * Precision (decimal places) of the target asset, e.g. 8 for BTC.
    * Used to format the unit display and calculate minimum spend.
+   * In exchange mode this is the precision of the FROM asset (for input scaling).
    */
   targetPrecision?: number;
+  /**
+   * Full list of currencies for the "exchange for" dropdown.
+   * Only required when mode === 'exchange'.
+   */
+  availableCurrencies?: Currency[];
   /** JWT access token for the authenticated user, forwarded to the API. */
   token: string;
   /** Called when the modal should be dismissed (cancel, backdrop click, Escape). */
   onClose: () => void;
   /** Called after a successful trade with the API response payload. */
-  onSuccess: (result: BuyResult | SellResult) => void;
+  onSuccess: (result: BuyResult | SellResult | ExchangeResult) => void;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -100,11 +115,13 @@ export default function TradeModal({
   toCurrencyId,
   currentPrice,
   targetPrecision = 8,
+  availableCurrencies,
   token,
   onClose,
   onSuccess
 }: TradeModalProps) {
   const isBuy = mode === 'buy';
+  const isExchange = mode === 'exchange';
 
   // ── State ─────────────────────────────────────────────────────────────────
   const [amount, setAmount] = useState('');
@@ -116,8 +133,15 @@ export default function TradeModal({
    * 'units' — user enters how many units to buy
    */
   const [buyInputMode, setBuyInputMode] = useState<'usd' | 'units'>('usd');
+  /** Selected target currency for exchange mode. */
+  const [exchangeTargetId, setExchangeTargetId] = useState<string>(
+    () => availableCurrencies?.find((c) => c.symbol !== symbol)?.id ?? ''
+  );
 
   const inputRef = useRef<HTMLInputElement>(null);
+
+  /** Current balance of the from-asset — fetched once on mount for exchange mode. */
+  const [fromBalance, setFromBalance] = useState<string | null>(null);
 
   // ── Side effects ──────────────────────────────────────────────────────────
 
@@ -141,9 +165,21 @@ export default function TradeModal({
     setError(null);
   }, [buyInputMode]);
 
+  // Fetch the user's balance for the from-asset when in exchange mode
+  useEffect(() => {
+    if (!isExchange || !token || !symbol) return;
+    fetchSymbolBalance(token, symbol)
+      .then((bal) => setFromBalance(bal))
+      .catch(() => {});
+  }, [isExchange, token, symbol]);
+
   // ── Derived values ────────────────────────────────────────────────────────
   const parsedAmount = parseFloat(amount);
   const validAmount = !isNaN(parsedAmount) && parsedAmount > 0;
+
+  const exchangeTarget = availableCurrencies?.find(
+    (c) => c.id === exchangeTargetId
+  );
 
   /**
    * Minimum spend in USD to receive at least one smallest unit.
@@ -170,6 +206,11 @@ export default function TradeModal({
         const cost = parsedAmount * currentPrice;
         return `≈ ${formatUSD(cost)}`;
       }
+    } else if (isExchange) {
+      // Exchange: show USD value of what's being sold (actual received units
+      // depend on target price which we don't have client-side)
+      const usdValue = parsedAmount * currentPrice;
+      return `≈ ${formatUSD(usdValue)} worth of ${exchangeTarget?.symbol ?? '…'}`;
     } else {
       // selling units → how much USD?
       const proceeds = parsedAmount * currentPrice;
@@ -191,6 +232,11 @@ export default function TradeModal({
       return;
     }
 
+    if (isExchange && !exchangeTargetId) {
+      setError('Please select a currency to exchange into.');
+      return;
+    }
+
     let amountInCents: string;
 
     if (isBuy) {
@@ -204,7 +250,8 @@ export default function TradeModal({
         amountInCents = String(Math.round(spendDollars * 100));
       }
     } else {
-      // Sell: user entered units. Backend expects integer units × 10^precision.
+      // Sell or Exchange: user entered units.
+      // Backend expects integer units × 10^precision.
       // e.g. 0.5 units with precision 8 → 50000000
       const unitsInt = Math.round(parsedAmount * Math.pow(10, targetPrecision));
       amountInCents = String(unitsInt);
@@ -217,9 +264,29 @@ export default function TradeModal({
 
     setIsLoading(true);
     try {
-      const result = isBuy
-        ? await buyAsset(token, fromCurrencyId, toCurrencyId, amountInCents)
-        : await sellAsset(token, fromCurrencyId, toCurrencyId, amountInCents);
+      let result: BuyResult | SellResult | ExchangeResult;
+      if (isExchange) {
+        result = await exchangeAsset(
+          token,
+          fromCurrencyId,
+          exchangeTargetId,
+          amountInCents
+        );
+      } else if (isBuy) {
+        result = await buyAsset(
+          token,
+          fromCurrencyId,
+          toCurrencyId,
+          amountInCents
+        );
+      } else {
+        result = await sellAsset(
+          token,
+          fromCurrencyId,
+          toCurrencyId,
+          amountInCents
+        );
+      }
 
       onSuccess(result);
       onClose();
@@ -244,6 +311,7 @@ export default function TradeModal({
         ? 'Amount to spend (USD)'
         : `Units of ${symbol} to buy`;
     }
+    if (isExchange) return `Units of ${symbol} to exchange`;
     return `Units of ${symbol} to sell`;
   })();
 
@@ -268,12 +336,14 @@ export default function TradeModal({
         {/* ── Header ── */}
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-lg font-semibold text-foreground">
-            {isBuy ? 'Buy' : 'Sell'}{' '}
+            {isExchange ? 'Exchange' : isBuy ? 'Buy' : 'Sell'}{' '}
             <span
               style={{
-                color: isBuy
-                  ? 'rgb(var(--color-success))'
-                  : 'rgb(var(--color-danger))'
+                color: isExchange
+                  ? 'rgb(var(--color-primary))'
+                  : isBuy
+                    ? 'rgb(var(--color-success))'
+                    : 'rgb(var(--color-danger))'
               }}
             >
               {symbol}
@@ -294,6 +364,41 @@ export default function TradeModal({
             <span>Current price</span>
             <span className="text-foreground font-medium tabular-nums">
               {formatUSD(currentPrice)}
+            </span>
+          </div>
+        )}
+
+        {/* ── Exchange target selector — only shown in exchange mode ── */}
+        {isExchange && availableCurrencies && (
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-muted-foreground mb-1.5">
+              Exchange for
+            </label>
+            <select
+              value={exchangeTargetId}
+              onChange={(e) => {
+                setExchangeTargetId(e.target.value);
+                setError(null);
+              }}
+              className="w-full px-3 py-2.5 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all"
+            >
+              {availableCurrencies
+                .filter((c) => c.symbol !== symbol)
+                .map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.symbol} — {c.name}
+                  </option>
+                ))}
+            </select>
+          </div>
+        )}
+
+        {/* ── Available balance — exchange mode only ── */}
+        {isExchange && (
+          <div className="flex items-center justify-between text-sm text-muted-foreground mb-4 px-3 py-2 rounded-lg bg-muted/40 border border-border">
+            <span>Available</span>
+            <span className="text-foreground font-medium tabular-nums">
+              {fromBalance !== null ? `${fromBalance} ${symbol}` : '—'}
             </span>
           </div>
         )}
@@ -407,9 +512,11 @@ export default function TradeModal({
               backgroundColor:
                 isLoading || !validAmount
                   ? undefined
-                  : isBuy
-                    ? 'rgb(var(--color-success) / 1)'
-                    : 'rgb(var(--color-danger) / 1)'
+                  : isExchange
+                    ? 'rgb(var(--color-primary) / 1)'
+                    : isBuy
+                      ? 'rgb(var(--color-success) / 1)'
+                      : 'rgb(var(--color-danger) / 1)'
             }}
             className={`flex-1 px-4 py-2.5 rounded-lg text-sm font-medium text-white
               disabled:opacity-40 disabled:cursor-not-allowed transition-all
@@ -439,6 +546,8 @@ export default function TradeModal({
                 </svg>
                 Processing…
               </span>
+            ) : isExchange ? (
+              'Confirm Exchange'
             ) : isBuy ? (
               'Confirm Buy'
             ) : (

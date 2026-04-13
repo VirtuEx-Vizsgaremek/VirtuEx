@@ -5,7 +5,7 @@ import { ValidationError } from '@/util/errors';
 
 import { CookieOptions, RequestFile } from '@/interfaces';
 
-import { ZodObject, ZodUnion } from 'zod';
+import { ZodTypeAny } from 'zod';
 import { User } from '@/entities/user.entity';
 import { orm } from '@/util/orm';
 import { JwtPayload, verify } from 'jsonwebtoken';
@@ -153,10 +153,7 @@ export class Request {
    * @returns {T['_output']} The input object.
    * @throws {ValidationError}
    */
-  public validate<T extends ZodObject<any> | ZodUnion<any>>(
-    schema: T,
-    data: any
-  ): T['_output'] {
+  public validate<T extends ZodTypeAny>(schema: T, data: any): T['_output'] {
     if (!this.res) new Error();
     const res = schema.safeParse(data);
 
@@ -175,7 +172,8 @@ export class Request {
           });
       });
 
-      throw new ValidationError(issues);
+      const firstMessage = issues.find((issue) => issue.message)?.message;
+      throw new ValidationError(issues, firstMessage);
     }
 
     return res.data;
@@ -194,9 +192,7 @@ export class Request {
    * @returns {T['_output']} The request's body.
    * @throws {ValidationError}
    */
-  public validateBody<T extends ZodObject<any> | ZodUnion<any>>(
-    schema: T
-  ): T['_output'] {
+  public validateBody<T extends ZodTypeAny>(schema: T): T['_output'] {
     return this.validate(schema, this.req.body);
   }
 
@@ -213,7 +209,7 @@ export class Request {
    * @returns {T['_output']} The request's query object.
    * @throws {ValidationError}
    */
-  public validateQuery<T extends ZodObject<any>>(schema: T): T['_output'] {
+  public validateQuery<T extends ZodTypeAny>(schema: T): T['_output'] {
     return this.validate(schema, this.req.query);
   }
 }
