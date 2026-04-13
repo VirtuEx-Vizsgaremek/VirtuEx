@@ -37,3 +37,6 @@ yarn-error.log*
 .DS_Store
 *.pem
 inspo.html
+generate_docs.py
+VirtuEx_Dokumentacio.docx
+Vizsgaremek_elvaras_minta.docx

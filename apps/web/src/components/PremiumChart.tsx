@@ -328,6 +328,10 @@ export default function PremiumChart({
   // ── Mock (paper) trading ────────────────────────────────────────────────────
   const [startingBalance, setStartingBalance] = useState(100_000);
   const [startingBalanceInput, setStartingBalanceInput] = useState('100000');
+  // Frozen snapshot of the balance used when the current generation was started.
+  // Only updated on Generate — changing the slider after generation must not
+  // retroactively shift the P&L baseline.
+  const [mockInitialBalance, setMockInitialBalance] = useState(100_000);
   const [mockCash, setMockCash] = useState<number | null>(null);
   const [mockUnits, setMockUnits] = useState(0);
   const [mockAvgCost, setMockAvgCost] = useState(0);
@@ -717,7 +721,9 @@ export default function PremiumChart({
     onClearSelection?.();
     setError(null);
 
-    // Reset paper-trading portfolio with the configured starting balance.
+    // Reset paper-trading portfolio with the configured starting balance
+    // and freeze that value as the P&L baseline for this session.
+    setMockInitialBalance(startingBalance);
     setMockCash(startingBalance);
     setMockUnits(0);
     setMockAvgCost(0);
@@ -2188,9 +2194,9 @@ export default function PremiumChart({
           const price = simLastPriceRef.current;
           const holdingsValue = mockUnits * price;
           const totalValue = mockCash + holdingsValue;
-          const pnl = totalValue - startingBalance;
+          const pnl = totalValue - mockInitialBalance;
           const pnlPct =
-            startingBalance > 0 ? (pnl / startingBalance) * 100 : 0;
+            mockInitialBalance > 0 ? (pnl / mockInitialBalance) * 100 : 0;
           const holdingsPnl =
             mockUnits > 0 ? (price - mockAvgCost) * mockUnits : 0;
           const positive = pnl >= 0;

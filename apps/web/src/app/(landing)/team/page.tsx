@@ -5,22 +5,22 @@ export const metadata = { title: 'Team – VirtuEx' };
 
 const TEAM = [
   {
-    name: 'Kovács Ádám',
+    name: 'TheClashFruit',
     role: 'Full-Stack Developer',
     bio: 'Responsible for the core trading engine, API architecture, and database design. Focused on building a reliable, high-precision order system.',
-    github: 'https://github.com/VirtuEx-Vizsgaremek/VirtuEx/'
+    github: 'https://github.com/TheClashFruit'
   },
   {
-    name: 'Nagy Bence',
-    role: 'Frontend Developer',
+    name: 'ItsMeHaxMaster',
+    role: 'Full-Stack Developer',
     bio: 'Built the market page, interactive charts, and the mobile-responsive UI. Passionate about clean interfaces and smooth user experience.',
-    github: 'https://github.com/VirtuEx-Vizsgaremek/VirtuEx/'
+    github: 'https://github.com/ItsMeHaxMaster'
   },
   {
-    name: 'Szabó Máté',
-    role: 'Backend Developer',
+    name: 'HerBenHub',
+    role: 'Full-Stack Developer',
     bio: 'Designed the authentication flow, subscription system, and wallet top-up logic. Focused on security, data integrity, and API correctness.',
-    github: 'https://github.com/VirtuEx-Vizsgaremek/VirtuEx/'
+    github: 'https://github.com/HerBenHub'
   }
 ];
 

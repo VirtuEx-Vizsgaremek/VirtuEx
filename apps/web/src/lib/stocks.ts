@@ -145,8 +145,8 @@ export const tickerToDomain: Record<string, string> = {
   SPY: 'ssga.com',
 
   // Crypto
-  'BINANCE:BTCUSDT': 'bitcoin.org',
-  'BINANCE:ETHUSDT': 'ethereum.org'
+  'BTC-USD': 'bitcoin.org',
+  'ETH-USD': 'ethereum.org'
 };
 
 /**
