@@ -49,6 +49,22 @@ public class ApiClient : IDisposable
         };
     }
 
+    /// <summary>
+    /// Test-only constructor — accepts a pre-configured <see cref="HttpClient"/> so unit
+    /// tests can inject a <see cref="System.Net.Http.HttpMessageHandler"/> mock without
+    /// hitting a live server.
+    /// </summary>
+    internal ApiClient(HttpClient httpClient)
+    {
+        _httpClient = httpClient;
+        _token      = string.Empty;
+        _jsonSettings = new JsonSerializerSettings
+        {
+            ContractResolver  = _contractResolver,
+            NullValueHandling = NullValueHandling.Ignore
+        };
+    }
+
     public async Task<LoginResponse> Login(string email, string password)
     {
         var res = await _httpClient.PostAsync("/v1/auth/login", new FormUrlEncodedContent(new Dictionary<string, string> {
@@ -573,6 +589,44 @@ public class ApiClient : IDisposable
 
             return resp;
         }
+
+        var err = JsonConvert.DeserializeObject<ErrorResponse>(body, _jsonSettings)!;
+        throw new ResponseException(err);
+    }
+
+    public async Task<AuditLog[]> AuditLog()
+    {
+        var res = await _httpClient.GetAsync("/v1/auditlog");
+        var body = await res.Content.ReadAsStringAsync();
+
+        if (res.IsSuccessStatusCode)
+            return JsonConvert.DeserializeObject<AuditLog[]>(body, _jsonSettings) ?? [];
+
+        var err = JsonConvert.DeserializeObject<ErrorResponse>(body, _jsonSettings)!;
+        throw new ResponseException(err);
+    }
+
+    public async Task UpdateCurrency(ulong id, string symbol, string name, uint precision, string updateFrequency, string type)
+    {
+        var payload = new { symbol, name, precision, update_frequeny = updateFrequency, type };
+        var json    = JsonConvert.SerializeObject(payload, _jsonSettings);
+        var content = new StringContent(json, Encoding.UTF8, "application/json");
+        var res     = await _httpClient.PatchAsync($"/v1/currency/{id}", content);
+
+        if (!res.IsSuccessStatusCode)
+        {
+            var err = JsonConvert.DeserializeObject<ErrorResponse>(await res.Content.ReadAsStringAsync(), _jsonSettings)!;
+            throw new ResponseException(err);
+        }
+    }
+
+    public async Task<Transaction[]> Transactions()
+    {
+        var res = await _httpClient.GetAsync("/v1/trade");
+        var body = await res.Content.ReadAsStringAsync();
+
+        if (res.IsSuccessStatusCode)
+            return JsonConvert.DeserializeObject<Transaction[]>(body, _jsonSettings) ?? [];
 
         var err = JsonConvert.DeserializeObject<ErrorResponse>(body, _jsonSettings)!;
         throw new ResponseException(err);

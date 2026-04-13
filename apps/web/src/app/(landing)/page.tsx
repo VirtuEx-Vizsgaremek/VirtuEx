@@ -204,7 +204,7 @@ export default function Home() {
                 </li>
                 <li className="flex items-center">
                   <Check className="w-5 h-5 text-accent mr-3 shrink-0" />
-                  2FA Account Security
+                  {/* 2FA Account Security  */}
                 </li>
                 <li className="flex items-center">
                   <Check className="w-5 h-5 text-accent mr-3 shrink-0" />
