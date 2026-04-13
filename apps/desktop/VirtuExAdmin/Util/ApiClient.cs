@@ -1,12 +1,13 @@
-using System.IO;
-using System.Net.Http;
-using CommunityToolkit.Mvvm.ComponentModel;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
-using VirtuExAdmin.Serializables;
 using System.Diagnostics;
+using System.IO;
+using System.Net.Http;
 using System.Text;
+using System.Windows.Controls;
+using VirtuExAdmin.Serializables;
 
 namespace VirtuExAdmin.Util;
 
@@ -39,14 +40,12 @@ public class ApiClient : IDisposable
 
         // TODO: configurable api uri
         _httpClient.BaseAddress = new Uri("http://localhost:3001");
-        _httpClient.DefaultRequestHeaders.UserAgent.Clear();
-        _httpClient.DefaultRequestHeaders.Add("User-Agent", "VirtuExAdmin/1.0.0");
+        var configPath = Path.Combine(AppContext.BaseDirectory, "api_url.txt");
+        var baseAddress = File.Exists(configPath)
+            ? File.ReadAllText(configPath).Trim()
+            : "http://localhost:3001";
 
-        _jsonSettings = new JsonSerializerSettings
-        {
-            ContractResolver = _contractResolver,
-            NullValueHandling = NullValueHandling.Ignore
-        };
+        _httpClient.BaseAddress = new Uri(baseAddress);
     }
 
     /// <summary>
@@ -121,6 +120,17 @@ public class ApiClient : IDisposable
             var err = JsonConvert.DeserializeObject<ErrorResponse>(await res.Content.ReadAsStringAsync(), _jsonSettings)!;
             throw new ResponseException(err);
         }
+    }
+
+    public async Task<AuditLog[]> AuditLog()
+    {
+        var res = await _httpClient.GetAsync("/v1/auditlog");
+
+        if (res.IsSuccessStatusCode)
+            return JsonConvert.DeserializeObject<AuditLog[]>(await res.Content.ReadAsStringAsync())!;
+
+        var err = JsonConvert.DeserializeObject<ErrorResponse>(await res.Content.ReadAsStringAsync())!;
+        throw new ResponseException(err);
     }
 
     public async Task<Subscription> SetSubscription(ulong userId, string planName)
@@ -383,6 +393,31 @@ public class ApiClient : IDisposable
             return JsonConvert.DeserializeObject<Currency[]>(await res.Content.ReadAsStringAsync(), _jsonSettings)!;
 
         var err = JsonConvert.DeserializeObject<ErrorResponse>(await res.Content.ReadAsStringAsync(), _jsonSettings)!;
+        throw new ResponseException(err);
+    }
+
+    public async Task UpdateCurrency(ulong id, string symbol, string name, uint precision, string updateFreqency, string type)
+    {
+        var settings = new JsonSerializerSettings { ContractResolver = _contractResolver };
+        var json = JsonConvert.SerializeObject(new { symbol, name, precision, updateFreqency, type }, settings);
+        var res = await _httpClient.PatchAsync($"/v1/currency/{id}",
+            new System.Net.Http.StringContent(json, System.Text.Encoding.UTF8, "application/json"));
+
+        if (!res.IsSuccessStatusCode)
+        {
+            var err = JsonConvert.DeserializeObject<ErrorResponse>(await res.Content.ReadAsStringAsync())!;
+            throw new ResponseException(err);
+        }
+    }
+
+    public async Task<Transaction[]> Transactions()
+    {
+        var res = await _httpClient.GetAsync("/v1/transaction");
+
+        if (res.IsSuccessStatusCode)
+            return JsonConvert.DeserializeObject<Transaction[]>(await res.Content.ReadAsStringAsync())!;
+
+        var err = JsonConvert.DeserializeObject<ErrorResponse>(await res.Content.ReadAsStringAsync())!;
         throw new ResponseException(err);
     }
 

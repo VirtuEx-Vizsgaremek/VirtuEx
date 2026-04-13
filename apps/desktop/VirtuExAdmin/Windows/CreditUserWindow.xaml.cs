@@ -15,6 +15,8 @@ public partial class CreditUserWindow : FluentWindow
     // TODO: replace with real currency selection when desktop exposes currencies in UI
     private const string DefaultCurrencyId = "USD";
 
+    private const ulong FiatScale = 100UL;
+
     private bool _isSubmitting;
 
     public CreditUserWindow(ApiClient apiClient, User user)
@@ -59,21 +61,28 @@ public partial class CreditUserWindow : FluentWindow
             return;
         }
 
-        if (!ulong.TryParse(raw, out var amount) || amount == 0)
+        if (!ulong.TryParse(raw, out var amountWhole) || amountWhole == 0)
         {
             System.Windows.MessageBox.Show("Amount must be greater than 0.", "Validation", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
             return;
         }
 
+        // Convert from whole units (e.g. 2000 USD) to smallest unit (e.g. cents) expected by backend.
+        var scaledAmount = checked(amountWhole * FiatScale).ToString();
+
         try
         {
             SetSubmitting(true);
 
-            await _apiClient.CreditUserWallet(_user.Id, DefaultCurrencyId, raw);
+            await _apiClient.CreditUserWallet(_user.Id, DefaultCurrencyId, scaledAmount);
 
             // Success: close dialog
             DialogResult = true;
             Close();
+        }
+        catch (OverflowException)
+        {
+            System.Windows.MessageBox.Show("Amount is too large.", "Validation", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
         }
         catch (ResponseException ex)
         {
