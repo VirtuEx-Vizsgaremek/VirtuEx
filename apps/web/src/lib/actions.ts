@@ -121,7 +121,7 @@ export const register = async (initialState: any, formData: FormData) => {
     }
 
     console.log('[REGISTER] Redirecting to profile');
-    redirect('/profile');
+    redirect('/market');
 
     return {
       error: {},
@@ -197,6 +197,74 @@ export const login = async (initialState: any, formData: FormData) => {
       error: {},
       serverError: ''
     };
+  } else {
+    return {
+      error: z.treeifyError(validatedFields.error).properties,
+      serverError: ''
+    };
+  }
+};
+
+export const validateMfa = async (initialState: any, formData: FormData) => {
+  const validatedFields = z
+    .object({
+      code: z
+        .string()
+        .min(6)
+        .max(6)
+        .regex(/^\d+$/, 'Must only contain numbers.')
+    })
+    .safeParse({
+      code: formData.get('code')
+    });
+
+  if (validatedFields.success) {
+    const { code } = validatedFields.data;
+    let data: any;
+    const cookieStore = await cookies();
+
+    try {
+      const token = cookieStore.get('vtx_token')?.value;
+
+      const response = await fetch(`${API_URL}/v1/auth/2fa`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ action: 'check', code })
+      });
+
+      if (!response.ok) {
+        const error = await response
+          .json()
+          .catch(() => ({ message: 'Invalid code or server error.' }));
+        return {
+          error: undefined,
+          serverError: error.message
+        };
+      }
+
+      data = await response.json();
+    } catch (e: unknown) {
+      console.error('[MFA] Network or parsing error:', e);
+      return {
+        error: undefined,
+        serverError: 'Failed to connect to the server. Please try again.'
+      };
+    }
+
+    // On success, set the full-access token in the cookie
+    cookieStore.set('vtx_token', data.token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      expires: new Date(data.expires),
+      path: '/'
+    });
+
+    // On success, redirect to the market page. This must be outside the try/catch.
+    redirect('/market');
   } else {
     return {
       error: z.treeifyError(validatedFields.error).properties,

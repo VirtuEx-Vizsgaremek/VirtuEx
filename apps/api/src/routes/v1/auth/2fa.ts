@@ -12,7 +12,7 @@ import moment from 'moment';
 export const schemas = {
   post: {
     req: z.object({
-      action: z.enum(['check', 'new']),
+      action: z.enum(['check', 'rm', 'new']),
       code: z.string().regex(/[0-9]{6}/)
     }),
     res: z.union([
@@ -73,6 +73,15 @@ export const post = async (
     return res.status(Status.Ok).json({
       secret
     });
+  }
+
+  if (action === 'rm') {
+    if (!result.valid) return res.error(Status.Unauthorized, 'Invalid code.');
+
+    user.mfaSecret = null;
+    await db.persist(user).flush();
+
+    return res.status(Status.NoContent).end();
   }
 
   return res.error(Status.BadRequest, 'Invalid action.');
